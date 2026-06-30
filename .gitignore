@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+dist/
+build/
+bin/
+obj/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+ENV/
+env/
+
+# Logs & temp files
+*.log
+backend/temp_reports/
+*.pdf
+
+# IDEs & System
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Gemini App Data / Workspace
+.gemini/
+.agents/

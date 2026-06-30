@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Dark circular background for browser tab visibility -->
+  <circle cx="50" cy="50" r="48" fill="#080810" stroke="#1A1A2E" stroke-width="4" />
+  <!-- Circular tri-arrow flow paths -->
+  <path d="M 20 60 A 30 30 0 0 1 50 20" stroke="#6366F1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 38 20 H 50 V 32" stroke="#6366F1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <path d="M 50 20 A 30 30 0 0 1 80 60" stroke="#6366F1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 80 48 V 60 H 68" stroke="#6366F1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <path d="M 80 60 A 30 30 0 0 1 20 60" stroke="#6366F1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 32 60 H 20 V 48" stroke="#6366F1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  background-color: #080810;
+  color: #F3F4F6;
+  font-family: 'Inter', 'Roboto', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism custom styles */
+.glass-panel {
+  background: rgba(15, 15, 26, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.glass-panel:hover {
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080810;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1A1A2E;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6366F1;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s infinite;
+}
