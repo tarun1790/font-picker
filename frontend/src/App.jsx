@@ -241,13 +241,33 @@ export default function App() {
   ]);
   const [userPrompt, setUserPrompt] = useState('');
 
-  // Results State
+  const [activeOcrFace, setActiveOcrFace] = useState('front');
   const [ocrBoxes, setOcrBoxes] = useState([
-    {"id": "box_1", "type": "Logo", "text": "Aura", "x": 35, "y": 20, "w": 30, "h": 10},
-    {"id": "box_2", "type": "Headline", "text": "CLASSIC DARK", "x": 20, "y": 42, "w": 60, "h": 14},
-    {"id": "box_3", "type": "Subheading", "text": "70% Single Origin Cocoa", "x": 25, "y": 58, "w": 50, "h": 8},
-    {"id": "box_4", "type": "Legal", "text": "NET WT. 100g ℮ (3.5 OZ)", "x": 20, "y": 90, "w": 60, "h": 6},
-    {"id": "box_5", "type": "Legal", "text": "✦ FINEST ARTISANAL SELECTION ✦", "x": 15, "y": 10, "w": 70, "h": 6}
+    // Front Face
+    {"id": "box_1", "type": "Logo", "text": "Aura", "x": 35, "y": 20, "w": 30, "h": 10, "face": "front"},
+    {"id": "box_2", "type": "Headline", "text": "CLASSIC DARK", "x": 20, "y": 42, "w": 60, "h": 14, "face": "front"},
+    {"id": "box_3", "type": "Subheading", "text": "70% Single Origin Cocoa", "x": 25, "y": 58, "w": 50, "h": 8, "face": "front"},
+    {"id": "box_5", "type": "Legal", "text": "✦ FINEST ARTISANAL SELECTION ✦", "x": 15, "y": 10, "w": 70, "h": 6, "face": "front"},
+    
+    // Back Face
+    {"id": "box_back_1", "type": "Headline", "text": "NUTRITION FACTS", "x": 25, "y": 15, "w": 50, "h": 12, "face": "back"},
+    {"id": "box_back_2", "type": "Legal", "text": "Servings: 2 | Calories per serving: 180", "x": 15, "y": 32, "w": 70, "h": 8, "face": "back"},
+    {"id": "box_back_3", "type": "Legal", "text": "Ingredients: Organic Cocoa Beans, Cocoa Butter, Cane Sugar", "x": 10, "y": 48, "w": 80, "h": 14, "face": "back"},
+    {"id": "box_back_4", "type": "Legal", "text": "Distributed by Aura Premium Inc, NY 10001", "x": 15, "y": 70, "w": 70, "h": 8, "face": "back"},
+    {"id": "box_back_5", "type": "Legal", "text": "BARCODE |||||||| 74109825", "x": 30, "y": 84, "w": 40, "h": 8, "face": "back"},
+
+    // Sides Face (Left/Right)
+    {"id": "box_side_1", "type": "Legal", "text": "✦ HANDCRAFTED QUALITY ✦", "x": 10, "y": 15, "w": 80, "h": 12, "face": "sides"},
+    {"id": "box_side_2", "type": "Legal", "text": "✦ ESTABLISHED 2026 ✦", "x": 10, "y": 45, "w": 80, "h": 12, "face": "sides"},
+    {"id": "box_side_3", "type": "Legal", "text": "BATCH NO. 8849-B", "x": 20, "y": 75, "w": 60, "h": 10, "face": "sides"},
+
+    // Down (Bottom) Face
+    {"id": "box_down_1", "type": "Legal", "text": "NET WT. 100g ℮ (3.5 OZ)", "x": 10, "y": 25, "w": 80, "h": 18, "face": "down"},
+    {"id": "box_down_2", "type": "Legal", "text": "RECYCLABLE PAPER WRAPPER", "x": 15, "y": 60, "w": 70, "h": 15, "face": "down"},
+
+    // Top Face
+    {"id": "box_top_1", "type": "Logo", "text": "AURA", "x": 30, "y": 30, "w": 40, "h": 25, "face": "top"},
+    {"id": "box_top_2", "type": "Subheading", "text": "PREMIUM", "x": 35, "y": 65, "w": 30, "h": 15, "face": "top"}
   ]);
   const [selectedBoxId, setSelectedBoxId] = useState(null);
 
@@ -278,11 +298,12 @@ export default function App() {
     const newBox = {
       id: `box_${Date.now()}`,
       type: "Logo",
-      text: "NEW BRAND",
+      text: "NEW TEXT",
       x: 35,
       y: 45,
       w: 30,
-      h: 10
+      h: 10,
+      face: activeOcrFace
     };
     setOcrBoxes(prev => [...prev, newBox]);
     setSelectedBoxId(newBox.id);
@@ -526,37 +547,66 @@ export default function App() {
     pointLight.position.set(-3, -3, 3);
     scene.add(pointLight);
 
-    // Create 3D Package Mesh (Chocolate bar slab or cylinder coffee jar)
-    const isCoffee = category.toLowerCase().includes('coffee') || category.toLowerCase().includes('beverage');
-    const cols = colors.split(',').map(c => c.trim().toLowerCase());
-    const primaryCol = cols[0] === 'brown' ? '#3E2723' : cols[0] === 'blue' ? '#0D47A1' : cols[0] === 'green' ? '#1B5E20' : '#111827';
-    
-    const sideMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(primaryCol),
-      roughness: 0.5,
-      metalness: 0.1
-    });
-    
-    const texture = previewUrl 
-      ? new THREE.TextureLoader().load(previewUrl) 
-      : new THREE.CanvasTexture(textCanvas);
-      
+    // Create multi-face packaging textures
     const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
-    texture.anisotropy = maxAnisotropy;
-    texture.minFilter = THREE.LinearMipmapLinearFilter;
-    texture.magFilter = THREE.LinearFilter;
+
+    const createFaceTexture = (faceName) => {
+      if (previewUrl && faceName === 'front') {
+        const tex = new THREE.TextureLoader().load(previewUrl);
+        tex.anisotropy = maxAnisotropy;
+        return tex;
+      }
+      const tex = new THREE.CanvasTexture(drawFaceCanvas(faceName));
+      tex.anisotropy = maxAnisotropy;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      return tex;
+    };
+
+    const frontTex = createFaceTexture('front');
+    const backTex = createFaceTexture('back');
+    const sidesTex = createFaceTexture('sides');
+    const bottomTex = createFaceTexture('down');
+    const topTex = createFaceTexture('top');
+
+    const frontMat = new THREE.MeshStandardMaterial({ map: frontTex, roughness: 0.25, metalness: 0.1 });
+    const backMat = new THREE.MeshStandardMaterial({ map: backTex, roughness: 0.25, metalness: 0.1 });
+    const topMat = new THREE.MeshStandardMaterial({ map: topTex, roughness: 0.25, metalness: 0.1 });
+    const bottomMat = new THREE.MeshStandardMaterial({ map: bottomTex, roughness: 0.25, metalness: 0.1 });
+    const sidesMat = new THREE.MeshStandardMaterial({ map: sidesTex, roughness: 0.25, metalness: 0.1 });
+
+    const createCylinderBodyTexture = () => {
+      if (previewUrl) {
+        const tex = new THREE.TextureLoader().load(previewUrl);
+        tex.anisotropy = maxAnisotropy;
+        return tex;
+      }
+      const wrapCanvas = document.createElement('canvas');
+      wrapCanvas.width = 2048;
+      wrapCanvas.height = 1024;
+      const wrapCtx = wrapCanvas.getContext('2d');
       
-    const frontMat = new THREE.MeshStandardMaterial({
-      map: texture,
-      roughness: 0.25,
-      metalness: 0.1
-    });
+      const frontCanvas = drawFaceCanvas('front');
+      const backCanvas = drawFaceCanvas('back');
+      
+      wrapCtx.drawImage(frontCanvas, 0, 0, 1024, 1024);
+      wrapCtx.drawImage(backCanvas, 1024, 0, 1024, 1024);
+      
+      const tex = new THREE.CanvasTexture(wrapCanvas);
+      tex.anisotropy = maxAnisotropy;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      return tex;
+    };
+
+    const bodyTex = createCylinderBodyTexture();
+    const bodyMat = new THREE.MeshStandardMaterial({ map: bodyTex, roughness: 0.25, metalness: 0.1 });
 
     let mainObject;
 
     if (packageShape === 'jar') {
       const geometry = new THREE.CylinderGeometry(0.8, 0.8, 2.2, 32);
-      const materials = [frontMat, sideMat, sideMat]; // Side, Top, Bottom
+      const materials = [bodyMat, topMat, bottomMat];
       mainObject = new THREE.Mesh(geometry, materials);
       mainObject.castShadow = true;
       mainObject.receiveShadow = true;
@@ -567,15 +617,14 @@ export default function App() {
       
       // Body
       const bodyGeom = new THREE.CylinderGeometry(0.6, 0.6, 1.8, 32);
-      const bodyMaterials = [frontMat, sideMat, sideMat];
-      const bodyMesh = new THREE.Mesh(bodyGeom, bodyMaterials);
+      const bodyMesh = new THREE.Mesh(bodyGeom, [bodyMat, topMat, bottomMat]);
       bodyMesh.castShadow = true;
       bodyMesh.receiveShadow = true;
       group.add(bodyMesh);
       
       // Neck
       const neckGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.5, 32);
-      const neckMesh = new THREE.Mesh(neckGeom, sideMat);
+      const neckMesh = new THREE.Mesh(neckGeom, sidesMat);
       neckMesh.position.y = 1.15;
       neckMesh.castShadow = true;
       neckMesh.receiveShadow = true;
@@ -583,7 +632,7 @@ export default function App() {
       
       // Cap
       const capGeom = new THREE.CylinderGeometry(0.2, 0.2, 0.15, 32);
-      const capMesh = new THREE.Mesh(capGeom, sideMat);
+      const capMesh = new THREE.Mesh(capGeom, topMat);
       capMesh.position.y = 1.45;
       capMesh.castShadow = true;
       capMesh.receiveShadow = true;
@@ -594,7 +643,7 @@ export default function App() {
     } 
     else if (packageShape === 'hex') {
       const geometry = new THREE.CylinderGeometry(0.9, 0.9, 2.2, 6);
-      const materials = [frontMat, sideMat, sideMat];
+      const materials = [bodyMat, topMat, bottomMat];
       mainObject = new THREE.Mesh(geometry, materials);
       mainObject.castShadow = true;
       mainObject.receiveShadow = true;
@@ -602,7 +651,7 @@ export default function App() {
     } 
     else if (packageShape === 'vial') {
       const geometry = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 32);
-      const materials = [frontMat, sideMat, sideMat];
+      const materials = [bodyMat, topMat, bottomMat];
       mainObject = new THREE.Mesh(geometry, materials);
       mainObject.castShadow = true;
       mainObject.receiveShadow = true;
@@ -610,7 +659,7 @@ export default function App() {
     } 
     else { // 'box'
       const geometry = new THREE.BoxGeometry(1.6, 2.4, 0.3);
-      const materials = [sideMat, sideMat, sideMat, sideMat, frontMat, sideMat];
+      const materials = [sidesMat, sidesMat, topMat, bottomMat, frontMat, backMat];
       mainObject = new THREE.Mesh(geometry, materials);
       mainObject.castShadow = true;
       mainObject.receiveShadow = true;
@@ -670,13 +719,13 @@ export default function App() {
     };
   }, [activeTab, category, previewUrl, packageShape, ocrBoxes]);
 
-  const updateTextureCanvas = () => {
-    const canvas = textureCanvasRef.current;
-    if (!canvas) return;
+  const drawFaceCanvas = (faceName) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 2048;
+    canvas.height = 2048;
     const ctx = canvas.getContext('2d');
     
-    // Reset transform matrix and apply 4x scale for 2K (2048x2048) resolution clarity
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // Scale coordinates up to 2K (since canvas is 2048x2048, but coordinates are 512x512)
     ctx.scale(4, 4);
     
     // Parse color styles
@@ -709,20 +758,57 @@ export default function App() {
     // Draw L-shaped corner accents
     const cornerSize = 20;
     ctx.lineWidth = 2.5;
-    // Top-Left
     ctx.beginPath(); ctx.moveTo(25 + cornerSize, 25); ctx.lineTo(25, 25); ctx.lineTo(25, 25 + cornerSize); ctx.stroke();
-    // Top-Right
     ctx.beginPath(); ctx.moveTo(487 - cornerSize, 25); ctx.lineTo(487, 25); ctx.lineTo(487, 25 + cornerSize); ctx.stroke();
-    // Bottom-Left
     ctx.beginPath(); ctx.moveTo(25 + cornerSize, 487); ctx.lineTo(25, 487); ctx.lineTo(25, 487 - cornerSize); ctx.stroke();
-    // Bottom-Right
     ctx.beginPath(); ctx.moveTo(487 - cornerSize, 487); ctx.lineTo(487, 487); ctx.lineTo(487, 487 - cornerSize); ctx.stroke();
 
+    // Draw concentric luxury stamp on the front face only
+    if (faceName === 'front') {
+      ctx.strokeStyle = accentCol;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(256, 395, 38, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.arc(256, 395, 33, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      ctx.fillStyle = accentCol;
+      ctx.textAlign = 'center';
+      ctx.font = `bold 9px sans-serif`;
+      ctx.fillText("CRU SPECIAL", 256, 390);
+      ctx.font = `bold 8px sans-serif`;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillText("ORGANIC", 256, 404);
+
+      // Rotated vertical side labels (only on front face edges for cosmetic frame)
+      ctx.save();
+      ctx.translate(45, 256);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText("✦ HANDCRAFTED QUALITY ✦", 0, 0);
+      ctx.restore();
+
+      ctx.save();
+      ctx.translate(467, 256);
+      ctx.rotate(Math.PI / 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText("✦ ESTABLISHED 2026 ✦", 0, 0);
+      ctx.restore();
+    }
+
+    // Filter boxes belonging to this face
+    const faceBoxes = ocrBoxes.filter(box => box.face === faceName);
+    
     // Dynamically apply selected font style
     const fontStyle = `"${selectedFont}", sans-serif`;
 
-    // Loop through ocrBoxes and draw each one dynamically in 3D projection canvas
-    ocrBoxes.forEach(box => {
+    faceBoxes.forEach(box => {
       const pixelX = (box.x / 100) * 512;
       const pixelY = (box.y / 100) * 512;
       const pixelW = (box.w / 100) * 512;
@@ -747,16 +833,14 @@ export default function App() {
         ctx.fillText(box.text, pixelX + pixelW / 2, pixelY + pixelH * 0.75);
       } 
       else if (box.type === 'Price') {
-        // Draw elegant thin gold border stamp for price
         ctx.strokeStyle = accentCol;
         ctx.lineWidth = 1;
         ctx.strokeRect(pixelX, pixelY, pixelW, pixelH);
-        
         ctx.fillStyle = accentCol;
         ctx.font = `bold ${Math.max(10, Math.floor(pixelH * 0.6))}px sans-serif`;
         ctx.fillText(box.text, pixelX + pixelW / 2, pixelY + pixelH * 0.7);
       } 
-      else { // Legal / default info
+      else {
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
         ctx.font = `bold ${Math.max(8, Math.floor(pixelH * 0.6))}px sans-serif`;
         ctx.fillText(box.text, pixelX + pixelW / 2, pixelY + pixelH * 0.7);
@@ -764,42 +848,19 @@ export default function App() {
       ctx.restore();
     });
 
-    // Draw rotated vertical side labels
-    ctx.save();
-    ctx.translate(45, 256);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.font = 'bold 9px sans-serif';
-    ctx.fillText("✦ HANDCRAFTED QUALITY ✦", 0, 0);
-    ctx.restore();
+    return canvas;
+  };
 
-    ctx.save();
-    ctx.translate(467, 256);
-    ctx.rotate(Math.PI / 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.font = 'bold 9px sans-serif';
-    ctx.fillText("✦ ESTABLISHED 2026 ✦", 0, 0);
-    ctx.restore();
-
-    // Concentric luxury stamps
-    ctx.strokeStyle = accentCol;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(256, 395, 38, 0, Math.PI * 2);
-    ctx.stroke();
+  const updateTextureCanvas = () => {
+    const canvas = textureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    ctx.arc(256, 395, 33, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    ctx.fillStyle = accentCol;
-    ctx.font = `bold 9px sans-serif`;
-    ctx.fillText("CRU SPECIAL", 256, 390);
-    ctx.font = `bold 8px sans-serif`;
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillText("ORGANIC", 256, 404);
-
+    // Draw front face onto the shared texture canvas for legacy/general updates
+    const frontCanvas = drawFaceCanvas('front');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(frontCanvas, 0, 0);
   };
 
   // Dynamic Web Font Loader & 3D Texture Updater Hook
@@ -1219,6 +1280,34 @@ export default function App() {
                   </button>
                 </div>
                 
+                {/* Package Face Selector */}
+                <div className="flex bg-[#0b0b14] border border-brand-border rounded-xl p-1 space-x-1 mb-4">
+                  {[
+                    { id: 'front', label: 'Front', icon: '🔲' },
+                    { id: 'back', label: 'Back', icon: '📖' },
+                    { id: 'sides', label: 'Sides', icon: '▤' },
+                    { id: 'down', label: 'Bottom', icon: '⏷' },
+                    { id: 'top', label: 'Top', icon: '⏶' }
+                  ].map(face => (
+                    <button
+                      key={face.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveOcrFace(face.id);
+                        setSelectedBoxId(null);
+                      }}
+                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold text-center transition-all cursor-pointer ${
+                        activeOcrFace === face.id
+                          ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/20 border border-brand-primary/30'
+                          : 'text-brand-muted hover:text-white hover:bg-brand-panel/40 border border-transparent'
+                      }`}
+                    >
+                      <span className="mr-0.5">{face.icon}</span>
+                      {face.label}
+                    </button>
+                  ))}
+                </div>
+                
                 <div 
                   className="relative aspect-[4/5] bg-brand-bg rounded-xl border border-brand-border overflow-hidden flex items-center justify-center p-4"
                   onClick={() => setSelectedBoxId(null)}
@@ -1226,7 +1315,7 @@ export default function App() {
                   {/* Outer wrapper representation */}
                   <div className="w-full h-full rounded-lg border-2 border-brand-accent/50 relative overflow-hidden bg-cover bg-center" style={{ backgroundImage: previewUrl ? `url(${previewUrl})` : 'none', backgroundColor: previewUrl ? 'transparent' : (colors.split(',')[0].trim().toLowerCase() === 'brown' ? '#3E2723' : '#111827') }}>
                     {/* Render OCR absolute boxes */}
-                    {ocrBoxes.map(box => {
+                    {ocrBoxes.filter(box => box.face === activeOcrFace).map(box => {
                       const isSelected = selectedBoxId === box.id;
                       return (
                         <div
