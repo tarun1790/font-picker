@@ -150,6 +150,7 @@ export default function App() {
   const [category, setCategory] = useState('Luxury Dark Chocolate');
   const [colors, setColors] = useState('Brown, Gold');
   const [selectedFont, setSelectedFont] = useState('Playfair Display');
+  const [packageShape, setPackageShape] = useState('box');
   const [fileUrl, setFileUrl] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -416,53 +417,91 @@ export default function App() {
 
     // Create 3D Package Mesh (Chocolate bar slab or cylinder coffee jar)
     const isCoffee = category.toLowerCase().includes('coffee') || category.toLowerCase().includes('beverage');
-    let geometry;
-    if (isCoffee) {
-      geometry = new THREE.CylinderGeometry(0.8, 0.8, 2.2, 32);
-    } else {
-      geometry = new THREE.BoxGeometry(1.6, 2.4, 0.3); // Chocolate slab
+    const cols = colors.split(',').map(c => c.trim().toLowerCase());
+    const primaryCol = cols[0] === 'brown' ? '#3E2723' : cols[0] === 'blue' ? '#0D47A1' : cols[0] === 'green' ? '#1B5E20' : '#111827';
+    
+    const sideMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(primaryCol),
+      roughness: 0.5,
+      metalness: 0.1
+    });
+    
+    const texture = previewUrl 
+      ? new THREE.TextureLoader().load(previewUrl) 
+      : new THREE.CanvasTexture(textCanvas);
+      
+    const frontMat = new THREE.MeshStandardMaterial({
+      map: texture,
+      roughness: 0.25,
+      metalness: 0.1
+    });
+
+    let mainObject;
+
+    if (packageShape === 'jar') {
+      const geometry = new THREE.CylinderGeometry(0.8, 0.8, 2.2, 32);
+      const materials = [frontMat, sideMat, sideMat]; // Side, Top, Bottom
+      mainObject = new THREE.Mesh(geometry, materials);
+      mainObject.castShadow = true;
+      mainObject.receiveShadow = true;
+      scene.add(mainObject);
+    } 
+    else if (packageShape === 'bottle') {
+      const group = new THREE.Group();
+      
+      // Body
+      const bodyGeom = new THREE.CylinderGeometry(0.6, 0.6, 1.8, 32);
+      const bodyMaterials = [frontMat, sideMat, sideMat];
+      const bodyMesh = new THREE.Mesh(bodyGeom, bodyMaterials);
+      bodyMesh.castShadow = true;
+      bodyMesh.receiveShadow = true;
+      group.add(bodyMesh);
+      
+      // Neck
+      const neckGeom = new THREE.CylinderGeometry(0.18, 0.18, 0.5, 32);
+      const neckMesh = new THREE.Mesh(neckGeom, sideMat);
+      neckMesh.position.y = 1.15;
+      neckMesh.castShadow = true;
+      neckMesh.receiveShadow = true;
+      group.add(neckMesh);
+      
+      // Cap
+      const capGeom = new THREE.CylinderGeometry(0.2, 0.2, 0.15, 32);
+      const capMesh = new THREE.Mesh(capGeom, sideMat);
+      capMesh.position.y = 1.45;
+      capMesh.castShadow = true;
+      capMesh.receiveShadow = true;
+      group.add(capMesh);
+      
+      scene.add(group);
+      mainObject = group;
+    } 
+    else if (packageShape === 'hex') {
+      const geometry = new THREE.CylinderGeometry(0.9, 0.9, 2.2, 6);
+      const materials = [frontMat, sideMat, sideMat];
+      mainObject = new THREE.Mesh(geometry, materials);
+      mainObject.castShadow = true;
+      mainObject.receiveShadow = true;
+      scene.add(mainObject);
+    } 
+    else if (packageShape === 'vial') {
+      const geometry = new THREE.CylinderGeometry(0.9, 0.9, 1.2, 32);
+      const materials = [frontMat, sideMat, sideMat];
+      mainObject = new THREE.Mesh(geometry, materials);
+      mainObject.castShadow = true;
+      mainObject.receiveShadow = true;
+      scene.add(mainObject);
+    } 
+    else { // 'box'
+      const geometry = new THREE.BoxGeometry(1.6, 2.4, 0.3);
+      const materials = [sideMat, sideMat, sideMat, sideMat, frontMat, sideMat];
+      mainObject = new THREE.Mesh(geometry, materials);
+      mainObject.castShadow = true;
+      mainObject.receiveShadow = true;
+      scene.add(mainObject);
     }
 
-    let material;
-    if (isCoffee) {
-      const texture = previewUrl 
-        ? new THREE.TextureLoader().load(previewUrl) 
-        : new THREE.CanvasTexture(textCanvas);
-      
-      material = new THREE.MeshStandardMaterial({
-        map: texture,
-        roughness: 0.25,
-        metalness: 0.1
-      });
-    } else {
-      const texture = previewUrl 
-        ? new THREE.TextureLoader().load(previewUrl) 
-        : new THREE.CanvasTexture(textCanvas);
-      
-      const cols = colors.split(',').map(c => c.trim().toLowerCase());
-      const primaryCol = cols[0] === 'brown' ? '#3E2723' : cols[0] === 'blue' ? '#0D47A1' : cols[0] === 'green' ? '#1B5E20' : '#111827';
-      
-      const sideMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(primaryCol),
-        roughness: 0.5,
-        metalness: 0.1
-      });
-      
-      const frontMat = new THREE.MeshStandardMaterial({
-        map: texture,
-        roughness: 0.25,
-        metalness: 0.1
-      });
-      
-      // Box geometry order: [Right, Left, Top, Bottom, Front, Back]
-      material = [sideMat, sideMat, sideMat, sideMat, frontMat, sideMat];
-    }
-
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-    meshRef.current = mesh;
+    meshRef.current = mainObject;
 
     // Rotation controls and animation loop
     let animationFrameId;
@@ -1169,6 +1208,33 @@ export default function App() {
                       placeholder="e.g. brown, gold"
                       className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-primary"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Package Shape Profile</label>
+                    <div className="grid grid-cols-5 gap-1.5 text-center">
+                      {[
+                        { id: 'box', label: 'Box', icon: '📦' },
+                        { id: 'jar', label: 'Jar', icon: '🥫' },
+                        { id: 'bottle', label: 'Bottle', icon: '🍾' },
+                        { id: 'hex', label: 'Hex', icon: '⬡' },
+                        { id: 'vial', label: 'Vial', icon: '💊' }
+                      ].map(shape => (
+                        <button
+                          key={shape.id}
+                          type="button"
+                          onClick={() => setPackageShape(shape.id)}
+                          className={`py-2 rounded-lg border text-center transition-all flex flex-col items-center justify-center cursor-pointer ${
+                            packageShape === shape.id
+                              ? 'border-brand-primary bg-brand-primary/20 text-white shadow-md'
+                              : 'border-brand-border bg-brand-panel/20 text-brand-muted hover:border-brand-border/60 hover:text-white'
+                          }`}
+                        >
+                          <span className="text-base mb-0.5">{shape.icon}</span>
+                          <span className="text-[9px] font-bold">{shape.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
