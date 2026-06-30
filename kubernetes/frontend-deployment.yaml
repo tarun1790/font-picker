@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fontpicker-frontend-deployment
+  labels:
+    app: fontpicker-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fontpicker-frontend
+  template:
+    metadata:
+      labels:
+        app: fontpicker-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: fontpicker-frontend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  selector:
+    app: fontpicker-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
