@@ -417,33 +417,33 @@ def handle_chat_query(payload: ChatRequest):
         
     # 2. Brand recommendation query
     else:
-        # Resolve category based on prompt keywords
-        resolved_cat = payload.category
-        user_msg_lower = user_msg.lower()
-        if "milk chocolate" in user_msg_lower or "milk" in user_msg_lower:
-            resolved_cat = "Milk Chocolate"
-        elif "dark chocolate" in user_msg_lower or "dark" in user_msg_lower or "cocoa" in user_msg_lower:
-            resolved_cat = "Luxury Dark Chocolate"
-        elif "coffee" in user_msg_lower or "espresso" in user_msg_lower:
-            resolved_cat = "Organic Espresso Blend"
-        elif "watch" in user_msg_lower or "chronograph" in user_msg_lower:
-            resolved_cat = "Mechanical Chronograph"
-        elif "wine" in user_msg_lower or "cabernet" in user_msg_lower or "spirits" in user_msg_lower:
-            resolved_cat = "Vintage Cabernet Sauvignon"
-        elif "energy" in user_msg_lower or "caffeine" in user_msg_lower:
-            resolved_cat = "Extreme Caffeine Energy"
-        elif "baby" in user_msg_lower or "diaper" in user_msg_lower:
-            resolved_cat = "Organic Diaper Cream"
-        elif "supplement" in user_msg_lower or "brain" in user_msg_lower or "booster" in user_msg_lower:
-            resolved_cat = "Nootropic Brain Booster"
-        elif "cosmetics" in user_msg_lower or "skincare" in user_msg_lower or "face" in user_msg_lower:
-            resolved_cat = "Premium Organic Skincare"
+        # Define known subcategories from the Design Knowledge Graph nodes
+        known_subcategories = [
+            "Luxury Dark Chocolate",
+            "Kids Candy Bar",
+            "Organic Facial Serum",
+            "Luxury Eau de Parfum",
+            "AI Developer Tooling",
+            "Pediatric Vitamin Gummy",
+            "Organic Espresso Blend",
+            "Mechanical Chronograph",
+            "Vintage Cabernet Sauvignon",
+            "Extreme Caffeine Energy",
+            "Organic Diaper Cream",
+            "Nootropic Brain Booster",
+            "Premium Organic Skincare",
+            "Fresh Milk Packet"
+        ]
+        
+        # Use LLM zero-shot subcategory classifier to resolve category semantically
+        resolved_cat = llm_selector.classify_subcategory(payload.message, known_subcategories)
 
         # Run LLM Classifier semantic router
         llm_res = llm_selector.recommend_typography_style(payload.message)
         
         # Log LLM Router thoughts to orchestrator
         llm_state = orchestrator.agents.setdefault("LLM Typography Router", agents.AgentState("LLM Typography Router"))
+        llm_state.add_thought(f"LLM classified prompt to category node: '{resolved_cat}'")
         llm_state.add_thought(f"Running zero-shot semantic analysis on prompt: '{payload.message}'")
         llm_state.add_thought(f"LLM Classification output label: '{llm_res['label']}' with confidence {llm_res['confidence']:.2f}")
         llm_state.add_thought(f"Calculated target DNA: Style = {llm_res['font_style']}, Contrast = {llm_res['stroke_contrast']}, Serif Angle = {llm_res['serif_angle']}")

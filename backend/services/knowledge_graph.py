@@ -177,6 +177,20 @@ class DesignKnowledgeGraph:
             print_constraints="Thermal transfer UV labels"
         )
 
+        # 11. Dairy / Milk Packaging Niche
+        self._add_path(
+            industry="Food & Beverage",
+            category="Dairy",
+            subcategory="Fresh Milk Packet",
+            audience="General Families & Household Consumers",
+            emotion="Purity, Freshness, Health & Wholesomeness",
+            typography="Friendly Rounded Sans-Serif",
+            color="Sky Blue, Clean White & Cream",
+            layout="Clean Spacious Balanced Layout",
+            material="Recyclable HDPE Plastic Bag / Tetra Pak",
+            print_constraints="Flexographic low-odor inks & Satin finish"
+        )
+
     def _add_path(self, **kwargs):
         # Dynamically create nodes and add directed relationships
         keys = list(kwargs.keys())
