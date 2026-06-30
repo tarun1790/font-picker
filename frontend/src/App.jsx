@@ -488,8 +488,8 @@ export default function App() {
 
     // Create 2D texture canvas to draw chocolate wrap layout dynamically
     const textCanvas = document.createElement('canvas');
-    textCanvas.width = 1024;
-    textCanvas.height = 1024;
+    textCanvas.width = 2048;
+    textCanvas.height = 2048;
     textureCanvasRef.current = textCanvas;
     updateTextureCanvas();
 
@@ -673,9 +673,9 @@ export default function App() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
-    // Reset transform matrix and apply 2x scale for 1024x1024 resolution clarity
+    // Reset transform matrix and apply 4x scale for 2K (2048x2048) resolution clarity
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(2, 2);
+    ctx.scale(4, 4);
     
     // Parse color styles
     const cols = colors.split(',').map(c => c.trim().toLowerCase());
@@ -1330,7 +1330,7 @@ export default function App() {
                 </div>
                 <div className="p-3 bg-brand-panel/30 border border-brand-border/40 rounded-xl">
                   <span className="block font-semibold text-white">Render Resolution</span>
-                  <span>1080p WebGL</span>
+                  <span>2K HD (2048px)</span>
                 </div>
                 <div className="p-3 bg-brand-panel/30 border border-brand-border/40 rounded-xl">
                   <span className="block font-semibold text-white">Specularity Map</span>
