@@ -488,8 +488,8 @@ export default function App() {
 
     // Create 2D texture canvas to draw chocolate wrap layout dynamically
     const textCanvas = document.createElement('canvas');
-    textCanvas.width = 512;
-    textCanvas.height = 512;
+    textCanvas.width = 1024;
+    textCanvas.height = 1024;
     textureCanvasRef.current = textCanvas;
     updateTextureCanvas();
 
@@ -506,6 +506,7 @@ export default function App() {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     canvas3DRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -537,6 +538,11 @@ export default function App() {
     const texture = previewUrl 
       ? new THREE.TextureLoader().load(previewUrl) 
       : new THREE.CanvasTexture(textCanvas);
+      
+    const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
+    texture.anisotropy = maxAnisotropy;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
       
     const frontMat = new THREE.MeshStandardMaterial({
       map: texture,
@@ -650,22 +656,26 @@ export default function App() {
     };
     animate();
 
-    // Clean up
+     // Clean up
     return () => {
       cancelAnimationFrame(animationFrameId);
       domElement.removeEventListener('mousedown', handleMouseDown);
       domElement.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
-      if (canvas3DRef.current && renderer.domElement) {
+      if (canvas3DRef.current && renderer.domElement && canvas3DRef.current.contains(renderer.domElement)) {
         canvas3DRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [activeTab, category, previewUrl]);
+  }, [activeTab, category, previewUrl, packageShape]);
 
   const updateTextureCanvas = () => {
     const canvas = textureCanvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    
+    // Reset transform matrix and apply 2x scale for 1024x1024 resolution clarity
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(2, 2);
     
     // Parse color styles
     const cols = colors.split(',').map(c => c.trim().toLowerCase());
