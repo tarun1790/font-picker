@@ -6,7 +6,17 @@ import {
   ArrowRight, Download, Eye, Shield, Heart, Zap, RefreshCw, Database, X
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000';
+const getApiBase = () => {
+  const queryApi = new URLSearchParams(window.location.search).get('api');
+  if (queryApi) {
+    localStorage.setItem('font_picker_api_base', queryApi);
+    return queryApi;
+  }
+  const savedApi = localStorage.getItem('font_picker_api_base');
+  if (savedApi) return savedApi;
+  return 'http://localhost:8000';
+};
+const API_BASE = getApiBase();
 
 // Predefined fonts metadata database matching backend
 const GOOGLE_FONTS = [
@@ -1143,7 +1153,22 @@ export default function App() {
             <h1 className="text-xl font-bold tracking-tight text-white flex items-center">
               FONT PICKER
             </h1>
-            <p className="text-xs text-brand-muted">Typography & Branding Intelligence Platform</p>
+            <div className="flex items-center space-x-2">
+              <p className="text-xs text-brand-muted">Typography & Branding Intelligence Studio</p>
+              <button 
+                onClick={() => {
+                  const newApi = prompt("Configure Backend API Endpoint Base URL:", API_BASE);
+                  if (newApi !== null) {
+                    localStorage.setItem('font_picker_api_base', newApi.trim());
+                    window.location.reload();
+                  }
+                }}
+                className="text-[9px] bg-brand-bg/80 hover:bg-brand-primary/20 text-brand-muted hover:text-white px-2 py-0.5 rounded border border-brand-border transition-all font-mono cursor-pointer"
+                title="Click to edit backend API endpoint"
+              >
+                API: {API_BASE.replace('http://', '').replace('https://', '')}
+              </button>
+            </div>
           </div>
         </div>
 
