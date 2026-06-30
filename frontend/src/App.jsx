@@ -244,8 +244,10 @@ export default function App() {
   // Results State
   const [ocrBoxes, setOcrBoxes] = useState([
     {"id": "box_1", "type": "Logo", "text": "Aura", "x": 35, "y": 20, "w": 30, "h": 10},
-    {"id": "box_2", "type": "Headline", "text": "CLASSIC DARK", "x": 20, "y": 40, "w": 60, "h": 15},
-    {"id": "box_3", "type": "Subheading", "text": "70% Single Origin Cocoa", "x": 25, "y": 60, "w": 50, "h": 8}
+    {"id": "box_2", "type": "Headline", "text": "CLASSIC DARK", "x": 20, "y": 42, "w": 60, "h": 14},
+    {"id": "box_3", "type": "Subheading", "text": "70% Single Origin Cocoa", "x": 25, "y": 58, "w": 50, "h": 8},
+    {"id": "box_4", "type": "Legal", "text": "NET WT. 100g ℮ (3.5 OZ)", "x": 20, "y": 90, "w": 60, "h": 6},
+    {"id": "box_5", "type": "Legal", "text": "✦ FINEST ARTISANAL SELECTION ✦", "x": 15, "y": 10, "w": 70, "h": 6}
   ]);
   const [selectedBoxId, setSelectedBoxId] = useState(null);
 
@@ -716,12 +718,6 @@ export default function App() {
     // Bottom-Right
     ctx.beginPath(); ctx.moveTo(487 - cornerSize, 487); ctx.lineTo(487, 487); ctx.lineTo(487, 487 - cornerSize); ctx.stroke();
 
-    // Draw Header Label
-    ctx.fillStyle = accentCol;
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 9px sans-serif';
-    ctx.fillText("✦ FINEST ARTISANAL SELECTION ✦", 256, 75);
-
     // Dynamically apply selected font style
     const fontStyle = `"${selectedFont}", sans-serif`;
 
@@ -804,10 +800,6 @@ export default function App() {
     ctx.fillStyle = '#FFFFFF';
     ctx.fillText("ORGANIC", 256, 404);
 
-    // Bottom Footer label
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = 'bold 8px sans-serif';
-    ctx.fillText("NET WT. 100g ℮ (3.5 OZ) | PRODUCT OF COSTA RICA", 256, 465);
   };
 
   // Dynamic Web Font Loader & 3D Texture Updater Hook
