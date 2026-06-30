@@ -423,13 +423,40 @@ export default function App() {
       geometry = new THREE.BoxGeometry(1.6, 2.4, 0.3); // Chocolate slab
     }
 
-    const texture = new THREE.CanvasTexture(textCanvas);
-    const material = new THREE.MeshStandardMaterial({
-      map: texture,
-      roughness: 0.25, // Semi-gloss PBR
-      metalness: 0.1,
-      bumpScale: 0.05
-    });
+    let material;
+    if (isCoffee) {
+      const texture = previewUrl 
+        ? new THREE.TextureLoader().load(previewUrl) 
+        : new THREE.CanvasTexture(textCanvas);
+      
+      material = new THREE.MeshStandardMaterial({
+        map: texture,
+        roughness: 0.25,
+        metalness: 0.1
+      });
+    } else {
+      const texture = previewUrl 
+        ? new THREE.TextureLoader().load(previewUrl) 
+        : new THREE.CanvasTexture(textCanvas);
+      
+      const cols = colors.split(',').map(c => c.trim().toLowerCase());
+      const primaryCol = cols[0] === 'brown' ? '#3E2723' : cols[0] === 'blue' ? '#0D47A1' : cols[0] === 'green' ? '#1B5E20' : '#111827';
+      
+      const sideMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(primaryCol),
+        roughness: 0.5,
+        metalness: 0.1
+      });
+      
+      const frontMat = new THREE.MeshStandardMaterial({
+        map: texture,
+        roughness: 0.25,
+        metalness: 0.1
+      });
+      
+      // Box geometry order: [Right, Left, Top, Bottom, Front, Back]
+      material = [sideMat, sideMat, sideMat, sideMat, frontMat, sideMat];
+    }
 
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
@@ -486,7 +513,7 @@ export default function App() {
         canvas3DRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [activeTab, category]);
+  }, [activeTab, category, previewUrl]);
 
   const updateTextureCanvas = () => {
     const canvas = textureCanvasRef.current;
@@ -735,7 +762,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg text-gray-100 flex flex-col font-sans scroll-smooth overflow-x-hidden">
+    <div className="min-h-screen bg-brand-bg text-gray-100 flex flex-col font-sans scroll-smooth overflow-x-hidden relative">
+      <div className="glow-orb-bg-1"></div>
+      <div className="glow-orb-bg-2"></div>
       
       {/* FULLSCREEN MORPHING TYPOGRAPHY LANDING INTRO */}
       <div className="h-screen w-full flex flex-col items-center justify-center relative select-none bg-gradient-to-b from-[#07070c] via-[#090912] to-brand-bg">
