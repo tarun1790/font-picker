@@ -666,7 +666,7 @@ export default function App() {
         canvas3DRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [activeTab, category, previewUrl, packageShape]);
+  }, [activeTab, category, previewUrl, packageShape, ocrBoxes]);
 
   const updateTextureCanvas = () => {
     const canvas = textureCanvasRef.current;
@@ -724,33 +724,49 @@ export default function App() {
 
     // Dynamically apply selected font style
     const fontStyle = `"${selectedFont}", sans-serif`;
-    
-    // Draw Logo text
-    ctx.fillStyle = accentCol;
-    ctx.font = `bold 32px ${fontStyle}`;
-    ctx.fillText(brandName.toUpperCase(), 256, 125);
 
-    // Draw split divider with diamond Lockup
-    ctx.strokeStyle = accentCol;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(100, 160);
-    ctx.lineTo(230, 160);
-    ctx.moveTo(282, 160);
-    ctx.lineTo(412, 160);
-    ctx.stroke();
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText("◆", 256, 164);
+    // Loop through ocrBoxes and draw each one dynamically in 3D projection canvas
+    ocrBoxes.forEach(box => {
+      const pixelX = (box.x / 100) * 512;
+      const pixelY = (box.y / 100) * 512;
+      const pixelW = (box.w / 100) * 512;
+      const pixelH = (box.h / 100) * 512;
 
-    // Draw Headline Text
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `bold 24px ${fontStyle}`;
-    ctx.fillText(category.toUpperCase(), 256, 245);
-
-    // Draw Subheading
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.font = `italic 16px ${fontStyle}`;
-    ctx.fillText("AI Formulated Typography", 256, 285);
+      ctx.save();
+      ctx.textAlign = 'center';
+      
+      if (box.type === 'Logo') {
+        ctx.fillStyle = accentCol;
+        ctx.font = `bold ${Math.max(12, Math.floor(pixelH * 0.7))}px ${fontStyle}`;
+        ctx.fillText(box.text.toUpperCase(), pixelX + pixelW / 2, pixelY + pixelH * 0.75);
+      } 
+      else if (box.type === 'Headline') {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `bold ${Math.max(12, Math.floor(pixelH * 0.65))}px ${fontStyle}`;
+        ctx.fillText(box.text.toUpperCase(), pixelX + pixelW / 2, pixelY + pixelH * 0.75);
+      } 
+      else if (box.type === 'Subheading') {
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = `italic ${Math.max(10, Math.floor(pixelH * 0.65))}px ${fontStyle}`;
+        ctx.fillText(box.text, pixelX + pixelW / 2, pixelY + pixelH * 0.75);
+      } 
+      else if (box.type === 'Price') {
+        // Draw elegant thin gold border stamp for price
+        ctx.strokeStyle = accentCol;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(pixelX, pixelY, pixelW, pixelH);
+        
+        ctx.fillStyle = accentCol;
+        ctx.font = `bold ${Math.max(10, Math.floor(pixelH * 0.6))}px sans-serif`;
+        ctx.fillText(box.text, pixelX + pixelW / 2, pixelY + pixelH * 0.7);
+      } 
+      else { // Legal / default info
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.font = `bold ${Math.max(8, Math.floor(pixelH * 0.6))}px sans-serif`;
+        ctx.fillText(box.text, pixelX + pixelW / 2, pixelY + pixelH * 0.7);
+      }
+      ctx.restore();
+    });
 
     // Draw rotated vertical side labels
     ctx.save();
