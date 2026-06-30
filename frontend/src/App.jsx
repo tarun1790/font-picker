@@ -686,47 +686,112 @@ export default function App() {
     ctx.fillStyle = primaryCol;
     ctx.fillRect(0, 0, 512, 512);
 
+    // Draw luxury geometric background watermark (faint diagonal gold pinstripes)
+    ctx.save();
+    ctx.strokeStyle = accentCol;
+    ctx.lineWidth = 0.5;
+    ctx.globalAlpha = 0.08;
+    for (let i = -512; i < 1024; i += 24) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i + 512, 512);
+      ctx.stroke();
+    }
+    ctx.restore();
+
     // Draw borders & lines
     ctx.strokeStyle = accentCol;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(20, 20, 472, 472);
-    ctx.strokeRect(30, 30, 452, 452);
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(25, 25, 462, 462);
+    
+    // Draw L-shaped corner accents
+    const cornerSize = 20;
+    ctx.lineWidth = 2.5;
+    // Top-Left
+    ctx.beginPath(); ctx.moveTo(25 + cornerSize, 25); ctx.lineTo(25, 25); ctx.lineTo(25, 25 + cornerSize); ctx.stroke();
+    // Top-Right
+    ctx.beginPath(); ctx.moveTo(487 - cornerSize, 25); ctx.lineTo(487, 25); ctx.lineTo(487, 25 + cornerSize); ctx.stroke();
+    // Bottom-Left
+    ctx.beginPath(); ctx.moveTo(25 + cornerSize, 487); ctx.lineTo(25, 487); ctx.lineTo(25, 487 - cornerSize); ctx.stroke();
+    // Bottom-Right
+    ctx.beginPath(); ctx.moveTo(487 - cornerSize, 487); ctx.lineTo(487, 487); ctx.lineTo(487, 487 - cornerSize); ctx.stroke();
 
-    // Draw Logo text
+    // Draw Header Label
     ctx.fillStyle = accentCol;
     ctx.textAlign = 'center';
-    
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillText("✦ FINEST ARTISANAL SELECTION ✦", 256, 75);
+
     // Dynamically apply selected font style
     const fontStyle = `"${selectedFont}", sans-serif`;
     
+    // Draw Logo text
+    ctx.fillStyle = accentCol;
     ctx.font = `bold 32px ${fontStyle}`;
-    ctx.fillText(brandName.toUpperCase(), 256, 120);
+    ctx.fillText(brandName.toUpperCase(), 256, 125);
 
-    // Draw Divider Line
+    // Draw split divider with diamond Lockup
+    ctx.strokeStyle = accentCol;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(150, 160);
-    ctx.lineTo(362, 160);
+    ctx.moveTo(100, 160);
+    ctx.lineTo(230, 160);
+    ctx.moveTo(282, 160);
+    ctx.lineTo(412, 160);
     ctx.stroke();
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText("◆", 256, 164);
 
     // Draw Headline Text
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = `bold 28px ${fontStyle}`;
-    ctx.fillText(category.toUpperCase(), 256, 260);
+    ctx.font = `bold 24px ${fontStyle}`;
+    ctx.fillText(category.toUpperCase(), 256, 245);
 
     // Draw Subheading
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.font = `italic 18px ${fontStyle}`;
-    ctx.fillText("AI Formulated Typography", 256, 310);
+    ctx.font = `italic 16px ${fontStyle}`;
+    ctx.fillText("AI Formulated Typography", 256, 285);
 
-    // Nutrition & Stamp badge
-    ctx.fillStyle = accentCol;
+    // Draw rotated vertical side labels
+    ctx.save();
+    ctx.translate(45, 256);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillText("✦ HANDCRAFTED QUALITY ✦", 0, 0);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(467, 256);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillText("✦ ESTABLISHED 2026 ✦", 0, 0);
+    ctx.restore();
+
+    // Concentric luxury stamps
+    ctx.strokeStyle = accentCol;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(256, 410, 40, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = primaryCol;
-    ctx.font = `bold 12px sans-serif`;
-    ctx.fillText("PREMIUM", 256, 408);
-    ctx.fillText("ORGANIC", 256, 420);
+    ctx.arc(256, 395, 38, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(256, 395, 33, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.fillStyle = accentCol;
+    ctx.font = `bold 9px sans-serif`;
+    ctx.fillText("CRU SPECIAL", 256, 390);
+    ctx.font = `bold 8px sans-serif`;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText("ORGANIC", 256, 404);
+
+    // Bottom Footer label
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = 'bold 8px sans-serif';
+    ctx.fillText("NET WT. 100g ℮ (3.5 OZ) | PRODUCT OF COSTA RICA", 256, 465);
   };
 
   // Dynamic Web Font Loader & 3D Texture Updater Hook
