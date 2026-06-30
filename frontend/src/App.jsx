@@ -277,6 +277,20 @@ export default function App() {
     {"id": "box_top_2", "type": "Subheading", "text": "PREMIUM", "x": 35, "y": 65, "w": 30, "h": 15, "face": "top"}
   ]);
   const [selectedBoxId, setSelectedBoxId] = useState(null);
+  const [uploadedImageElement, setUploadedImageElement] = useState(null);
+
+  useEffect(() => {
+    if (!previewUrl) {
+      setUploadedImageElement(null);
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = previewUrl;
+    img.onload = () => {
+      setUploadedImageElement(img);
+    };
+  }, [previewUrl]);
 
   const handleUpdateBoxText = (boxId, text) => {
     setOcrBoxes(prev => prev.map(b => b.id === boxId ? { ...b, text } : b));
@@ -724,7 +738,7 @@ export default function App() {
         canvas3DRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [activeTab, category, previewUrl, packageShape, ocrBoxes]);
+  }, [activeTab, category, previewUrl, packageShape, ocrBoxes, uploadedImageElement]);
 
   const drawFaceCanvas = (faceName) => {
     const canvas = document.createElement('canvas');
@@ -740,38 +754,43 @@ export default function App() {
     const primaryCol = cols[0] === 'brown' ? '#3E2723' : cols[0] === 'blue' ? '#0D47A1' : cols[0] === 'green' ? '#1B5E20' : '#111827';
     const accentCol = cols[1] === 'gold' ? '#D4AF37' : cols[1] === 'white' ? '#FFFFFF' : '#EC4899';
 
-    // Fill background wrapper
-    ctx.fillStyle = primaryCol;
-    ctx.fillRect(0, 0, 512, 512);
+    if (faceName === 'front' && uploadedImageElement) {
+      // Draw the uploaded wrapper image as the background cover
+      ctx.drawImage(uploadedImageElement, 0, 0, 512, 512);
+    } else {
+      // Fill background wrapper
+      ctx.fillStyle = primaryCol;
+      ctx.fillRect(0, 0, 512, 512);
 
-    // Draw luxury geometric background watermark (faint diagonal gold pinstripes)
-    ctx.save();
-    ctx.strokeStyle = accentCol;
-    ctx.lineWidth = 0.5;
-    ctx.globalAlpha = 0.08;
-    for (let i = -512; i < 1024; i += 24) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i + 512, 512);
-      ctx.stroke();
+      // Draw luxury geometric background watermark (faint diagonal gold pinstripes)
+      ctx.save();
+      ctx.strokeStyle = accentCol;
+      ctx.lineWidth = 0.5;
+      ctx.globalAlpha = 0.08;
+      for (let i = -512; i < 1024; i += 24) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i + 512, 512);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Draw borders & lines
+      ctx.strokeStyle = accentCol;
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(25, 25, 462, 462);
+      
+      // Draw L-shaped corner accents
+      const cornerSize = 20;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(25 + cornerSize, 25); ctx.lineTo(25, 25); ctx.lineTo(25, 25 + cornerSize); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(487 - cornerSize, 25); ctx.lineTo(487, 25); ctx.lineTo(487, 25 + cornerSize); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(25 + cornerSize, 487); ctx.lineTo(25, 487); ctx.lineTo(25, 487 - cornerSize); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(487 - cornerSize, 487); ctx.lineTo(487, 487); ctx.lineTo(487, 487 - cornerSize); ctx.stroke();
     }
-    ctx.restore();
 
-    // Draw borders & lines
-    ctx.strokeStyle = accentCol;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(25, 25, 462, 462);
-    
-    // Draw L-shaped corner accents
-    const cornerSize = 20;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.moveTo(25 + cornerSize, 25); ctx.lineTo(25, 25); ctx.lineTo(25, 25 + cornerSize); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(487 - cornerSize, 25); ctx.lineTo(487, 25); ctx.lineTo(487, 25 + cornerSize); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(25 + cornerSize, 487); ctx.lineTo(25, 487); ctx.lineTo(25, 487 - cornerSize); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(487 - cornerSize, 487); ctx.lineTo(487, 487); ctx.lineTo(487, 487 - cornerSize); ctx.stroke();
-
-    // Draw concentric luxury stamp on the front face only
-    if (faceName === 'front') {
+    // Draw concentric luxury stamp on the front face only if no image is uploaded
+    if (faceName === 'front' && !uploadedImageElement) {
       ctx.strokeStyle = accentCol;
       ctx.lineWidth = 1.5;
       ctx.beginPath();
