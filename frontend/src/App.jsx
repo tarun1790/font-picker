@@ -175,7 +175,14 @@ export default function App() {
       if (!res.ok) throw new Error("API Execution Failed");
       const data = await res.json();
 
-      setOcrBoxes(data.layout_boxes);
+      const incomingFrontBoxes = (data.layout_boxes || []).map(box => ({
+        ...box,
+        face: box.face || 'front'
+      }));
+      setOcrBoxes(prev => {
+        const nonFrontBoxes = prev.filter(b => b.face !== 'front');
+        return [...nonFrontBoxes, ...incomingFrontBoxes];
+      });
       setRecommendations(data.recommendations);
       setPsychology(data.psychology);
       setSaliencyData(data.saliency);
@@ -925,7 +932,14 @@ export default function App() {
       const data = await res.json();
 
       // Set state variables from agent outputs
-      setOcrBoxes(data.layout_boxes);
+      const incomingFrontBoxes = (data.layout_boxes || []).map(box => ({
+        ...box,
+        face: box.face || 'front'
+      }));
+      setOcrBoxes(prev => {
+        const nonFrontBoxes = prev.filter(b => b.face !== 'front');
+        return [...nonFrontBoxes, ...incomingFrontBoxes];
+      });
       setRecommendations(data.recommendations);
       setPsychology(data.psychology);
       setSaliencyData(data.saliency);
