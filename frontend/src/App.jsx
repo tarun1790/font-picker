@@ -247,6 +247,114 @@ export default function App() {
     {"id": "box_2", "type": "Headline", "text": "CLASSIC DARK", "x": 20, "y": 40, "w": 60, "h": 15},
     {"id": "box_3", "type": "Subheading", "text": "70% Single Origin Cocoa", "x": 25, "y": 60, "w": 50, "h": 8}
   ]);
+  const [selectedBoxId, setSelectedBoxId] = useState(null);
+
+  const handleUpdateBoxText = (boxId, text) => {
+    setOcrBoxes(prev => prev.map(b => b.id === boxId ? { ...b, text } : b));
+    const targetBox = ocrBoxes.find(b => b.id === boxId);
+    if (targetBox) {
+      if (targetBox.type === 'Logo') setBrandName(text);
+      if (targetBox.type === 'Headline') setCategory(text);
+    }
+  };
+
+  const handleUpdateBoxType = (boxId, type) => {
+    setOcrBoxes(prev => prev.map(b => b.id === boxId ? { ...b, type } : b));
+    const targetBox = ocrBoxes.find(b => b.id === boxId);
+    if (targetBox) {
+      if (type === 'Logo') setBrandName(targetBox.text);
+      if (type === 'Headline') setCategory(targetBox.text);
+    }
+  };
+
+  const handleDeleteBox = (boxId) => {
+    setOcrBoxes(prev => prev.filter(b => b.id !== boxId));
+    if (selectedBoxId === boxId) setSelectedBoxId(null);
+  };
+
+  const handleAddBox = () => {
+    const newBox = {
+      id: `box_${Date.now()}`,
+      type: "Logo",
+      text: "NEW BRAND",
+      x: 35,
+      y: 45,
+      w: 30,
+      h: 10
+    };
+    setOcrBoxes(prev => [...prev, newBox]);
+    setSelectedBoxId(newBox.id);
+  };
+
+  const handleBoxMouseDown = (e, boxId) => {
+    // Only drag when clicking box wrapper, not input controls
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'BUTTON') {
+      return;
+    }
+    
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedBoxId(boxId);
+    
+    const container = e.currentTarget.parentElement.getBoundingClientRect();
+    const box = ocrBoxes.find(b => b.id === boxId);
+    if (!box) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startLeft = (box.x / 100) * container.width;
+    const startTop = (box.y / 100) * container.height;
+
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+
+      const newLeftPct = Math.max(0, Math.min(100 - box.w, ((startLeft + deltaX) / container.width) * 100));
+      const newTopPct = Math.max(0, Math.min(100 - box.h, ((startTop + deltaY) / container.height) * 100));
+
+      setOcrBoxes(prev => prev.map(b => b.id === boxId ? { ...b, x: Math.round(newLeftPct), y: Math.round(newTopPct) } : b));
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleResizeMouseDown = (e, boxId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const container = e.currentTarget.parentElement.parentElement.getBoundingClientRect();
+    const box = ocrBoxes.find(b => b.id === boxId);
+    if (!box) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = (box.w / 100) * container.width;
+    const startHeight = (box.h / 100) * container.height;
+
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+
+      const newWidthPct = Math.max(10, Math.min(100 - box.x, ((startWidth + deltaX) / container.width) * 100));
+      const newHeightPct = Math.max(5, Math.min(100 - box.y, ((startHeight + deltaY) / container.height) * 100));
+
+      setOcrBoxes(prev => prev.map(b => b.id === boxId ? { ...b, w: Math.round(newWidthPct), h: Math.round(newHeightPct) } : b));
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
   const [recommendations, setRecommendations] = useState(GOOGLE_FONTS);
   const [psychology, setPsychology] = useState({
     "target_age_range": "25-50",
@@ -1017,34 +1125,111 @@ export default function App() {
             {/* Layout OCR overlay visualizer */}
             <div className="lg:col-span-1 space-y-6">
               <div className="glass-panel rounded-2xl p-6">
-                <h2 className="text-lg font-bold text-white mb-4">2. Visual OCR Bounding Boxes</h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold text-white">2. Visual OCR Canvas</h2>
+                  <button
+                    type="button"
+                    onClick={handleAddBox}
+                    className="px-2.5 py-1 bg-brand-primary/20 hover:bg-brand-primary/45 border border-brand-primary/40 hover:border-brand-primary text-brand-primary hover:text-white rounded-lg text-xs font-bold transition-all"
+                  >
+                    ＋ Add Box
+                  </button>
+                </div>
                 
-                <div className="relative aspect-[4/5] bg-brand-bg rounded-xl border border-brand-border overflow-hidden flex items-center justify-center p-4">
+                <div 
+                  className="relative aspect-[4/5] bg-brand-bg rounded-xl border border-brand-border overflow-hidden flex items-center justify-center p-4"
+                  onClick={() => setSelectedBoxId(null)}
+                >
                   {/* Outer wrapper representation */}
                   <div className="w-full h-full rounded-lg border-2 border-brand-accent/50 relative overflow-hidden bg-cover bg-center" style={{ backgroundImage: previewUrl ? `url(${previewUrl})` : 'none', backgroundColor: previewUrl ? 'transparent' : (colors.split(',')[0].trim().toLowerCase() === 'brown' ? '#3E2723' : '#111827') }}>
                     {/* Render OCR absolute boxes */}
-                    {ocrBoxes.map(box => (
-                      <div
-                        key={box.id}
-                        className="absolute border border-brand-primary bg-brand-primary/10 rounded px-1 text-[8px] font-bold text-white flex flex-col justify-between"
-                        style={{
-                          left: `${box.x}%`,
-                          top: `${box.y}%`,
-                          width: `${box.w}%`,
-                          height: `${box.h}%`
-                        }}
-                      >
-                        <span className="bg-brand-primary text-white scale-75 origin-top-left px-0.5 rounded text-[6px] w-fit">
-                          {box.type}
-                        </span>
-                        <span className="truncate">{box.text}</span>
-                      </div>
-                    ))}
+                    {ocrBoxes.map(box => {
+                      const isSelected = selectedBoxId === box.id;
+                      return (
+                        <div
+                          key={box.id}
+                          onMouseDown={(e) => handleBoxMouseDown(e, box.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBoxId(box.id);
+                          }}
+                          className={`absolute border rounded px-1.5 py-1 text-[8.5px] font-bold text-white flex flex-col justify-between cursor-move select-none transition-shadow ${
+                            isSelected
+                              ? 'border-brand-primary bg-brand-primary/20 ring-2 ring-brand-primary z-50 shadow-lg shadow-brand-primary/20'
+                              : 'border-brand-border/60 bg-brand-panel/40 hover:border-brand-primary/40'
+                          }`}
+                          style={{
+                            left: `${box.x}%`,
+                            top: `${box.y}%`,
+                            width: `${box.w}%`,
+                            height: `${box.h}%`
+                          }}
+                        >
+                          {/* Selected edit popups */}
+                          {isSelected && (
+                            <div 
+                              className="absolute -top-7 left-0 right-0 bg-[#0c0c16] border border-brand-border rounded flex space-x-1 p-0.5 z-[100] text-[6px] shadow-xl justify-between items-center"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex space-x-0.5">
+                                {['Logo', 'Headline', 'Subheading', 'Price', 'Legal'].map(type => (
+                                  <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => handleUpdateBoxType(box.id, type)}
+                                    className={`px-1 py-0.5 rounded text-[5px] font-bold transition-colors ${box.type === type ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white hover:bg-brand-panel/60'}`}
+                                  >
+                                    {type}
+                                  </button>
+                                ))}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBox(box.id)}
+                                className="px-1 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white text-[5px] font-bold transition-colors ml-1"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+
+                          <span className="bg-brand-primary text-white scale-75 origin-top-left px-0.5 rounded text-[6px] w-fit pointer-events-none mb-0.5">
+                            {box.type}
+                          </span>
+
+                          {isSelected ? (
+                            <input
+                              type="text"
+                              value={box.text}
+                              onChange={(e) => handleUpdateBoxText(box.id, e.target.value)}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-full bg-[#05050a] text-white border border-brand-border rounded px-1 py-0.5 text-[8px] font-medium focus:outline-none focus:border-brand-primary h-[14px]"
+                              autoFocus
+                            />
+                          ) : (
+                            <span className="truncate block pointer-events-none">{box.text}</span>
+                          )}
+
+                          {/* Resize Handle */}
+                          {isSelected && (
+                            <div 
+                              className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-brand-primary cursor-se-resize rounded-tl flex items-center justify-center text-[5.5px] text-white font-bold select-none"
+                              onMouseDown={(e) => handleResizeMouseDown(e, box.id)}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              ⤡
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="mt-4 flex justify-between items-center text-xs text-brand-muted">
-                  <span>Negative Space: 65% (Luxury Oriented)</span>
+                <div className="mt-4 flex justify-between items-center text-[10px] text-brand-muted">
+                  <span>Drag to move. Click to select. Resize bottom-right (⤡).</span>
                   <span>OCR Accuracy: 98.8%</span>
                 </div>
               </div>
