@@ -1164,7 +1164,27 @@ export default function App() {
                     <input 
                       type="text" 
                       value={brandName}
-                      onChange={e => setBrandName(e.target.value)}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setBrandName(val);
+                        setOcrBoxes(prev => {
+                          const exists = prev.some(b => b.face === 'front' && b.type === 'Logo');
+                          if (exists) {
+                            return prev.map(b => b.face === 'front' && b.type === 'Logo' ? { ...b, text: val } : b);
+                          } else {
+                            return [...prev, {
+                              id: `box_logo_${Date.now()}`,
+                              type: "Logo",
+                              text: val,
+                              x: 35,
+                              y: 20,
+                              w: 30,
+                              h: 10,
+                              face: "front"
+                            }];
+                          }
+                        });
+                      }}
                       className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-primary" 
                     />
                   </div>
@@ -1173,7 +1193,27 @@ export default function App() {
                     <input 
                       type="text" 
                       value={category}
-                      onChange={e => setCategory(e.target.value)}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setCategory(val);
+                        setOcrBoxes(prev => {
+                          const exists = prev.some(b => b.face === 'front' && b.type === 'Headline');
+                          if (exists) {
+                            return prev.map(b => b.face === 'front' && b.type === 'Headline' ? { ...b, text: val } : b);
+                          } else {
+                            return [...prev, {
+                              id: `box_head_${Date.now()}`,
+                              type: "Headline",
+                              text: val,
+                              x: 20,
+                              y: 42,
+                              w: 60,
+                              h: 14,
+                              face: "front"
+                            }];
+                          }
+                        });
+                      }}
                       className="w-full bg-brand-bg border border-brand-border rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-primary" 
                     />
                   </div>
