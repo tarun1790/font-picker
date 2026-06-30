@@ -23,6 +23,47 @@ class LLMFontSelector:
             print(f"[LLM SELECTOR] Failed to load local pipeline: {e}. Falling back to rule-based NLP classifier.")
             self.classifier = None
 
+    def classify_subcategory(self, prompt: str, known_subcategories: list) -> str:
+        """
+        Uses the zero-shot LLM to semantically classify which known subcategory
+        in the Design Knowledge Graph the user prompt is referring to.
+        """
+        if self.classifier:
+            try:
+                res = self.classifier(prompt, candidate_labels=known_subcategories)
+                top_sub = res["labels"][0]
+                confidence = float(res["scores"][0])
+                print(f"[LLM SUB CLASS] Classified prompt '{prompt}' to subcategory '{top_sub}' with confidence {confidence:.2f}")
+                return top_sub
+            except Exception as e:
+                print(f"[LLM SUB CLASS] Zero-shot subcategory classification failed: {e}")
+                
+        # Rule-based fallback if offline or error
+        prompt_l = prompt.lower()
+        if "milk" in prompt_l and ("packet" in prompt_l or "pack" in prompt_l or "carton" in prompt_l or "bag" in prompt_l or "fresh" in prompt_l or "dairy" in prompt_l):
+            return "Fresh Milk Packet"
+        if "chocolate" in prompt_l:
+            if "dark" in prompt_l:
+                return "Luxury Dark Chocolate"
+            return "Kids Candy Bar"
+        if "coffee" in prompt_l or "espresso" in prompt_l:
+            return "Organic Espresso Blend"
+        if "watch" in prompt_l or "chronograph" in prompt_l:
+            return "Mechanical Chronograph"
+        if "wine" in prompt_l or "cabernet" in prompt_l:
+            return "Vintage Cabernet Sauvignon"
+        if "energy" in prompt_l:
+            return "Extreme Caffeine Energy"
+        if "baby" in prompt_l or "diaper" in prompt_l:
+            return "Organic Diaper Cream"
+        if "supplement" in prompt_l or "brain" in prompt_l:
+            return "Nootropic Brain Booster"
+        if "face" in prompt_l or "cream" in prompt_l or "serum" in prompt_l:
+            return "Organic Facial Serum"
+            
+        # Default fallback
+        return "Luxury Dark Chocolate"
+
     def recommend_typography_style(self, prompt: str) -> dict:
         labels = ["luxury", "modern", "playful", "scientific", "natural", "vintage"]
         
