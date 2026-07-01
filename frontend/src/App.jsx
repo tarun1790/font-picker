@@ -12,13 +12,15 @@ const getApiBase = () => {
     localStorage.setItem('font_picker_api_base', queryApi);
     return queryApi;
   }
-  const savedApi = localStorage.getItem('font_picker_api_base');
-  if (savedApi) return savedApi;
 
-  // Auto-detect environments
+  // Auto-detect environments: prioritize local backend for local development
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:8000';
   }
+
+  const savedApi = localStorage.getItem('font_picker_api_base');
+  if (savedApi) return savedApi;
+
   // Public static backend tunnel subdomain
   return 'https://tarun-branding-api.loca.lt';
 };
