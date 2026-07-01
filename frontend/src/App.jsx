@@ -2397,7 +2397,7 @@ export default function App() {
 
       {/* FOOTER */}
       <footer className="border-t border-brand-border bg-brand-panel/30 py-4 px-6 text-center text-xs text-brand-muted mt-12">
-        &copy; 2026 Font Picker. Built with Next-generation Generative AI Typography models, CUDA PyTorch backends, and Vector FAISS indexes.
+        &copy; 2026 Tarun. All Rights Reserved. Built with Next-generation Generative AI Typography models, CUDA PyTorch backends, and Vector FAISS indexes.
       </footer>
 
     </div>
