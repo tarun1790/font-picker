@@ -31,10 +31,7 @@ const getApiBase = () => {
     return 'http://localhost:8000';
   }
 
-  const savedApi = localStorage.getItem('font_picker_api_base');
-  if (savedApi) return savedApi;
-
-  // Public static backend tunnel subdomain
+  // Otherwise, default directly to the static public backend subdomain
   return 'https://tarun-branding-api.loca.lt';
 };
 const API_BASE = getApiBase();
