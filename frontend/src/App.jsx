@@ -1039,7 +1039,7 @@ export default function App() {
         body: formData
       });
       const data = await res.json();
-      setSimilarResults(data.similar_fonts);
+      setSimilarResults(data.similar_fonts || []);
     } catch (err) {
       console.error(err);
     }
@@ -1962,7 +1962,7 @@ export default function App() {
               </div>
 
               <div className="space-y-2 max-h-[480px] overflow-y-auto pr-2">
-                {similarResults.length > 0 ? (
+                {similarResults && similarResults.length > 0 ? (
                   similarResults.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center p-3 bg-brand-panel/40 border border-brand-border/40 rounded-xl text-xs hover:border-brand-border/80 transition-colors">
                       <div className="flex items-center space-x-3">
