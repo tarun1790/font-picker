@@ -748,7 +748,7 @@ export default function App() {
         canvas3DRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [activeTab, category, previewUrl, packageShape, ocrBoxes, uploadedImageElement]);
+  }, [activeTab, category, previewUrl, packageShape, ocrBoxes, uploadedImageElement, selectedFont, colors]);
 
   const drawFaceCanvas = (faceName) => {
     const canvas = document.createElement('canvas');
@@ -908,8 +908,15 @@ export default function App() {
     
     const applyTextureUpdate = () => {
       updateTextureCanvas();
-      if (meshRef.current && meshRef.current.material && meshRef.current.material.map) {
-        meshRef.current.material.map.needsUpdate = true;
+      if (meshRef.current && meshRef.current.material) {
+        const mats = Array.isArray(meshRef.current.material) 
+          ? meshRef.current.material 
+          : [meshRef.current.material];
+        mats.forEach(mat => {
+          if (mat.map) {
+            mat.map.needsUpdate = true;
+          }
+        });
       }
     };
 
