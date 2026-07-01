@@ -6,6 +6,19 @@ import {
   ArrowRight, Download, Eye, Shield, Heart, Zap, RefreshCw, Database, X
 } from 'lucide-react';
 
+// Intercept all API calls to localtunnel to bypass warning screen
+const originalFetch = window.fetch;
+window.fetch = async (input, init = {}) => {
+  const url = typeof input === 'string' ? input : input.url;
+  if (url && (url.includes('loca.lt') || url.includes('localtunnel.me'))) {
+    init.headers = {
+      ...(init.headers || {}),
+      'Bypass-Tunnel-Reminder': 'true'
+    };
+  }
+  return originalFetch(input, init);
+};
+
 const getApiBase = () => {
   const queryApi = new URLSearchParams(window.location.search).get('api');
   if (queryApi) {
