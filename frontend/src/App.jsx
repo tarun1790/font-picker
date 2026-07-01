@@ -1050,7 +1050,7 @@ export default function App() {
     if (e) e.preventDefault();
     try {
       const formData = new FormData();
-      formData.append('font_name', similarSearchName);
+      formData.append('font_name', similaritySearchInput);
       
       const res = await fetch(`${API_BASE}/api/v1/font-similarity`, {
         method: 'POST',
