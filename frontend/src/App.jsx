@@ -2021,71 +2021,24 @@ feature kern {
                   <line x1={100 - sidebearings.rsb / 5} y1="0" x2={100 - sidebearings.rsb / 5} y2="120" stroke="#f43f5e" strokeDasharray="3 3" strokeWidth="0.5" />
                   <text x={100 - sidebearings.rsb / 5 - 20} y="115" className="text-[5px] fill-rose-500 font-semibold font-mono">RSB: {sidebearings.rsb}</text>
 
-                  {/* Real Font Background Silhouette */}
+                  {/* Foreground Glyph Contour rendered using the true selected font (e.g. Arvo, Calibri, etc.) */}
                   <text 
                     x="50" 
                     y="85" 
                     textAnchor="middle" 
-                    className="select-none transition-all duration-500 font-bold"
+                    className="select-none transition-all duration-300 font-bold"
                     style={{
                       fontFamily: baseEvoFont || 'sans-serif',
                       fontSize: selectedGlyph === 'g' ? '70px' : '85px',
-                      fill: 'rgba(255, 255, 255, 0.08)',
-                      transform: `scaleX(${0.5 + designSpaceCoord.x * 0.95})`,
+                      fill: 'rgba(6, 182, 212, 0.12)', // Cyan transparent fill matching nodes
+                      stroke: '#06b6d4', // Cyan vector path border
+                      strokeWidth: `${0.8 + designSpaceCoord.y * 2.8}px`, // Weight/thickness morphing
+                      transform: `scaleX(${0.5 + designSpaceCoord.x * 0.95})`, // Width morphing
                       transformOrigin: '50% 50%'
                     }}
                   >
                     {selectedGlyph}
                   </text>
-
-                  {/* Morphed Glyph Shape */}
-                  <g style={{ transform: `scaleX(${0.5 + designSpaceCoord.x * 0.95})`, transformOrigin: '50% 50%' }}>
-                    {selectedGlyph === 'A' && (
-                      <path 
-                        d="M 30 85 L 47 20 L 53 20 L 70 85 L 62 85 L 57 65 L 43 65 L 38 85 Z M 45 53 L 55 53 L 50 35 Z" 
-                        fill="rgba(59, 130, 246, 0.12)" 
-                        stroke="currentColor" 
-                        strokeWidth={1.2 + designSpaceCoord.y * 3.8}
-                        className="text-brand-primary transition-all duration-300"
-                      />
-                    )}
-                    {selectedGlyph === 'B' && (
-                      <path 
-                        d="M 30 20 H 55 C 70 20 70 47 55 47 H 30 Z M 30 47 H 57 C 72 47 72 85 57 85 H 30 Z" 
-                        fill="rgba(59, 130, 246, 0.12)" 
-                        stroke="currentColor" 
-                        strokeWidth={1.2 + designSpaceCoord.y * 3.8}
-                        className="text-brand-primary transition-all duration-300"
-                      />
-                    )}
-                    {selectedGlyph === 'C' && (
-                      <path 
-                        d="M 68 32 C 60 20 40 20 32 35 C 24 50 24 65 32 75 C 40 88 60 88 68 76 C 70 73 72 70 72 70 H 60 C 58 72 50 78 45 78 C 38 78 34 68 34 53 C 34 38 38 28 45 28 C 50 28 58 34 60 36 H 72 C 72 36 70 34 68 32 Z" 
-                        fill="rgba(59, 130, 246, 0.12)" 
-                        stroke="currentColor" 
-                        strokeWidth={1.2 + designSpaceCoord.y * 3.8}
-                        className="text-brand-primary transition-all duration-300"
-                      />
-                    )}
-                    {selectedGlyph === 'g' && (
-                      <path 
-                        d="M 47 38 C 35 38 30 48 30 58 C 30 68 35 78 47 78 C 59 78 64 68 64 58 C 64 48 59 38 47 38 Z M 47 46 C 53 46 56 50 56 58 C 56 66 53 70 47 70 C 41 70 38 66 38 58 C 38 50 41 46 47 46 Z M 64 58 L 64 90 C 64 102 54 107 42 107 C 32 107 28 102 28 97 H 36 C 36 99 38 101 42 101 C 49 101 56 96 56 90 L 56 78 Z" 
-                        fill="rgba(59, 130, 246, 0.12)" 
-                        stroke="currentColor" 
-                        strokeWidth={1.2 + designSpaceCoord.y * 3.8}
-                        className="text-brand-primary transition-all duration-300"
-                      />
-                    )}
-                    {selectedGlyph === 'Q' && (
-                      <path 
-                        d="M 50 20 C 32 20 22 33 22 52 C 22 71 32 84 50 84 C 59 84 66 79 70 71 L 76 83 L 83 79 L 77 68 C 80 52 74 20 50 20 Z M 50 28 C 61 28 68 37 68 52 C 68 67 61 76 50 76 C 39 76 32 67 32 52 C 32 37 39 28 50 28 Z" 
-                        fill="rgba(59, 130, 246, 0.12)" 
-                        stroke="currentColor" 
-                        strokeWidth={1.2 + designSpaceCoord.y * 3.8}
-                        className="text-brand-primary transition-all duration-300"
-                      />
-                    )}
-                  </g>
 
                   {/* Bezier Nodes & Handles Overlay */}
                   {selectedGlyph === 'A' && (
