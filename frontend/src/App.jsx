@@ -1046,11 +1046,12 @@ export default function App() {
   };
 
   // Search Font Similarity via FAISS
-  const handleSimilaritySearch = async (e) => {
-    if (e) e.preventDefault();
+  const handleSimilaritySearch = async (e, overrideFontName = null) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const targetFont = overrideFontName || similaritySearchInput;
     try {
       const formData = new FormData();
-      formData.append('font_name', similaritySearchInput);
+      formData.append('font_name', targetFont);
       
       const res = await fetch(`${API_BASE}/api/v1/font-similarity`, {
         method: 'POST',
@@ -1198,10 +1199,10 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm transition-all ${
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm transition-all duration-300 transform hover:scale-[1.03] ${
                   active 
-                    ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' 
-                    : 'text-brand-muted hover:text-gray-100 hover:bg-brand-border/40'
+                    ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20 border-b-2 border-brand-accent' 
+                    : 'text-brand-muted hover:text-brand-accent hover:bg-brand-primary/15'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -1982,7 +1983,15 @@ export default function App() {
               <div className="space-y-2 max-h-[480px] overflow-y-auto pr-2">
                 {similarResults && similarResults.length > 0 ? (
                   similarResults.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-brand-panel/40 border border-brand-border/40 rounded-xl text-xs hover:border-brand-border/80 transition-colors">
+                    <button 
+                      key={idx} 
+                      onClick={() => {
+                        setSimilaritySearchInput(item.font_name);
+                        setSimilarSearchName(item.font_name);
+                        handleSimilaritySearch(null, item.font_name);
+                      }}
+                      className="w-full flex justify-between items-center p-3 bg-brand-panel/40 border border-brand-border/40 rounded-xl text-xs cursor-pointer select-none transition-all duration-300 transform hover:scale-[1.01] hover:bg-brand-primary/10 hover:border-brand-accent/40 text-left focus:outline-none"
+                    >
                       <div className="flex items-center space-x-3">
                         <span className="w-6 h-6 rounded-full bg-brand-border flex items-center justify-center font-bold text-brand-muted text-[10px]">
                           {idx + 1}
@@ -1997,11 +2006,11 @@ export default function App() {
                           <span className="text-[10px] text-brand-muted">{item.style} style</span>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right text-xs">
                         <span className="font-bold text-brand-secondary block">{(item.similarity * 100).toFixed(2)}% similarity</span>
                         <span className="text-[10px] text-brand-muted">L2 Dist: {item.distance.toFixed(4)}</span>
                       </div>
-                    </div>
+                    </button>
                   ))
                 ) : (
                   <div className="text-center py-12 text-brand-muted text-xs">
