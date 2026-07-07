@@ -1843,13 +1843,52 @@ feature kern {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Active Font Template</label>
-                    <input
-                      type="text"
-                      readOnly
-                      value={baseEvoFont}
-                      className="w-full bg-brand-bg/40 border border-brand-border rounded-lg px-3 py-1.5 text-xs text-white cursor-not-allowed"
-                    />
+                    <label className="block text-xs font-semibold text-brand-muted uppercase mb-1">Base Font DNA template</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={evoFontSearch}
+                        onChange={e => {
+                          setEvoFontSearch(e.target.value);
+                          setShowEvoFontDropdown(true);
+                        }}
+                        onFocus={() => setShowEvoFontDropdown(true)}
+                        onBlur={() => setTimeout(() => setShowEvoFontDropdown(false), 250)}
+                        placeholder="Search base template..."
+                        className="w-full bg-brand-bg/50 border border-brand-border rounded-lg pl-3 pr-8 py-2 text-xs text-white focus:outline-none focus:border-brand-primary"
+                      />
+                      {evoFontSearch && (
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setEvoFontSearch('');
+                            setBaseEvoFont('');
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-white p-0.5 rounded-full hover:bg-brand-border/40 transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {showEvoFontDropdown && evoFontOptions.length > 0 && (
+                        <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-[#141424] border border-brand-border rounded-lg shadow-xl z-50 text-xs divide-y divide-brand-border/40">
+                          {evoFontOptions.map(option => (
+                            <div
+                              key={option.name}
+                              onMouseDown={() => {
+                                setBaseEvoFont(option.name);
+                                setEvoFontSearch(option.name);
+                                setShowEvoFontDropdown(false);
+                              }}
+                              className="p-2.5 cursor-pointer hover:bg-brand-primary/20 text-white flex justify-between items-center transition-colors"
+                            >
+                              <span className="font-bold">{option.name}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded border border-brand-primary/30 text-brand-primary bg-brand-primary/5">{option.style}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Standard Axes Sliders */}
