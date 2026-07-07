@@ -1875,7 +1875,8 @@ feature kern {
                           {evoFontOptions.map(option => (
                             <div
                               key={option.name}
-                              onMouseDown={() => {
+                              onMouseDown={(e) => {
+                                e.preventDefault();
                                 setBaseEvoFont(option.name);
                                 setEvoFontSearch(option.name);
                                 setShowEvoFontDropdown(false);
@@ -2019,6 +2020,23 @@ feature kern {
 
                   <line x1={100 - sidebearings.rsb / 5} y1="0" x2={100 - sidebearings.rsb / 5} y2="120" stroke="#f43f5e" strokeDasharray="3 3" strokeWidth="0.5" />
                   <text x={100 - sidebearings.rsb / 5 - 20} y="115" className="text-[5px] fill-rose-500 font-semibold font-mono">RSB: {sidebearings.rsb}</text>
+
+                  {/* Real Font Background Silhouette */}
+                  <text 
+                    x="50" 
+                    y="85" 
+                    textAnchor="middle" 
+                    className="select-none transition-all duration-500 font-bold"
+                    style={{
+                      fontFamily: baseEvoFont || 'sans-serif',
+                      fontSize: selectedGlyph === 'g' ? '70px' : '85px',
+                      fill: 'rgba(255, 255, 255, 0.08)',
+                      transform: `scaleX(${0.5 + designSpaceCoord.x * 0.95})`,
+                      transformOrigin: '50% 50%'
+                    }}
+                  >
+                    {selectedGlyph}
+                  </text>
 
                   {/* Morphed Glyph Shape */}
                   <g style={{ transform: `scaleX(${0.5 + designSpaceCoord.x * 0.95})`, transformOrigin: '50% 50%' }}>
