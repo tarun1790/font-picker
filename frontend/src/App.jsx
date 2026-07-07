@@ -32,7 +32,7 @@ const getApiBase = () => {
   }
 
   // Otherwise, default directly to the static public backend subdomain
-  return 'https://tarun-branding-ai.loca.lt';
+  return 'https://tarun-brand-analytics.loca.lt';
 };
 const API_BASE = getApiBase();
 
