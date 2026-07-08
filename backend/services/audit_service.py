@@ -287,13 +287,13 @@ def execute_font_audit_pipeline(task_id, domain, company_name):
         
     try:
         log("[INIT] Launching Playwright Chromium headless cluster...")
-        time.sleep(1.2)
+        time.sleep(0.05)
         
         log(f"[CRAWL] Navigating to domain: https://www.{domain}...")
-        time.sleep(1.2)
+        time.sleep(0.05)
         
         log("[CRAWL] Open Developer Tools equivalent. Inspecting CSS, Computed Styles, and @font-face...")
-        time.sleep(1.2)
+        time.sleep(0.05)
         
         # Match from mock database or generate default
         key = domain.lower()
@@ -334,19 +334,19 @@ def execute_font_audit_pipeline(task_id, domain, company_name):
             
         log(f"[EXTRACT] Found font resource URL: {audit_data['font_url']}")
         log(f"[EXTRACT] Raw Binary Package (.woff2) hash: {hashlib.sha256(domain.encode()).hexdigest()[:32]}...")
-        time.sleep(1.2)
+        time.sleep(0.05)
         
         log("[VECTOR DB] Extracting visual character contours to compute 512-D visual embeddings...")
-        time.sleep(1.2)
+        time.sleep(0.05)
         
         log("[VECTOR DB] Performing Qdrant vector database similarity match...")
-        time.sleep(1.0)
+        time.sleep(0.05)
         
         log(f"[VECTOR DB] Match found: '{audit_data['detected_font']}' (Cosine Similarity: {audit_data['similarity_score']*100:.1f}%)")
-        time.sleep(1.0)
+        time.sleep(0.05)
         
         log(f"[LLM] Parsing corporate lineages and digital product registrations for '{company_name}'...")
-        time.sleep(1.2)
+        time.sleep(0.05)
         
         # Save path for PDF report
         report_filename = f"{company_name.lower().replace(' ', '_')}_audit_report.pdf"
@@ -354,7 +354,7 @@ def execute_font_audit_pipeline(task_id, domain, company_name):
         
         log("[REPORT] Compiling evidence into professional 4-page PDF Audit Report...")
         generate_audit_pdf(report_path, task_id, domain, company_name, audit_data)
-        time.sleep(1.0)
+        time.sleep(0.05)
         
         log(f"[SUCCESS] Compliance audit complete. Report registered: {report_filename}")
         
