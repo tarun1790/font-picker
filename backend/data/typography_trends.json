@@ -7,7 +7,7 @@
             "Roboto"
         ],
         "average_weight": 400.0,
-        "scanned_count": 889,
+        "scanned_count": 892,
         "brand_personality": "Elegant & Formal",
         "accessibility_index": 0.85
     },
@@ -21,8 +21,8 @@
             "Montserrat"
         ],
         "average_weight": 550.0,
-        "scanned_count": 2,
+        "scanned_count": 4,
         "brand_personality": "Elegant & Formal",
-        "accessibility_index": 0.9
+        "accessibility_index": 0.88
     }
 }
