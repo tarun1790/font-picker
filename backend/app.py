@@ -515,7 +515,8 @@ def trigger_domain_audit(payload: AuditRequest, background_tasks: BackgroundTask
         audit_service.execute_font_audit_pipeline,
         task_id,
         payload.domain,
-        payload.company_name
+        payload.company_name,
+        payload.estimated_revenue
     )
     return {
         "task_id": task_id,

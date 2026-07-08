@@ -271,7 +271,7 @@ def generate_audit_pdf(report_path, task_id, domain, company_name, audit_data):
     
     doc.build(story)
 
-def execute_font_audit_pipeline(task_id, domain, company_name):
+def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue: float = None):
     """
     Simulates the background crawl, vector DB matching, and PDF generation.
     """
@@ -295,10 +295,23 @@ def execute_font_audit_pipeline(task_id, domain, company_name):
         log("[CRAWL] Open Developer Tools equivalent. Inspecting CSS, Computed Styles, and @font-face...")
         time.sleep(0.05)
         
+        # Determine revenue string format
+        if estimated_revenue is not None and estimated_revenue > 0:
+            if estimated_revenue >= 1_000_000_000:
+                rev_str = f"${estimated_revenue / 1_000_000_000:.1f} Billion"
+            elif estimated_revenue >= 1_000_000:
+                rev_str = f"${estimated_revenue / 1_000_000:.1f} Million"
+            else:
+                rev_str = f"${estimated_revenue:,.0f}"
+        else:
+            rev_str = "$10M - $25M (Estimated)"
+
         # Match from mock database or generate default
         key = domain.lower()
         if key in COMPANY_KNOWLEDGE:
-            audit_data = COMPANY_KNOWLEDGE[key]
+            audit_data = COMPANY_KNOWLEDGE[key].copy()
+            if estimated_revenue is not None and estimated_revenue > 0:
+                audit_data["revenue_tier"] = rev_str
         else:
             # Generate dynamically
             audit_data = {
@@ -313,7 +326,7 @@ def execute_font_audit_pipeline(task_id, domain, company_name):
                 "brands": [company_name],
                 "products": ["Digital Solutions"],
                 "services": ["Consulting Portal"],
-                "revenue_tier": "$10M - $25M (Estimated)",
+                "revenue_tier": rev_str,
                 "employees": "Approx. 150",
                 "company_description": f"{company_name} is a professional services organization catering to digital operations and system optimizations.",
                 "technology_stack": "WordPress, Cloudflare, Google Tag Manager",
