@@ -650,6 +650,66 @@ feature kern {
     }
   };
 
+  const [auditDirPath, setAuditDirPath] = useState('c:\\projects\\font picker\\backend\\data');
+  const [batchTaskId, setBatchTaskId] = useState(null);
+  const [batchStatus, setBatchStatus] = useState('IDLE');
+  const [batchTotalCount, setBatchTotalCount] = useState(0);
+  const [batchCompletedCount, setBatchCompletedCount] = useState(0);
+  const [batchEstimatedSeconds, setBatchEstimatedSeconds] = useState(0);
+  const [batchViolations, setBatchViolations] = useState([]);
+  const [batchError, setBatchError] = useState(null);
+
+  // Poll batch audit status
+  useEffect(() => {
+    if (!batchTaskId || batchStatus !== 'PROCESSING') return;
+
+    let intervalId = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/audit/batch/${batchTaskId}`);
+        const data = await res.json();
+        setBatchStatus(data.status);
+        setBatchTotalCount(data.total_count);
+        setBatchCompletedCount(data.completed_count);
+        setBatchEstimatedSeconds(data.estimated_seconds);
+        setBatchViolations(data.violations || []);
+        setBatchError(data.error);
+        if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+          clearInterval(intervalId);
+          fetchReports();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [batchTaskId, batchStatus]);
+
+  const handleStartBatchAudit = async () => {
+    try {
+      setBatchStatus('PROCESSING');
+      setBatchError(null);
+      setBatchViolations([]);
+      setBatchCompletedCount(0);
+      setBatchTotalCount(0);
+      setBatchEstimatedSeconds(0);
+
+      const res = await fetch(`${API_BASE}/api/v1/audit/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          directory_path: auditDirPath
+        })
+      });
+      const data = await res.json();
+      setBatchTaskId(data.batch_id);
+    } catch (err) {
+      console.error(err);
+      setBatchStatus('FAILED');
+      setBatchError('Network connection failed. Check backend uvicorn server.');
+    }
+  };
+
   // Three.js Simulator setup
   useEffect(() => {
     if (!canvas3DRef.current || activeTab !== 'simulator') return;
@@ -2850,78 +2910,137 @@ feature kern {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Audit Launcher Form */}
-                <div className="lg:col-span-1 glass-panel rounded-2xl p-5 border border-brand-border/40 bg-brand-bg/25">
-                  <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Initialize Audit</h3>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Target Domain Name</label>
-                      <input
-                        type="text"
-                        value={auditDomain}
-                        onChange={e => setAuditDomain(e.target.value)}
-                        placeholder="e.g. cadbury.com"
-                        className="w-full bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent"
-                      />
-                    </div>
+                {/* Column 1: Forms */}
+                <div className="lg:col-span-1 flex flex-col space-y-4">
+                  {/* Audit Launcher Form */}
+                  <div className="glass-panel rounded-2xl p-5 border border-brand-border/40 bg-brand-bg/25">
+                    <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Initialize Audit</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Target Domain Name</label>
+                        <input
+                          type="text"
+                          value={auditDomain}
+                          onChange={e => setAuditDomain(e.target.value)}
+                          placeholder="e.g. cadbury.com"
+                          className="w-full bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent"
+                        />
+                      </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Target Company Name</label>
-                      <input
-                        type="text"
-                        value={auditCompanyName}
-                        onChange={e => setAuditCompanyName(e.target.value)}
-                        placeholder="e.g. Cadbury"
-                        className="w-full bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent"
-                      />
-                    </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Target Company Name</label>
+                        <input
+                          type="text"
+                          value={auditCompanyName}
+                          onChange={e => setAuditCompanyName(e.target.value)}
+                          placeholder="e.g. Cadbury"
+                          className="w-full bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent"
+                        />
+                      </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Estimated Revenue ($)</label>
-                      <input
-                        type="number"
-                        value={auditRevenue}
-                        onChange={e => setAuditRevenue(Number(e.target.value))}
-                        className="w-full bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent"
-                      />
-                    </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Estimated Revenue ($)</label>
+                        <input
+                          type="number"
+                          value={auditRevenue}
+                          onChange={e => setAuditRevenue(Number(e.target.value))}
+                          className="w-full bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent"
+                        />
+                      </div>
 
-                    <button
-                      onClick={handleStartAudit}
-                      disabled={currentAuditStatus === 'PROCESSING'}
-                      className="w-full py-2.5 bg-brand-accent hover:bg-brand-accent/90 disabled:bg-brand-border text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center space-x-2"
-                    >
-                      <RefreshCw className={`h-4 w-4 ${currentAuditStatus === 'PROCESSING' ? 'animate-spin' : ''}`} />
-                      <span>{currentAuditStatus === 'PROCESSING' ? 'Crawling & Processing...' : 'Run Headless Ingestion Audit'}</span>
-                    </button>
+                      <button
+                        onClick={handleStartAudit}
+                        disabled={currentAuditStatus === 'PROCESSING'}
+                        className="w-full py-2.5 bg-brand-accent hover:bg-brand-accent/90 disabled:bg-brand-border text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center space-x-2"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${currentAuditStatus === 'PROCESSING' ? 'animate-spin' : ''}`} />
+                        <span>{currentAuditStatus === 'PROCESSING' ? 'Crawling & Processing...' : 'Run Headless Ingestion Audit'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Batch Directory Auditor Form */}
+                  <div className="glass-panel rounded-2xl p-5 border border-brand-border/40 bg-brand-bg/25">
+                    <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Batch Directory Ingestion</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Local Directory Path</label>
+                        <input
+                          type="text"
+                          value={auditDirPath}
+                          onChange={e => setAuditDirPath(e.target.value)}
+                          placeholder="e.g. c:\projects\companies"
+                          className="w-full bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent"
+                        />
+                      </div>
+
+                      {batchStatus === 'PROCESSING' && (
+                        <div className="bg-brand-bg/60 border border-brand-border/40 p-3 rounded-lg text-xs space-y-1.5">
+                          <div className="flex justify-between text-brand-muted text-[10px]">
+                            <span>Progress: {batchCompletedCount} / {batchTotalCount}</span>
+                            <span>ETC: {batchEstimatedSeconds.toFixed(1)}s</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-brand-border rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-brand-accent transition-all duration-300"
+                              style={{ width: `${(batchCompletedCount / (batchTotalCount || 1)) * 100}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {batchStatus === 'FAILED' && batchError && (
+                        <div className="p-2.5 bg-rose-500/10 text-rose-500 border border-rose-500/30 rounded text-[10px] font-mono leading-relaxed">
+                          [ERROR] {batchError}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleStartBatchAudit}
+                        disabled={batchStatus === 'PROCESSING'}
+                        className="w-full py-2.5 bg-brand-primary hover:bg-brand-primary/90 disabled:bg-brand-border text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center space-x-2"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${batchStatus === 'PROCESSING' ? 'animate-spin' : ''}`} />
+                        <span>{batchStatus === 'PROCESSING' ? 'Crawling Directory...' : 'Start Directory Batch Scan'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Console Log / Result Terminal */}
-                <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-brand-border/40 flex flex-col h-[320px] bg-black/60 relative font-mono">
+                <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-brand-border/40 flex flex-col h-[430px] bg-black/60 relative font-mono">
                   <div className="flex justify-between items-center border-b border-brand-border/40 pb-2 mb-3">
                     <span className="text-[10px] text-brand-muted">Ingestion Pipeline Shell & Logs</span>
                     <span className={`text-[10px] font-bold ${
-                      currentAuditStatus === 'COMPLETED' ? 'text-brand-secondary' :
-                      currentAuditStatus === 'PROCESSING' ? 'text-brand-accent animate-pulse' :
-                      currentAuditStatus === 'FAILED' ? 'text-rose-500' : 'text-brand-muted'
+                      batchStatus === 'PROCESSING' || currentAuditStatus === 'PROCESSING' ? 'text-brand-accent animate-pulse' :
+                      batchStatus === 'COMPLETED' || currentAuditStatus === 'COMPLETED' ? 'text-brand-secondary' :
+                      batchStatus === 'FAILED' || currentAuditStatus === 'FAILED' ? 'text-rose-500' : 'text-brand-muted'
                     }`}>
-                      STATUS: {currentAuditStatus}
+                      STATUS: {batchStatus !== 'IDLE' ? batchStatus : currentAuditStatus}
                     </span>
                   </div>
 
                   <div className="flex-1 overflow-y-auto text-[10px] space-y-1.5 text-green-400 pr-2 select-text">
-                    {currentAuditLogs.length > 0 ? (
+                    {batchStatus === 'PROCESSING' ? (
+                      <div className="space-y-1">
+                        <div>[BATCH INIT] Initiated directory scanning task queue...</div>
+                        <div>[BATCH INFO] Loaded company records from CSV/TXT registry files.</div>
+                        <div>[BATCH EXEC] Crawling domains... (ETC: {batchEstimatedSeconds.toFixed(1)} seconds)</div>
+                        <div className="text-white pt-2">Scanned Nodes Queue:</div>
+                        <div className="pl-4 text-brand-secondary">{batchCompletedCount} / {batchTotalCount} companies analyzed.</div>
+                      </div>
+                    ) : currentAuditLogs.length > 0 ? (
                       currentAuditLogs.map((log, idx) => (
                         <div key={idx} className="leading-relaxed whitespace-pre-wrap">{log}</div>
                       ))
                     ) : (
-                      <div className="text-brand-muted text-center py-20">
-                        Shell is idle. Enter company details on the left and trigger audit.
+                      <div className="text-brand-muted text-center py-32">
+                        Shell is idle. Enter company details or directory path on the left and trigger audit.
                       </div>
                     )}
-                    {currentAuditStatus === 'PROCESSING' && (
+                    {(currentAuditStatus === 'PROCESSING' || batchStatus === 'PROCESSING') && (
                       <span className="inline-block w-1.5 h-3 bg-green-400 animate-pulse ml-1"></span>
                     )}
                   </div>
@@ -2968,6 +3087,55 @@ feature kern {
                         <Download className="h-4 w-4" />
                         <span>Download Full Audit PDF Report</span>
                       </a>
+                    </div>
+                  )}
+
+                  {batchStatus === 'COMPLETED' && (
+                    <div className="absolute inset-0 bg-[#0c0c14]/95 rounded-2xl p-5 border border-brand-secondary/40 flex flex-col justify-between animate-fadeIn font-sans">
+                      <div className="flex-1 flex flex-col min-h-0">
+                        <div className="flex justify-between items-center border-b border-brand-border/40 pb-2 mb-3">
+                          <div>
+                            <span className="text-[10px] text-brand-secondary font-mono tracking-widest block uppercase font-bold">Batch Audit Complete</span>
+                            <h4 className="text-sm font-bold text-white">Parsed Directory: {auditDirPath}</h4>
+                          </div>
+                          <span className="px-2 py-0.5 text-[9px] bg-rose-500/10 text-rose-500 rounded border border-rose-500/30 font-bold font-mono">
+                            {batchViolations.length} VIOLATIONS FOUND
+                          </span>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                          {batchViolations.length > 0 ? (
+                            batchViolations.map((violation, idx) => (
+                              <div key={idx} className="flex justify-between items-center bg-brand-bg/50 border border-brand-border/40 p-2.5 rounded-lg text-xs hover:border-rose-500/30 transition-colors">
+                                <div>
+                                  <span className="font-bold text-white block">{violation.company_name} ({violation.domain})</span>
+                                  <span className="text-[9px] text-brand-muted">Detected: {violation.detected_font} (Match: {(violation.similarity_score * 100).toFixed(1)}%)</span>
+                                </div>
+                                <a
+                                  href={`${API_BASE}${violation.report_path}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/30 rounded font-bold text-[10px] transition-colors flex items-center space-x-1"
+                                >
+                                  <Download className="h-3 w-3" />
+                                  <span>PDF Report</span>
+                                </a>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-16 text-brand-muted text-xs">
+                              All scanned companies compliant. No reference database matches found.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setBatchStatus('IDLE')}
+                        className="w-full mt-3 py-2 bg-brand-border hover:bg-brand-border/80 text-white rounded-lg transition-all text-xs"
+                      >
+                        Acknowledge & Clear Terminal
+                      </button>
                     </div>
                   )}
                 </div>

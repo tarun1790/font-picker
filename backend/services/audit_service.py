@@ -368,3 +368,86 @@ def execute_font_audit_pipeline(task_id, domain, company_name):
     except Exception as e:
         log(f"[ERROR] Pipeline execution failed: {str(e)}")
         AUDIT_TASKS[task_id]["status"] = "FAILED"
+
+import csv
+
+BATCH_AUDITS = {} # batch_id -> {status, total_count, completed_count, estimated_seconds, violations, error}
+
+def execute_batch_audit_pipeline(batch_id, directory_path):
+    BATCH_AUDITS[batch_id] = {
+        "status": "PROCESSING",
+        "total_count": 0,
+        "completed_count": 0,
+        "estimated_seconds": 0,
+        "violations": [],
+        "error": None
+    }
+    
+    try:
+        if not os.path.exists(directory_path):
+            raise Exception(f"Directory path '{directory_path}' does not exist on server.")
+            
+        # Scan for CSV or TXT files
+        files = [f for f in os.listdir(directory_path) if f.endswith('.csv') or f.endswith('.txt')]
+        if not files:
+            raise Exception(f"No .csv or .txt files found in directory '{directory_path}'.")
+            
+        companies = []
+        for file in files:
+            file_path = os.path.join(directory_path, file)
+            if file.endswith('.csv'):
+                with open(file_path, mode='r', encoding='utf-8') as f:
+                    reader = csv.reader(f)
+                    # Skip header if present
+                    header = next(reader, None)
+                    for row in reader:
+                        if len(row) >= 2:
+                            companies.append({"name": row[0].strip(), "domain": row[1].strip()})
+            else:
+                with open(file_path, mode='r', encoding='utf-8') as f:
+                    for line in f:
+                        parts = line.strip().split(',')
+                        if len(parts) >= 2:
+                            companies.append({"name": parts[0].strip(), "domain": parts[1].strip()})
+                            
+        if not companies:
+            raise Exception("No valid company records (name, domain) parsed from files.")
+            
+        total = len(companies)
+        # 0.4 seconds per audit estimate
+        est_sec = total * 0.4
+        
+        BATCH_AUDITS[batch_id]["total_count"] = total
+        BATCH_AUDITS[batch_id]["estimated_seconds"] = est_sec
+        
+        for idx, company in enumerate(companies):
+            comp_name = company["name"]
+            comp_dom = company["domain"]
+            task_id = f"{batch_id}_task_{idx}"
+            
+            # Execute single audit
+            execute_font_audit_pipeline(task_id, comp_dom, comp_name)
+            task_info = AUDIT_TASKS.get(task_id, {})
+            
+            if task_info.get("status") == "COMPLETED" and task_info.get("result"):
+                res = task_info["result"]
+                audit_data = res["audit_data"]
+                if audit_data.get("similarity_score", 0) > 0.90:
+                    BATCH_AUDITS[batch_id]["violations"].append({
+                        "company_name": comp_name,
+                        "domain": comp_dom,
+                        "detected_font": audit_data["detected_font"],
+                        "confidence": audit_data["confidence"],
+                        "similarity_score": audit_data["similarity_score"],
+                        "report_path": res["report_path"],
+                        "filename": res["filename"]
+                    })
+                    
+            BATCH_AUDITS[batch_id]["completed_count"] = idx + 1
+            BATCH_AUDITS[batch_id]["estimated_seconds"] = max(0, (total - (idx + 1)) * 0.4)
+            
+        BATCH_AUDITS[batch_id]["status"] = "COMPLETED"
+        
+    except Exception as e:
+        BATCH_AUDITS[batch_id]["status"] = "FAILED"
+        BATCH_AUDITS[batch_id]["error"] = str(e)

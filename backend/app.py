@@ -544,3 +544,26 @@ def download_pdf_report(filename: str):
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Report not found")
     return FileResponse(path, media_type="application/pdf", filename=filename)
+
+# Batch Audit Request Validation Models
+class BatchAuditRequest(BaseModel):
+    directory_path: str
+
+@app.post("/api/v1/audit/batch", status_code=status.HTTP_202_ACCEPTED)
+def trigger_batch_audit(payload: BatchAuditRequest, background_tasks: BackgroundTasks):
+    batch_id = str(uuid.uuid4())
+    background_tasks.add_task(
+        audit_service.execute_batch_audit_pipeline,
+        batch_id,
+        payload.directory_path
+    )
+    return {
+        "batch_id": batch_id,
+        "status": "PROCESSING"
+    }
+
+@app.get("/api/v1/audit/batch/{batch_id}")
+def get_batch_audit_status(batch_id: str):
+    if batch_id not in audit_service.BATCH_AUDITS:
+        raise HTTPException(status_code=404, detail="Batch task not found")
+    return audit_service.BATCH_AUDITS[batch_id]
