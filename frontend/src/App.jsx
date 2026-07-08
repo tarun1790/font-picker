@@ -26,8 +26,8 @@ const getApiBase = () => {
     return queryApi;
   }
 
-  // Default to local backend loopback on Windows to prevent cached tunnel interference
-  return 'http://127.0.0.1:8000';
+  // Default directly to the active secure public tunnel so the hosted GitHub link works out-of-the-box
+  return 'https://1b5448ce5972c222-175-101-96-2.serveousercontent.com';
 };
 const API_BASE = getApiBase();
 

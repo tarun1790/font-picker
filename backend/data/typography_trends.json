@@ -7,8 +7,22 @@
             "Roboto"
         ],
         "average_weight": 400.0,
-        "scanned_count": 443,
+        "scanned_count": 650,
         "brand_personality": "Elegant & Formal",
         "accessibility_index": 0.85
+    },
+    "Food & Beverage": {
+        "common_font_styles": [
+            "Serif",
+            "Geometric Sans-Serif"
+        ],
+        "common_pairings": [
+            "Playfair Display",
+            "Montserrat"
+        ],
+        "average_weight": 550.0,
+        "scanned_count": 2,
+        "brand_personality": "Elegant & Formal",
+        "accessibility_index": 0.9
     }
 }
