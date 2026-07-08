@@ -1377,7 +1377,7 @@ feature kern {
             { id: 'registry', label: '100k Font Browser', icon: Database },
             { id: 'agents', label: 'AI Agent Console', icon: MessageSquare },
             { id: 'dashboard', label: 'Dashboard & Reports', icon: BarChart2 },
-            { id: 'auditor', label: 'Compliance Auditor', icon: ShieldAlert }
+            { id: 'auditor', label: 'Font Monitor', icon: ShieldAlert }
           ].map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -2905,7 +2905,7 @@ feature kern {
           </div>
         )}
 
-        {/* TAB 7: FONT COMPLIANCE AUDITOR */}
+        {/* TAB 7: FONT MONITOR */}
         {activeTab === 'auditor' && (
           <div className="space-y-6">
             <div className="glass-panel rounded-3xl p-6 border border-brand-accent/30 relative overflow-hidden">
@@ -2915,9 +2915,9 @@ feature kern {
                 <div>
                   <h2 className="text-xl font-bold text-white uppercase tracking-wider flex items-center">
                     <ShieldAlert className="h-6 w-6 mr-2.5 text-brand-accent" />
-                    24/7 Font Compliance Auditor
+                    24/7 Font Monitor
                   </h2>
-                  <p className="text-xs text-brand-muted">Scrape target domains to identify unauthorized usage of custom, commercial, and proprietary fonts.</p>
+                  <p className="text-xs text-brand-muted">Scrape target domains to identify unauthorized usage of custom, commercial, and proprietary fonts, while training typography trends.</p>
                 </div>
                 <span className="mt-2 md:mt-0 px-3.5 py-1 text-[10px] rounded-full border border-brand-accent/40 text-brand-accent bg-brand-accent/5 font-mono uppercase">
                   Compliance Monitoring: ACTIVE
