@@ -16,7 +16,7 @@ from backend.font_generator.evolution import FontEvolutionEngine
 from backend.reports.generator import generate_branding_pdf_report
 import backend.agents.agent_system as agents
 from backend.models.llm_selector import LLMFontSelector
-from backend.services import audit_service
+import backend.services.audit_service as audit_service
 import time
 from fastapi import BackgroundTasks, status
 
