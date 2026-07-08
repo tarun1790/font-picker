@@ -26,13 +26,8 @@ const getApiBase = () => {
     return queryApi;
   }
 
-  // Auto-detect environments: prioritize local backend for local development
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:8000';
-  }
-
-  // Otherwise, default directly to the static public backend subdomain
-  return 'https://tarun-brand-analytics.loca.lt';
+  // Default to local backend on this computer
+  return 'http://localhost:8000';
 };
 const API_BASE = getApiBase();
 
