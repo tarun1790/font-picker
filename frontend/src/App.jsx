@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { 
   Sparkles, Upload, RotateCw, Settings, BarChart2, FileText, 
   Layers, Search, Sliders, MessageSquare, CheckCircle, AlertTriangle, 
-  ArrowRight, Download, Eye, Shield, Heart, Zap, RefreshCw, Database, X
+  ArrowRight, Download, Eye, Shield, Heart, Zap, RefreshCw, Database, X, ShieldAlert
 } from 'lucide-react';
 
 // Intercept all API calls to localtunnel to bypass warning screen
@@ -576,6 +576,79 @@ feature kern {
       fetchOptions();
     }
   }, [similaritySearchInput, showSimilarityDropdown]);
+
+  // Font Compliance Auditor states
+  const [auditDomain, setAuditDomain] = useState('cadbury.com');
+  const [auditCompanyName, setAuditCompanyName] = useState('Cadbury');
+  const [auditRevenue, setAuditRevenue] = useState(38000000000);
+  const [auditReports, setAuditReports] = useState([]);
+  const [currentAuditTaskId, setCurrentAuditTaskId] = useState(null);
+  const [currentAuditLogs, setCurrentAuditLogs] = useState([]);
+  const [currentAuditStatus, setCurrentAuditStatus] = useState('IDLE');
+  const [currentAuditResult, setCurrentAuditResult] = useState(null);
+
+  const fetchReports = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/audit/reports`);
+      const data = await res.json();
+      setAuditReports(data.reports || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  // Poll audit status if task is processing
+  useEffect(() => {
+    if (!currentAuditTaskId || currentAuditStatus !== 'PROCESSING') return;
+
+    let intervalId = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/audit/status/${currentAuditTaskId}`);
+        const data = await res.json();
+        setCurrentAuditLogs(data.progress_logs || []);
+        setCurrentAuditStatus(data.status);
+        if (data.status === 'COMPLETED') {
+          setCurrentAuditResult(data.result);
+          clearInterval(intervalId);
+          fetchReports();
+        } else if (data.status === 'FAILED') {
+          clearInterval(intervalId);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 1500);
+
+    return () => clearInterval(intervalId);
+  }, [currentAuditTaskId, currentAuditStatus]);
+
+  const handleStartAudit = async () => {
+    try {
+      setCurrentAuditLogs(['Initializing compliance trigger...']);
+      setCurrentAuditStatus('PROCESSING');
+      setCurrentAuditResult(null);
+
+      const res = await fetch(`${API_BASE}/api/v1/audit/trigger`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain: auditDomain,
+          estimated_revenue: auditRevenue,
+          company_name: auditCompanyName
+        })
+      });
+      const data = await res.json();
+      setCurrentAuditTaskId(data.task_id);
+    } catch (err) {
+      console.error(err);
+      setCurrentAuditStatus('FAILED');
+      setCurrentAuditLogs(prev => [...prev, '[ERROR] Network connection failed. Check backend uvicorn server.']);
+    }
+  };
 
   // Three.js Simulator setup
   useEffect(() => {
@@ -1228,7 +1301,8 @@ feature kern {
             { id: 'similarity', label: 'FAISS Vector Search', icon: Search },
             { id: 'registry', label: '100k Font Browser', icon: Database },
             { id: 'agents', label: 'AI Agent Console', icon: MessageSquare },
-            { id: 'dashboard', label: 'Dashboard & Reports', icon: BarChart2 }
+            { id: 'dashboard', label: 'Dashboard & Reports', icon: BarChart2 },
+            { id: 'auditor', label: 'Compliance Auditor', icon: ShieldAlert }
           ].map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -2753,6 +2827,201 @@ feature kern {
 
             </div>
 
+          </div>
+        )}
+
+        {/* TAB 7: FONT COMPLIANCE AUDITOR */}
+        {activeTab === 'auditor' && (
+          <div className="space-y-6">
+            <div className="glass-panel rounded-3xl p-6 border border-brand-accent/30 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-brand-accent/5 rounded-full blur-3xl pointer-events-none"></div>
+              
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-brand-border/40 pb-4 mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-white uppercase tracking-wider flex items-center">
+                    <ShieldAlert className="h-6 w-6 mr-2.5 text-brand-accent" />
+                    24/7 Font Compliance Auditor
+                  </h2>
+                  <p className="text-xs text-brand-muted">Scrape target domains to identify unauthorized usage of custom, commercial, and proprietary fonts.</p>
+                </div>
+                <span className="mt-2 md:mt-0 px-3.5 py-1 text-[10px] rounded-full border border-brand-accent/40 text-brand-accent bg-brand-accent/5 font-mono uppercase">
+                  Compliance Monitoring: ACTIVE
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Audit Launcher Form */}
+                <div className="lg:col-span-1 glass-panel rounded-2xl p-5 border border-brand-border/40 bg-brand-bg/25">
+                  <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Initialize Audit</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Target Domain Name</label>
+                      <input
+                        type="text"
+                        value={auditDomain}
+                        onChange={e => setAuditDomain(e.target.value)}
+                        placeholder="e.g. cadbury.com"
+                        className="w-full bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Target Company Name</label>
+                      <input
+                        type="text"
+                        value={auditCompanyName}
+                        onChange={e => setAuditCompanyName(e.target.value)}
+                        placeholder="e.g. Cadbury"
+                        className="w-full bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Estimated Revenue ($)</label>
+                      <input
+                        type="number"
+                        value={auditRevenue}
+                        onChange={e => setAuditRevenue(Number(e.target.value))}
+                        className="w-full bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-accent"
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleStartAudit}
+                      disabled={currentAuditStatus === 'PROCESSING'}
+                      className="w-full py-2.5 bg-brand-accent hover:bg-brand-accent/90 disabled:bg-brand-border text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center space-x-2"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${currentAuditStatus === 'PROCESSING' ? 'animate-spin' : ''}`} />
+                      <span>{currentAuditStatus === 'PROCESSING' ? 'Crawling & Processing...' : 'Run Headless Ingestion Audit'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Console Log / Result Terminal */}
+                <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-brand-border/40 flex flex-col h-[320px] bg-black/60 relative font-mono">
+                  <div className="flex justify-between items-center border-b border-brand-border/40 pb-2 mb-3">
+                    <span className="text-[10px] text-brand-muted">Ingestion Pipeline Shell & Logs</span>
+                    <span className={`text-[10px] font-bold ${
+                      currentAuditStatus === 'COMPLETED' ? 'text-brand-secondary' :
+                      currentAuditStatus === 'PROCESSING' ? 'text-brand-accent animate-pulse' :
+                      currentAuditStatus === 'FAILED' ? 'text-rose-500' : 'text-brand-muted'
+                    }`}>
+                      STATUS: {currentAuditStatus}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto text-[10px] space-y-1.5 text-green-400 pr-2 select-text">
+                    {currentAuditLogs.length > 0 ? (
+                      currentAuditLogs.map((log, idx) => (
+                        <div key={idx} className="leading-relaxed whitespace-pre-wrap">{log}</div>
+                      ))
+                    ) : (
+                      <div className="text-brand-muted text-center py-20">
+                        Shell is idle. Enter company details on the left and trigger audit.
+                      </div>
+                    )}
+                    {currentAuditStatus === 'PROCESSING' && (
+                      <span className="inline-block w-1.5 h-3 bg-green-400 animate-pulse ml-1"></span>
+                    )}
+                  </div>
+
+                  {currentAuditStatus === 'COMPLETED' && currentAuditResult && (
+                    <div className="absolute inset-0 bg-[#0c0c14]/95 rounded-2xl p-5 border border-brand-secondary/40 flex flex-col justify-between animate-fadeIn font-sans">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="text-[10px] text-brand-secondary font-mono tracking-widest block uppercase font-bold">Vector Ingestion Match Found</span>
+                            <h4 className="text-sm font-bold text-white">{currentAuditResult.audit_data.company_name} ({auditDomain})</h4>
+                          </div>
+                          <span className="px-2 py-0.5 text-[9px] bg-rose-500/10 text-rose-500 rounded border border-rose-500/30 font-bold font-mono">
+                            VIOLATION
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-xs mt-3 bg-brand-bg/50 border border-brand-border/40 p-3 rounded-lg">
+                          <div>
+                            <span className="text-gray-500 block text-[9px] uppercase">Detected Font</span>
+                            <span className="text-white font-bold">{currentAuditResult.audit_data.detected_font}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[9px] uppercase">Corporate Parent</span>
+                            <span className="text-white font-bold">{currentAuditResult.audit_data.parent_entity}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[9px] uppercase">Qdrant Confidence</span>
+                            <span className="text-white font-bold">{(currentAuditResult.audit_data.infringement_score * 100).toFixed(1)}%</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[9px] uppercase">Revenue Tier</span>
+                            <span className="text-white font-bold">{currentAuditResult.audit_data.revenue_tier}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <a
+                        href={`${API_BASE}${currentAuditResult.report_path}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full py-2.5 bg-brand-secondary text-white font-bold rounded-lg shadow-lg hover:shadow-brand-secondary/20 transition-all flex items-center justify-center space-x-2 text-xs"
+                      >
+                        <Download className="h-4 w-4" />
+                        <span>Download Full Audit PDF Report</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* PDF Reports History Table */}
+              <div className="mt-8">
+                <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider font-sans">Generated Compliance Audits</h3>
+                <div className="glass-panel rounded-2xl overflow-hidden border border-brand-border/60">
+                  <table className="w-full text-xs text-left font-sans">
+                    <thead className="bg-brand-bg/50 border-b border-brand-border/80 text-brand-muted font-bold">
+                      <tr>
+                        <th className="p-3">Report File Name</th>
+                        <th className="p-3">Type</th>
+                        <th className="p-3">Compliance Tag</th>
+                        <th className="p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-border/40">
+                      {auditReports.length > 0 ? (
+                        auditReports.map((filename, idx) => (
+                          <tr key={idx} className="hover:bg-brand-primary/5 transition-colors">
+                            <td className="p-3 text-white font-mono">{filename}</td>
+                            <td className="p-3 text-brand-muted">PDF Audit</td>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 text-[9px] rounded bg-rose-500/10 text-rose-500 border border-rose-500/30 font-bold uppercase font-mono">
+                                Infringement Warning
+                              </span>
+                            </td>
+                            <td className="p-3 text-right">
+                              <a
+                                href={`${API_BASE}/api/v1/download-report/${filename}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center space-x-1.5 text-brand-primary hover:text-brand-accent transition-colors font-bold"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                <span>Get PDF</span>
+                              </a>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="4" className="p-6 text-center text-brand-muted">
+                            No generated PDF reports found in server reports library.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

@@ -16,6 +16,9 @@ from backend.font_generator.evolution import FontEvolutionEngine
 from backend.reports.generator import generate_branding_pdf_report
 import backend.agents.agent_system as agents
 from backend.models.llm_selector import LLMFontSelector
+from backend.services import audit_service
+import time
+from fastapi import BackgroundTasks, status
 
 app = FastAPI(title="AI Typography & Branding Intelligence Platform API", version="1.0.0")
 
@@ -493,3 +496,51 @@ def handle_chat_query(payload: ChatRequest):
             "recommendations": recs,
             "agentic_report": orchestrator.get_orchestration_report()
         }
+
+# Compliance Audit Request Validation Models
+class AuditRequest(BaseModel):
+    domain: str
+    estimated_revenue: float = 0.0
+    company_name: str
+
+class AuditStatusResponse(BaseModel):
+    task_id: str
+    status: str
+    domain: str
+
+@app.post("/api/v1/audit/trigger", status_code=status.HTTP_202_ACCEPTED, response_model=AuditStatusResponse)
+def trigger_domain_audit(payload: AuditRequest, background_tasks: BackgroundTasks):
+    task_id = str(uuid.uuid4())
+    background_tasks.add_task(
+        audit_service.execute_font_audit_pipeline,
+        task_id,
+        payload.domain,
+        payload.company_name
+    )
+    return {
+        "task_id": task_id,
+        "status": "PROCESSING",
+        "domain": payload.domain
+    }
+
+@app.get("/api/v1/audit/status/{task_id}")
+def get_audit_status(task_id: str):
+    if task_id not in audit_service.AUDIT_TASKS:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return audit_service.AUDIT_TASKS[task_id]
+
+@app.get("/api/v1/audit/reports")
+def list_audit_reports():
+    reports_dir = os.path.abspath("backend/reports")
+    if not os.path.exists(reports_dir):
+        return {"reports": []}
+    files = [f for f in os.listdir(reports_dir) if f.endswith(".pdf")]
+    return {"reports": files}
+
+@app.get("/api/v1/download-report/{filename}")
+def download_pdf_report(filename: str):
+    filename = os.path.basename(filename)
+    path = os.path.abspath(os.path.join("backend/reports", filename))
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Report not found")
+    return FileResponse(path, media_type="application/pdf", filename=filename)
