@@ -537,7 +537,7 @@ def list_audit_reports():
     files = [f for f in os.listdir(reports_dir) if f.endswith(".pdf")]
     return {"reports": files}
 
-@app.get("/api/v1/download-report/{filename}")
+@app.get("/api/v1/download-report/audit/{filename}")
 def download_pdf_report(filename: str):
     filename = os.path.basename(filename)
     path = os.path.abspath(os.path.join("backend/reports", filename))

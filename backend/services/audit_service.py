@@ -372,7 +372,7 @@ def execute_font_audit_pipeline(task_id, domain, company_name):
         
         AUDIT_TASKS[task_id]["status"] = "COMPLETED"
         AUDIT_TASKS[task_id]["result"] = {
-            "report_path": f"/api/v1/download-report/{report_filename}",
+            "report_path": f"/api/v1/download-report/audit/{report_filename}",
             "audit_data": audit_data,
             "filename": report_filename
         }

@@ -3177,7 +3177,7 @@ feature kern {
                             </td>
                             <td className="p-3 text-right">
                               <a
-                                href={`${API_BASE}/api/v1/download-report/${filename}`}
+                                href={`${API_BASE}/api/v1/download-report/audit/${filename}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex items-center space-x-1.5 text-brand-primary hover:text-brand-accent transition-colors font-bold"
