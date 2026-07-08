@@ -6,11 +6,11 @@ import {
   ArrowRight, Download, Eye, Shield, Heart, Zap, RefreshCw, Database, X, ShieldAlert
 } from 'lucide-react';
 
-// Intercept all API calls to localtunnel to bypass warning screen
+// Intercept all API calls to localtunnel/serveo to bypass warning screen
 const originalFetch = window.fetch;
 window.fetch = async (input, init = {}) => {
   const url = typeof input === 'string' ? input : input.url;
-  if (url && (url.includes('loca.lt') || url.includes('localtunnel.me'))) {
+  if (url && (url.includes('loca.lt') || url.includes('localtunnel.me') || url.includes('serveo'))) {
     init.headers = {
       ...(init.headers || {}),
       'Bypass-Tunnel-Reminder': 'true'
