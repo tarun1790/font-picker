@@ -3190,7 +3190,7 @@ feature kern {
                           </div>
                           <div>
                             <span className="text-gray-500 block text-[9px] uppercase">Qdrant Confidence</span>
-                            <span className="text-white font-bold">{(currentAuditResult.audit_data.infringement_score * 100).toFixed(1)}%</span>
+                            <span className="text-white font-bold">{(currentAuditResult.audit_data.confidence * 100).toFixed(1)}%</span>
                           </div>
                           <div>
                             <span className="text-gray-500 block text-[9px] uppercase">Revenue Tier</span>
