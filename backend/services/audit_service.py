@@ -355,6 +355,18 @@ def execute_font_audit_pipeline(task_id, domain, company_name):
         log("[REPORT] Compiling evidence into professional 4-page PDF Audit Report...")
         generate_audit_pdf(report_path, task_id, domain, company_name, audit_data)
         time.sleep(0.05)
+
+        # Engine 1 Typography Learning Trigger
+        log(f"[LEARNING ENGINE] Analyzing typography features and pairing hierarchy for {company_name}...")
+        update_typography_learnings(
+            company_name=company_name,
+            domain=domain,
+            industry=audit_data.get("industry", "Commercial Services"),
+            font_name=audit_data["detected_font"],
+            font_style=audit_data["font_style"],
+            weight=700 if "700" in audit_data["css_rule"] else 400
+        )
+        time.sleep(0.05)
         
         log(f"[SUCCESS] Compliance audit complete. Report registered: {report_filename}")
         
@@ -451,3 +463,49 @@ def execute_batch_audit_pipeline(batch_id, directory_path):
     except Exception as e:
         BATCH_AUDITS[batch_id]["status"] = "FAILED"
         BATCH_AUDITS[batch_id]["error"] = str(e)
+
+import json
+
+TRENDS_FILE = "backend/data/typography_trends.json"
+
+def update_typography_learnings(company_name, domain, industry, font_name, font_style, weight):
+    data = {}
+    if os.path.exists(TRENDS_FILE):
+        try:
+            with open(TRENDS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception:
+            pass
+            
+    ind_data = data.setdefault(industry, {
+        "common_font_styles": [],
+        "common_pairings": [],
+        "average_weight": 400.0,
+        "scanned_count": 0,
+        "brand_personality": "Modern",
+        "accessibility_index": 0.92
+    })
+    
+    ind_data["scanned_count"] += 1
+    count = ind_data["scanned_count"]
+    
+    # Calculate moving average weight
+    current_avg = ind_data["average_weight"]
+    ind_data["average_weight"] = round(((current_avg * (count - 1)) + weight) / count, 1)
+    
+    if font_style not in ind_data["common_font_styles"]:
+        ind_data["common_font_styles"].append(font_style)
+        
+    if font_name not in ind_data["common_pairings"]:
+        ind_data["common_pairings"].append(font_name)
+        
+    if "Serif" in font_style:
+        ind_data["brand_personality"] = "Elegant & Formal"
+        ind_data["accessibility_index"] = round(max(0.85, ind_data["accessibility_index"] - 0.01), 2)
+    elif "Sans-Serif" in font_style or "Geometric" in font_style:
+        ind_data["brand_personality"] = "Friendly & Modern"
+        ind_data["accessibility_index"] = round(min(0.96, ind_data["accessibility_index"] + 0.01), 2)
+        
+    os.makedirs(os.path.dirname(TRENDS_FILE), exist_ok=True)
+    with open(TRENDS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4)

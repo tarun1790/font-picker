@@ -597,8 +597,21 @@ feature kern {
     }
   };
 
+  const [typographyTrends, setTypographyTrends] = useState({});
+
+  const fetchTrends = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/learning/trends`);
+      const data = await res.json();
+      setTypographyTrends(data || {});
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchReports();
+    fetchTrends();
   }, []);
 
   // Poll audit status if task is processing
@@ -615,6 +628,7 @@ feature kern {
           setCurrentAuditResult(data.result);
           clearInterval(intervalId);
           fetchReports();
+          fetchTrends();
         } else if (data.status === 'FAILED') {
           clearInterval(intervalId);
         }
@@ -676,6 +690,7 @@ feature kern {
         if (data.status === 'COMPLETED' || data.status === 'FAILED') {
           clearInterval(intervalId);
           fetchReports();
+          fetchTrends();
         }
       } catch (err) {
         console.error(err);
@@ -3187,6 +3202,59 @@ feature kern {
                       )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              {/* Engine 1 Typography Learning Insights */}
+              <div className="mt-8">
+                <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider font-sans flex items-center">
+                  <Sparkles className="h-4 w-4 mr-2 text-brand-secondary animate-pulse" />
+                  Engine 1: Typography Learning Insights
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.keys(typographyTrends).length > 0 ? (
+                    Object.keys(typographyTrends).map((industry, idx) => (
+                      <div key={idx} className="glass-panel rounded-2xl p-5 border border-brand-border/60 relative overflow-hidden bg-brand-panel/20">
+                        <div className="flex justify-between items-start mb-3 border-b border-brand-border/40 pb-2.5 font-sans">
+                          <div>
+                            <span className="text-[10px] text-brand-secondary font-mono tracking-wider block uppercase font-bold">Learned Trend Pattern</span>
+                            <h4 className="text-sm font-bold text-white uppercase">{industry}</h4>
+                          </div>
+                          <span className="px-2.5 py-0.5 text-[9px] bg-brand-primary/10 text-brand-primary rounded border border-brand-primary/30 font-bold font-mono">
+                            {typographyTrends[industry].scanned_count} SITES SCANNED
+                          </span>
+                        </div>
+
+                        <div className="space-y-3 text-xs leading-relaxed text-brand-muted font-sans">
+                          <div className="flex justify-between">
+                            <span>Common Font Styles:</span>
+                            <span className="text-white font-semibold">{typographyTrends[industry].common_font_styles.join(', ') || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Learned Pairings:</span>
+                            <span className="text-white font-semibold">{typographyTrends[industry].common_pairings.join(', ') || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Average Weight (wght):</span>
+                            <span className="text-white font-semibold">{typographyTrends[industry].average_weight}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Accessibility Score:</span>
+                            <span className="text-white font-semibold">{(typographyTrends[industry].accessibility_index * 100).toFixed(0)}%</span>
+                          </div>
+                          <div className="pt-2 border-t border-brand-border/30 flex justify-between text-[10px] uppercase font-mono">
+                            <span>Brand Personality:</span>
+                            <span className="text-brand-accent font-bold">{typographyTrends[industry].brand_personality}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-2 glass-panel rounded-2xl p-6 text-center text-brand-muted text-xs">
+                      No learning observations recorded yet. Run a batch scan to populate industry trends.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

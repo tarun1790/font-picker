@@ -567,3 +567,16 @@ def get_batch_audit_status(batch_id: str):
     if batch_id not in audit_service.BATCH_AUDITS:
         raise HTTPException(status_code=404, detail="Batch task not found")
     return audit_service.BATCH_AUDITS[batch_id]
+
+import json
+
+@app.get("/api/v1/learning/trends")
+def get_typography_trends():
+    trends_file = os.path.abspath("backend/data/typography_trends.json")
+    if not os.path.exists(trends_file):
+        return {}
+    try:
+        with open(trends_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
