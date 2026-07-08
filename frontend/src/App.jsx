@@ -26,8 +26,13 @@ const getApiBase = () => {
     return queryApi;
   }
 
-  // Default to local backend on this computer
-  return 'http://localhost:8000';
+  const storedApi = localStorage.getItem('font_picker_api_base');
+  if (storedApi) {
+    return storedApi;
+  }
+
+  // Default to local backend loopback on Windows
+  return 'http://127.0.0.1:8000';
 };
 const API_BASE = getApiBase();
 
