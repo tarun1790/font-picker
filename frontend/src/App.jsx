@@ -26,13 +26,8 @@ const getApiBase = () => {
     return queryApi;
   }
 
-  // If accessing locally, bypass Serveo entirely to prevent warning pages and latency
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://127.0.0.1:8000';
-  }
-
-  // Default directly to the active secure public tunnel so the hosted GitHub link works out-of-the-box
-  return 'https://d0419d0a942a3768-175-101-96-2.serveousercontent.com';
+  // Default directly to the local backend loopback on Windows to prevent cached tunnel interference
+  return 'http://127.0.0.1:8000';
 };
 const API_BASE = getApiBase();
 
