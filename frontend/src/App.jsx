@@ -720,6 +720,71 @@ feature kern {
     }
   };
 
+  const handleStopBatchAudit = async () => {
+    if (!batchTaskId) return;
+    try {
+      await fetch(`${API_BASE}/api/v1/audit/batch/stop/${batchTaskId}`, { method: 'POST' });
+      setBatchStatus('STOPPED');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // AI Ingestion Agent States
+  const [ingestAgentPrompt, setIngestAgentPrompt] = useState('Scan starbucks.com, parse the typography system, check for corporate subsidiaries, and compile the PDF');
+  const [ingestAgentTaskId, setIngestAgentTaskId] = useState(null);
+  const [ingestAgentLogs, setIngestAgentLogs] = useState([]);
+  const [ingestAgentStatus, setIngestAgentStatus] = useState('IDLE');
+  const [ingestAgentResult, setIngestAgentResult] = useState(null);
+
+  // Poll AI Ingestion Agent task status
+  useEffect(() => {
+    if (!ingestAgentTaskId || ingestAgentStatus !== 'PROCESSING') return;
+
+    let intervalId = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/audit/status/${ingestAgentTaskId}`);
+        const data = await res.json();
+        setIngestAgentLogs(data.progress_logs || []);
+        setIngestAgentStatus(data.status);
+        if (data.status === 'COMPLETED') {
+          setIngestAgentResult(data.result);
+          clearInterval(intervalId);
+          fetchReports();
+          fetchTrends();
+        } else if (data.status === 'FAILED') {
+          clearInterval(intervalId);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 1500);
+
+    return () => clearInterval(intervalId);
+  }, [ingestAgentTaskId, ingestAgentStatus]);
+
+  const handleStartAgentAudit = async () => {
+    try {
+      setIngestAgentStatus('PROCESSING');
+      setIngestAgentLogs(['AI Ingestion Agent activated...', 'Parsing prompt matching segments...', 'Initializing LLM orchestrator...']);
+      setIngestAgentResult(null);
+
+      const res = await fetch(`${API_BASE}/api/v1/audit/agent-compile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: ingestAgentPrompt
+        })
+      });
+      const data = await res.json();
+      setIngestAgentTaskId(data.task_id);
+    } catch (err) {
+      console.error(err);
+      setIngestAgentStatus('FAILED');
+      setIngestAgentLogs(prev => [...prev, '[ERROR] Network connection failed. Check backend uvicorn server.']);
+    }
+  };
+
   // Three.js Simulator setup
   useEffect(() => {
     if (!canvas3DRef.current || activeTab !== 'simulator') return;
@@ -3007,33 +3072,79 @@ feature kern {
                         </div>
                       )}
 
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleStartBatchAudit}
+                          disabled={batchStatus === 'PROCESSING'}
+                          className="flex-1 py-2.5 bg-brand-primary hover:bg-brand-primary/90 disabled:bg-brand-border text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center space-x-2"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${batchStatus === 'PROCESSING' ? 'animate-spin' : ''}`} />
+                          <span>{batchStatus === 'PROCESSING' ? 'Crawling Directory...' : 'Start Batch Scan'}</span>
+                        </button>
+                        {batchStatus === 'PROCESSING' && (
+                          <button
+                            onClick={handleStopBatchAudit}
+                            className="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg transition-all text-xs"
+                          >
+                            Stop
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Ingestion Agent Form */}
+                  <div className="glass-panel rounded-2xl p-5 border border-brand-border/40 bg-brand-bg/25">
+                    <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center">
+                      <Sparkles className="h-4 w-4 mr-2 text-brand-accent animate-pulse" />
+                      AI Ingestion Agent
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-brand-muted uppercase mb-1.5">Direct Agent Prompt</label>
+                        <textarea
+                          rows="3"
+                          value={ingestAgentPrompt}
+                          onChange={e => setIngestAgentPrompt(e.target.value)}
+                          placeholder="e.g. Scan starbucks.com and compile the PDF..."
+                          className="w-full bg-brand-bg/50 border border-brand-border rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-brand-accent resize-none font-sans"
+                        />
+                      </div>
+
                       <button
-                        onClick={handleStartBatchAudit}
-                        disabled={batchStatus === 'PROCESSING'}
-                        className="w-full py-2.5 bg-brand-primary hover:bg-brand-primary/90 disabled:bg-brand-border text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center space-x-2"
+                        onClick={handleStartAgentAudit}
+                        disabled={ingestAgentStatus === 'PROCESSING'}
+                        className="w-full py-2.5 bg-brand-accent hover:bg-brand-accent/90 disabled:bg-brand-border text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center space-x-2"
                       >
-                        <RefreshCw className={`h-4 w-4 ${batchStatus === 'PROCESSING' ? 'animate-spin' : ''}`} />
-                        <span>{batchStatus === 'PROCESSING' ? 'Crawling Directory...' : 'Start Directory Batch Scan'}</span>
+                        <Sparkles className="h-4 w-4" />
+                        <span>{ingestAgentStatus === 'PROCESSING' ? 'Agent Ingestion Active...' : 'Activate Agent Crawler'}</span>
                       </button>
                     </div>
                   </div>
                 </div>
 
                 {/* Console Log / Result Terminal */}
-                <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-brand-border/40 flex flex-col h-[430px] bg-black/60 relative font-mono">
+                <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-brand-border/40 flex flex-col h-[520px] bg-black/60 relative font-mono">
                   <div className="flex justify-between items-center border-b border-brand-border/40 pb-2 mb-3">
                     <span className="text-[10px] text-brand-muted">Ingestion Pipeline Shell & Logs</span>
                     <span className={`text-[10px] font-bold ${
-                      batchStatus === 'PROCESSING' || currentAuditStatus === 'PROCESSING' ? 'text-brand-accent animate-pulse' :
-                      batchStatus === 'COMPLETED' || currentAuditStatus === 'COMPLETED' ? 'text-brand-secondary' :
-                      batchStatus === 'FAILED' || currentAuditStatus === 'FAILED' ? 'text-rose-500' : 'text-brand-muted'
+                      batchStatus === 'PROCESSING' || currentAuditStatus === 'PROCESSING' || ingestAgentStatus === 'PROCESSING' ? 'text-brand-accent animate-pulse' :
+                      batchStatus === 'COMPLETED' || currentAuditStatus === 'COMPLETED' || ingestAgentStatus === 'COMPLETED' ? 'text-brand-secondary' :
+                      batchStatus === 'FAILED' || currentAuditStatus === 'FAILED' || ingestAgentStatus === 'FAILED' ? 'text-rose-500' : 'text-brand-muted'
                     }`}>
-                      STATUS: {batchStatus !== 'IDLE' ? batchStatus : currentAuditStatus}
+                      STATUS: {batchStatus !== 'IDLE' ? batchStatus : (ingestAgentStatus !== 'IDLE' ? ingestAgentStatus : currentAuditStatus)}
                     </span>
                   </div>
 
                   <div className="flex-1 overflow-y-auto text-[10px] space-y-1.5 text-green-400 pr-2 select-text">
-                    {batchStatus === 'PROCESSING' ? (
+                    {ingestAgentStatus === 'PROCESSING' ? (
+                      <div className="space-y-1">
+                        {ingestAgentLogs.map((log, idx) => (
+                          <div key={idx} className="leading-relaxed whitespace-pre-wrap">{log}</div>
+                        ))}
+                      </div>
+                    ) : batchStatus === 'PROCESSING' ? (
                       <div className="space-y-1">
                         <div>[BATCH INIT] Initiated directory scanning task queue...</div>
                         <div>[BATCH INFO] Loaded company records from CSV/TXT registry files.</div>
@@ -3046,11 +3157,11 @@ feature kern {
                         <div key={idx} className="leading-relaxed whitespace-pre-wrap">{log}</div>
                       ))
                     ) : (
-                      <div className="text-brand-muted text-center py-32">
-                        Shell is idle. Enter company details or directory path on the left and trigger audit.
+                      <div className="text-brand-muted text-center py-40">
+                        Shell is idle. Enter company details, directory path, or direct agent prompt on the left and trigger audit.
                       </div>
                     )}
-                    {(currentAuditStatus === 'PROCESSING' || batchStatus === 'PROCESSING') && (
+                    {(currentAuditStatus === 'PROCESSING' || batchStatus === 'PROCESSING' || ingestAgentStatus === 'PROCESSING') && (
                       <span className="inline-block w-1.5 h-3 bg-green-400 animate-pulse ml-1"></span>
                     )}
                   </div>
@@ -3146,6 +3257,59 @@ feature kern {
                       >
                         Acknowledge & Clear Terminal
                       </button>
+                    </div>
+                  )}
+
+                  {ingestAgentStatus === 'COMPLETED' && ingestAgentResult && (
+                    <div className="absolute inset-0 bg-[#0c0c14]/95 rounded-2xl p-5 border border-brand-secondary/40 flex flex-col justify-between animate-fadeIn font-sans">
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="text-[10px] text-brand-secondary font-mono tracking-widest block uppercase font-bold">AI Agent Ingest Complete</span>
+                            <h4 className="text-sm font-bold text-white">{ingestAgentResult.audit_data.company_name} ({ingestAgentResult.audit_data.domain})</h4>
+                          </div>
+                          <span className="px-2 py-0.5 text-[9px] bg-rose-500/10 text-rose-500 rounded border border-rose-500/30 font-bold font-mono">
+                            VIOLATION
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 text-xs mt-3 bg-brand-bg/50 border border-brand-border/40 p-3 rounded-lg">
+                          <div>
+                            <span className="text-gray-500 block text-[9px] uppercase">Detected Font</span>
+                            <span className="text-white font-bold">{ingestAgentResult.audit_data.detected_font}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[9px] uppercase">Corporate Parent</span>
+                            <span className="text-white font-bold">{ingestAgentResult.audit_data.parent_entity}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[9px] uppercase">Qdrant Confidence</span>
+                            <span className="text-white font-bold">{(ingestAgentResult.audit_data.confidence * 100).toFixed(1)}%</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[9px] uppercase">Revenue Tier</span>
+                            <span className="text-white font-bold">{ingestAgentResult.audit_data.revenue_tier}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex space-x-3">
+                        <a
+                          href={`${API_BASE}${ingestAgentResult.report_path}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 py-2.5 bg-brand-secondary text-white font-bold rounded-lg shadow-lg hover:shadow-brand-secondary/20 transition-all flex items-center justify-center space-x-2 text-xs"
+                        >
+                          <Download className="h-4 w-4" />
+                          <span>Download AI Audit PDF Report</span>
+                        </a>
+                        <button
+                          onClick={() => setIngestAgentStatus('IDLE')}
+                          className="px-4 py-2.5 bg-brand-border hover:bg-brand-border/80 text-white rounded-lg transition-all text-xs"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

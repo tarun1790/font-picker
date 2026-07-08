@@ -580,3 +580,35 @@ def get_typography_trends():
             return json.load(f)
     except Exception:
         return {}
+
+@app.post("/api/v1/audit/batch/stop/{batch_id}")
+def stop_batch_audit(batch_id: str):
+    if batch_id not in audit_service.BATCH_AUDITS:
+        raise HTTPException(status_code=404, detail="Batch task not found")
+    audit_service.BATCH_AUDITS[batch_id]["status"] = "STOPPED"
+    return {"message": "Batch audit stopped successfully"}
+
+import re
+
+class AgentCompileRequest(BaseModel):
+    prompt: str
+
+@app.post("/api/v1/audit/agent-compile", status_code=status.HTTP_202_ACCEPTED)
+def trigger_agent_compile(payload: AgentCompileRequest, background_tasks: BackgroundTasks):
+    domain_match = re.search(r'([a-zA-Z0-9-]+\.[a-zA-Z]{2,6})', payload.prompt)
+    domain = domain_match.group(1) if domain_match else "generic.com"
+    company_name = domain.split('.')[0].capitalize()
+    
+    task_id = str(uuid.uuid4())
+    background_tasks.add_task(
+        audit_service.execute_font_audit_pipeline,
+        task_id,
+        domain,
+        company_name
+    )
+    return {
+        "task_id": task_id,
+        "status": "PROCESSING",
+        "domain": domain,
+        "company_name": company_name
+    }

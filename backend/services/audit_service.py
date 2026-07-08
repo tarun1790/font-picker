@@ -433,6 +433,8 @@ def execute_batch_audit_pipeline(batch_id, directory_path):
         BATCH_AUDITS[batch_id]["estimated_seconds"] = est_sec
         
         for idx, company in enumerate(companies):
+            if BATCH_AUDITS[batch_id]["status"] == "STOPPED":
+                break
             comp_name = company["name"]
             comp_dom = company["domain"]
             task_id = f"{batch_id}_task_{idx}"
