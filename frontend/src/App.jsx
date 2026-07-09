@@ -174,6 +174,49 @@ export default function App() {
   const [converterResult, setConverterResult] = useState(null);
   const [converterError, setConverterError] = useState(null);
 
+  // URL Scraper & Optimizer State
+  const [scrapeUrl, setScrapeUrl] = useState('');
+  const [scrapeStatus, setScrapeStatus] = useState('IDLE');
+  const [scrapeError, setScrapeError] = useState(null);
+
+  const handleScrapeAndOptimize = async () => {
+    if (!scrapeUrl) return;
+    setScrapeStatus('SCANNING');
+    setScrapeError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/font/scrape-and-optimize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: scrapeUrl }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Failed to scrape fonts from this URL.');
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const domainName = scrapeUrl.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0].split('.')[0];
+      a.download = `${domainName}_web_fonts.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      setScrapeStatus('COMPLETED');
+    } catch (err) {
+      console.error(err);
+      setScrapeStatus('FAILED');
+      setScrapeError(err.message || 'Scrape and conversion failed.');
+    }
+  };
+
   const handleConvertFont = async () => {
     if (!converterFile) return;
     setConverterStatus('CONVERTING');
@@ -3246,6 +3289,45 @@ feature kern {
                         <RefreshCw className={`h-4 w-4 ${converterStatus === 'CONVERTING' ? 'animate-spin' : ''}`} />
                         <span>Optimize & Download WOFFs</span>
                       </button>
+
+                      <div className="border-t border-brand-border/40 pt-4 mt-2">
+                        <label className="block text-[10px] font-bold text-brand-muted uppercase mb-2">Scrape & Optimize from URL</label>
+                        <div className="flex space-x-2">
+                          <input
+                            type="text"
+                            value={scrapeUrl}
+                            onChange={(e) => setScrapeUrl(e.target.value)}
+                            placeholder="e.g. https://example.com"
+                            className="flex-1 bg-brand-bg/50 border border-brand-border rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-brand-accent"
+                          />
+                          <button
+                            onClick={handleScrapeAndOptimize}
+                            disabled={!scrapeUrl || scrapeStatus === 'SCANNING'}
+                            className="px-3.5 py-1.5 bg-brand-accent hover:bg-brand-accent/90 disabled:bg-brand-border text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center space-x-1"
+                          >
+                            <Search className={`h-3 w-3 ${scrapeStatus === 'SCANNING' ? 'animate-spin' : ''}`} />
+                            <span>Scrape</span>
+                          </button>
+                        </div>
+
+                        {scrapeStatus === 'SCANNING' && (
+                          <div className="mt-2 text-center text-[10px] text-brand-accent animate-pulse font-mono">
+                            [SCANNING] Crawling & downloading web fonts...
+                          </div>
+                        )}
+
+                        {scrapeStatus === 'COMPLETED' && (
+                          <div className="mt-2 p-2 bg-brand-secondary/10 border border-brand-secondary/30 rounded text-[10px] text-brand-secondary font-mono">
+                            ✓ Scraped fonts downloaded successfully!
+                          </div>
+                        )}
+
+                        {scrapeStatus === 'FAILED' && scrapeError && (
+                          <div className="mt-2 p-2 bg-rose-500/10 text-rose-500 border border-rose-500/30 rounded text-[10px] font-mono leading-relaxed">
+                            [ERROR] {scrapeError}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

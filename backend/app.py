@@ -671,3 +671,126 @@ def convert_font_assets(background_tasks: BackgroundTasks, file: UploadFile = Fi
         shutil.rmtree(temp_dir, ignore_errors=True)
         raise HTTPException(status_code=500, detail=f"Font conversion failed: {str(e)}")
 
+import re
+import requests
+from urllib.parse import urljoin
+from bs4 import BeautifulSoup
+from pydantic import BaseModel
+
+class ScrapeRequest(BaseModel):
+    url: str
+
+def extract_font_urls_from_css(css_text, base_url):
+    if not css_text:
+        return []
+    urls = []
+    matches = re.findall(r'url\s*\(\s*[\'"]?([^\'")\s]+\.(?:ttf|otf|woff2?)(?:\?[^\'")\s]*)?)[\'"]?\s*\)', css_text, re.IGNORECASE)
+    for m in matches:
+        clean_url = m.split('?')[0]
+        urls.append(urljoin(base_url, clean_url))
+    return urls
+
+def scrape_fonts_from_url(url):
+    font_urls = []
+    try:
+        res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}, timeout=10)
+        if res.status_code != 200:
+            return []
+        html = res.text
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        # Scan inline styles
+        for style_tag in soup.find_all('style'):
+            font_urls.extend(extract_font_urls_from_css(style_tag.string, url))
+            
+        # Scan external stylesheets
+        for link in soup.find_all('link', rel='stylesheet'):
+            href = link.get('href')
+            if href:
+                css_url = urljoin(url, href)
+                try:
+                    css_res = requests.get(css_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=8)
+                    if css_res.status_code == 200:
+                        font_urls.extend(extract_font_urls_from_css(css_res.text, css_url))
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f"Scraper request failed: {e}")
+    return list(set(font_urls))
+
+@app.post("/api/v1/font/scrape-and-optimize")
+def scrape_and_optimize_fonts(background_tasks: BackgroundTasks, payload: ScrapeRequest):
+    url = payload.url
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+        
+    temp_dir = tempfile.mkdtemp()
+    try:
+        font_urls = scrape_fonts_from_url(url)
+        if not font_urls:
+            raise HTTPException(status_code=404, detail="No custom font assets (.ttf, .otf, .woff, .woff2) were detected on this webpage.")
+            
+        downloaded_files = []
+        for font_url in font_urls:
+            try:
+                f_res = requests.get(font_url, headers={'User-Agent': 'Mozilla/5.0'}, stream=True, timeout=10)
+                if f_res.status_code == 200:
+                    filename = os.path.basename(font_url.split('?')[0])
+                    filename = re.sub(r'[^\w\.-]', '_', filename)
+                    if not filename:
+                        filename = f"font_{uuid.uuid4().hex[:8]}.ttf"
+                        
+                    dest_path = os.path.join(temp_dir, filename)
+                    with open(dest_path, 'wb') as f:
+                        shutil.copyfileobj(f_res.raw, f)
+                        
+                    ext = os.path.splitext(filename)[1].lower()
+                    base_name = os.path.splitext(filename)[0]
+                    
+                    woff_filename = f"{base_name}.woff"
+                    woff2_filename = f"{base_name}.woff2"
+                    woff_path = os.path.join(temp_dir, woff_filename)
+                    woff2_path = os.path.join(temp_dir, woff2_filename)
+                    
+                    if ext in ('.ttf', '.otf'):
+                        font = TTFont(dest_path)
+                        font.flavor = 'woff'
+                        font.save(woff_path)
+                        
+                        font = TTFont(dest_path)
+                        font.flavor = 'woff2'
+                        font.save(woff2_path)
+                        
+                        downloaded_files.extend([
+                            (woff_path, woff_filename),
+                            (woff2_path, woff2_filename)
+                        ])
+                    else:
+                        downloaded_files.append((dest_path, filename))
+            except Exception as e:
+                print(f"Failed to process font {font_url}: {e}")
+                
+        if not downloaded_files:
+            raise HTTPException(status_code=404, detail="Found font links, but failed to download or parse them.")
+            
+        # Bundle into ZIP
+        zip_filename = "scraped_optimized_fonts.zip"
+        zip_path = os.path.join(temp_dir, zip_filename)
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for file_path, zip_name in downloaded_files:
+                zip_file.write(file_path, zip_name)
+                
+        background_tasks.add_task(cleanup_temp_dir, temp_dir)
+        
+        return FileResponse(
+            zip_path,
+            media_type="application/zip",
+            filename=zip_filename
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        raise HTTPException(status_code=500, detail=f"Scraping and optimization failed: {str(e)}")
+
+
