@@ -458,6 +458,9 @@ def fetch_corporate_intelligence(company_name):
                         info["revenue"] = ai_info["revenue"]
             else:
                 print(f"DEBUG: Hugging Face failed with status: {hf_res.status_code}, response: {hf_res.text}")
+        except Exception as e:
+            print(f"Hugging Face synthesis failed: {e}")
+            
     # If both OpenAI and Hugging Face are not successful or not used, try Google Gemini
     if not openai_success and gemini_key:
         try:
