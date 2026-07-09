@@ -742,7 +742,8 @@ def scrape_and_optimize_fonts(background_tasks: BackgroundTasks, payload: Scrape
                         
                     dest_path = os.path.join(temp_dir, filename)
                     with open(dest_path, 'wb') as f:
-                        shutil.copyfileobj(f_res.raw, f)
+                        for chunk in f_res.iter_content(chunk_size=8192):
+                            f.write(chunk)
                         
                     base_name = os.path.splitext(filename)[0]
                     woff_filename = f"{base_name}.woff"
