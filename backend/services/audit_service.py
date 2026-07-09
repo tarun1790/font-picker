@@ -517,6 +517,67 @@ def fetch_corporate_intelligence(company_name):
         except Exception as e:
             print(f"Gemini synthesis failed: {e}")
             
+    # Rule-based NLP extraction fallback using Tavily search snippets
+    if search_snippets and (not info.get("corporate_subsidiaries") or len(info["corporate_subsidiaries"]) <= 23):
+        try:
+            print("[INTELLIGENCE] Merging Wikipedia and Tavily search records using rule-based NLP extraction...")
+            discovered_subs = list(info["corporate_subsidiaries"])
+            parent = info["parent_entity"]
+            
+            sentences = re.split(r'\. |\n', search_snippets)
+            comp_l = company_name.lower()
+            
+            noise_keywords = [
+                "subsidiary", "subsidiaries", "data", "preview", "limited", 
+                "company", "corporation", "the", "and", "annual", "revenue",
+                "parent", "entity", "report", "source", "reference", "link",
+                "search", "result", "website", "official", "page", "profile", "c.v.a", "llca", "ltdaa", "b.v.a", "s.a.s.a", "ulca", "gmbha"
+            ]
+            
+            for sentence in sentences:
+                sent_clean = sentence.strip()
+                if not sent_clean:
+                    continue
+                    
+                # 1. Search for subsidiaries patterns
+                if any(kw in sent_clean.lower() for kw in ["subsidiary", "subsidiaries", "subsidiary companies", "owned by", "acquired"]):
+                    candidates = re.findall(r'\b[A-Z][a-zA-Z0-9\-\.\&]+(?:\s+[A-Z][a-zA-Z0-9\-\.\&]+)*\b', sent_clean)
+                    for cand in candidates:
+                        cand_clean = cand.strip(",. ")
+                        cand_l = cand_clean.lower()
+                        
+                        if len(cand_clean) <= 4 and cand_clean.isupper():
+                            continue
+                        if cand_l == comp_l:
+                            continue
+                        if any(w == cand_l for w in noise_keywords) or any(w in cand_l for w in ["limited data", "data preview"]):
+                            continue
+                        # Clean trailing letters left over from table exports (like "Ltd.a" -> "Ltd", "LLCa" -> "LLC")
+                        if cand_clean.endswith("a") and not cand_clean.endswith("ia") and not cand_clean.endswith("ma") and not cand_clean.endswith("da"):
+                            if cand_clean[:-1].lower() in ["ltd", "llc", "gmbh", "ulc", "b.v", "c.v", "ltda", "s.a.s"]:
+                                cand_clean = cand_clean[:-1]
+                        if len(cand_clean) < 3:
+                            continue
+                            
+                        if cand_clean not in discovered_subs:
+                            discovered_subs.append(cand_clean)
+                            
+                # 2. Search for parent company patterns
+                if "parent" in sent_clean.lower() and not parent:
+                    candidates = re.findall(r'\b[A-Z][a-zA-Z0-9\-\.\&]+(?:\s+[A-Z][a-zA-Z0-9\-\.\&]+)*\b', sent_clean)
+                    for cand in candidates:
+                        cand_clean = cand.strip(",. ")
+                        if cand_clean.lower() != comp_l and len(cand_clean) > 3:
+                            parent = cand_clean
+                            break
+                            
+            if discovered_subs:
+                info["corporate_subsidiaries"] = discovered_subs
+            if parent:
+                info["parent_entity"] = parent
+        except Exception as e:
+            print(f"Rule-based NLP fallback failed: {e}")
+            
     return info
 
 def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue: float = None):
