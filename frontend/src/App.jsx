@@ -668,6 +668,8 @@ feature kern {
   const [auditDomain, setAuditDomain] = useState('cadbury.com');
   const [auditCompanyName, setAuditCompanyName] = useState('Cadbury');
   const [auditRevenue, setAuditRevenue] = useState(38000000000);
+  const [nlpPrompt, setNlpPrompt] = useState('Find subsidiaries of Cadburry and generate a PDF');
+  const [nlpError, setNlpError] = useState(null);
   const [auditReports, setAuditReports] = useState([]);
   const [currentAuditTaskId, setCurrentAuditTaskId] = useState(null);
   const [currentAuditLogs, setCurrentAuditLogs] = useState([]);
@@ -740,6 +742,75 @@ feature kern {
           domain: auditDomain,
           estimated_revenue: auditRevenue,
           company_name: auditCompanyName
+        })
+      });
+      const data = await res.json();
+      setCurrentAuditTaskId(data.task_id);
+    } catch (err) {
+      console.error(err);
+      setCurrentAuditStatus('FAILED');
+      setCurrentAuditLogs(prev => [...prev, '[ERROR] Network connection failed. Check backend uvicorn server.']);
+    }
+  };
+
+  const handleNlpPromptAudit = async () => {
+    if (!nlpPrompt.trim()) return;
+    setNlpError(null);
+    
+    const query = nlpPrompt.trim();
+    const domainRegex = /\b([a-z0-9.-]+\.[a-z]{2,})\b/i;
+    const domainMatch = query.match(domainRegex);
+    let domain = domainMatch ? domainMatch[1].toLowerCase() : null;
+    
+    let companyName = query;
+    const prefixes = [
+      /find\s+subsidiaries\s+of\s+/i,
+      /find\s+subsidiary\s+of\s+/i,
+      /list\s+subsidiaries\s+for\s+/i,
+      /list\s+subsidiary\s+for\s+/i,
+      /audit\s+/i,
+      /find\s+parent\s+and\s+subsidiaries\s+of\s+/i,
+      /find\s+parent\s+company\s+of\s+/i,
+      /show\s+hierarchy\s+for\s+/i,
+      /generate\s+pdf\s+for\s+/i,
+      /generate\s+a\s+pdf\s+for\s+/i
+    ];
+    
+    for (const prefix of prefixes) {
+      companyName = companyName.replace(prefix, "");
+    }
+    
+    if (domain) {
+      companyName = companyName.replace(new RegExp(domain, 'gi'), "");
+    }
+    
+    companyName = companyName.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").replace(/\s+/g, " ").trim();
+    companyName = companyName.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    
+    if (!domain && companyName) {
+      domain = companyName.toLowerCase().replace(/\s+/g, "") + ".com";
+    }
+    
+    if (!companyName) {
+      setNlpError("Could not extract a valid company name from the query. Try e.g. 'Find subsidiaries of Cadburry'");
+      return;
+    }
+    
+    setAuditDomain(domain);
+    setAuditCompanyName(companyName);
+    
+    try {
+      setCurrentAuditLogs(['Initializing compliance trigger via NLP parser...', `Parsed Company: "${companyName}"`, `Parsed Domain: "${domain}"`]);
+      setCurrentAuditStatus('PROCESSING');
+      setCurrentAuditResult(null);
+      
+      const res = await fetch(`${API_BASE}/api/v1/audit/trigger`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          domain: domain,
+          estimated_revenue: auditRevenue,
+          company_name: companyName
         })
       });
       const data = await res.json();
@@ -3079,6 +3150,43 @@ feature kern {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Column 1: Forms */}
                 <div className="lg:col-span-1 flex flex-col space-y-4">
+                  {/* NLP Smart Assistant Prompt Bar */}
+                  <div className="glass-panel rounded-2xl p-5 border border-brand-accent/40 bg-brand-accent/5">
+                    <h3 className="text-sm font-bold text-white mb-2.5 uppercase tracking-wider flex items-center">
+                      <Sparkles className="h-4 w-4 mr-2 text-brand-accent animate-pulse" />
+                      NLP Auditor Assistant
+                    </h3>
+                    <p className="text-[10px] text-brand-muted mb-3">Ask in plain English to audit any company (e.g., "Find subsidiaries of Cadburry and generate a PDF").</p>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <input
+                          type="text"
+                          value={nlpPrompt}
+                          onChange={e => setNlpPrompt(e.target.value)}
+                          placeholder="e.g. Find subsidiaries of Cadburry"
+                          className="w-full bg-brand-bg/60 border border-brand-accent/30 rounded-lg px-3 py-2.5 text-xs text-white focus:outline-none focus:border-brand-accent placeholder-brand-muted"
+                          onKeyDown={e => { if (e.key === 'Enter') handleNlpPromptAudit(); }}
+                        />
+                      </div>
+                      
+                      {nlpError && (
+                        <div className="p-2 bg-rose-500/10 text-rose-500 border border-rose-500/30 rounded text-[9px] font-mono">
+                          {nlpError}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleNlpPromptAudit}
+                        disabled={currentAuditStatus === 'PROCESSING'}
+                        className="w-full py-2 bg-brand-accent hover:bg-brand-accent/90 disabled:bg-brand-border text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center space-x-1.5 shadow-lg shadow-brand-accent/15"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>Run Smart NLP Pipeline</span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Audit Launcher Form */}
                   <div className="glass-panel rounded-2xl p-5 border border-brand-border/40 bg-brand-bg/25">
                     <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider">Initialize Audit</h3>
