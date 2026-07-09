@@ -3501,55 +3501,75 @@ feature kern {
                   </div>
 
                   {currentAuditStatus === 'COMPLETED' && currentAuditResult && (
-                    <div className="absolute inset-0 bg-[#0c0c14]/95 rounded-2xl p-5 border border-brand-secondary/40 flex flex-col justify-between animate-fadeIn font-sans">
-                      <div>
-                        <div className="flex justify-between items-start mb-2">
+                    <div className="absolute inset-0 bg-[#0c0c14]/98 rounded-2xl p-5 border border-brand-secondary/50 flex flex-col justify-between animate-fadeIn font-sans">
+                      <div className="flex-1 flex flex-col min-h-0">
+                        <div className="flex justify-between items-start mb-2 border-b border-brand-border/40 pb-2">
                           <div>
-                            <span className="text-[10px] text-brand-secondary font-mono tracking-widest block uppercase font-bold">Vector Ingestion Match Found</span>
+                            <span className="text-[10px] text-brand-secondary font-mono tracking-widest block uppercase font-bold">Interactive Hierarchy Mind Map</span>
                             <h4 className="text-sm font-bold text-white">{currentAuditResult.audit_data.company_name} ({auditDomain})</h4>
                           </div>
-                          <span className="px-2 py-0.5 text-[9px] bg-rose-500/10 text-rose-500 rounded border border-rose-500/30 font-bold font-mono">
-                            VIOLATION
+                          <span className="px-2 py-0.5 text-[9px] bg-brand-secondary/15 text-brand-secondary rounded border border-brand-secondary/40 font-bold font-mono">
+                            AUDITED PROFILE
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 text-xs mt-3 bg-brand-bg/50 border border-brand-border/40 p-3 rounded-lg">
-                          <div>
-                            <span className="text-gray-500 block text-[9px] uppercase">Detected Font</span>
-                            <span className="text-white font-bold">{currentAuditResult.audit_data.detected_font}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500 block text-[9px] uppercase">Corporate Parent</span>
-                            <span className="text-white font-bold">{currentAuditResult.audit_data.parent_entity}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500 block text-[9px] uppercase">Qdrant Confidence</span>
-                            <span className="text-white font-bold">{(currentAuditResult.audit_data.confidence * 100).toFixed(1)}%</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500 block text-[9px] uppercase">Revenue Tier</span>
-                            <span className="text-white font-bold">{currentAuditResult.audit_data.revenue_tier}</span>
-                          </div>
-                          {currentAuditResult.audit_data.corporate_subsidiaries && currentAuditResult.audit_data.corporate_subsidiaries.length > 0 && (
-                            <div className="col-span-2 border-t border-brand-border/40 pt-2 mt-1">
-                              <span className="text-gray-500 block text-[9px] uppercase">Corporate Subsidiaries</span>
-                              <span className="text-white font-bold block text-[10px] truncate max-w-full">
-                                {currentAuditResult.audit_data.corporate_subsidiaries.join(', ')}
-                              </span>
+                        {/* Interactive Mind Map Area */}
+                        <div className="flex-1 overflow-y-auto flex flex-col items-center py-4 px-1 min-h-0 select-none">
+                          <div className="flex flex-col items-center w-full max-w-lg">
+                            {/* Parent Entity Card */}
+                            <div className="glass-panel px-6 py-3 rounded-xl border border-brand-secondary bg-brand-secondary/10 text-center shadow-lg transition-all hover:shadow-brand-secondary/10 hover:border-brand-secondary/80 relative">
+                              <span className="text-[8px] text-brand-secondary font-mono uppercase block tracking-wider font-bold mb-0.5">Ultimate Parent Company</span>
+                              <span className="text-xs font-bold text-white block">{currentAuditResult.audit_data.parent_entity || currentAuditResult.audit_data.company_name}</span>
                             </div>
-                          )}
+
+                            {/* Connector Line */}
+                            <div className="w-0.5 h-6 bg-gradient-to-b from-brand-secondary/80 to-brand-accent/40"></div>
+
+                            {/* subsidiaries list grid */}
+                            <div className="w-full">
+                              <span className="text-[9px] text-brand-muted font-mono block text-center uppercase tracking-widest mb-3">Verified Subsidiaries & Divisions</span>
+                              
+                              <div className="grid grid-cols-2 gap-2.5 max-h-[220px] overflow-y-auto pr-1">
+                                {currentAuditResult.audit_data.corporate_subsidiaries && currentAuditResult.audit_data.corporate_subsidiaries.length > 0 ? (
+                                  currentAuditResult.audit_data.corporate_subsidiaries.map((sub, idx) => (
+                                    <div 
+                                      key={idx} 
+                                      className="glass-panel p-2.5 rounded-lg border border-brand-accent/20 bg-brand-bg/40 hover:border-brand-accent/60 hover:bg-brand-accent/5 hover:scale-[1.02] hover:shadow-md hover:shadow-brand-accent/5 transition-all text-center group cursor-pointer relative"
+                                    >
+                                      {/* Visual connector indicator for grid nodes */}
+                                      <div className="absolute top-1/2 -left-1 w-1 h-1 bg-brand-accent/30 rounded-full group-hover:bg-brand-accent/60 transition-colors"></div>
+                                      <span className="text-[10px] font-bold text-gray-200 group-hover:text-white block leading-tight">{sub}</span>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="col-span-2 text-center text-brand-muted text-[10px] py-6 font-mono">No subsidiaries found.</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      <a
-                        href={`${API_BASE}${currentAuditResult.report_path}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full py-2.5 bg-brand-secondary text-white font-bold rounded-lg shadow-lg hover:shadow-brand-secondary/20 transition-all flex items-center justify-center space-x-2 text-xs"
-                      >
-                        <Download className="h-4 w-4" />
-                        <span>Download Full Audit PDF Report</span>
-                      </a>
+                      <div className="flex space-x-3 pt-3 border-t border-brand-border/40">
+                        <button
+                          onClick={() => {
+                            setCurrentAuditStatus('IDLE');
+                            setCurrentAuditResult(null);
+                          }}
+                          className="flex-1 py-2 bg-brand-bg hover:bg-brand-border/40 text-brand-muted hover:text-white font-bold rounded-lg border border-brand-border/60 transition-all text-xs"
+                        >
+                          New Hierarchy Lookup
+                        </button>
+                        <a
+                          href={`${API_BASE}${currentAuditResult.report_path}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 py-2 bg-brand-secondary text-white font-bold rounded-lg shadow-lg hover:shadow-brand-secondary/20 transition-all flex items-center justify-center space-x-1.5 text-xs"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          <span>Get Registry PDF</span>
+                        </a>
+                      </div>
                     </div>
                   )}
 
