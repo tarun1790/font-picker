@@ -271,45 +271,134 @@ def generate_audit_pdf(report_path, task_id, domain, company_name, audit_data):
     
     doc.build(story)
 
-def fetch_subsidiaries_from_wikidata(company_name):
+def fetch_corporate_intelligence(company_name):
+    import os
+    import json
     import requests
-    subsidiaries = []
+    import re
+    from bs4 import BeautifulSoup
+    
+    info = {
+        "parent_entity": None,
+        "corporate_subsidiaries": [],
+        "revenue": None
+    }
     try:
-        search_url = "https://www.wikidata.org/w/api.php"
+        search_url = "https://en.wikipedia.org/w/api.php"
         params = {
-            "action": "wbsearchentities",
-            "search": company_name,
-            "language": "en",
-            "format": "json"
+            "action": "query",
+            "list": "search",
+            "srsearch": f"{company_name} company",
+            "format": "json",
+            "utf8": 1
         }
-        res = requests.get(search_url, params=params, headers={"User-Agent": "FontPickerAuditAgent/1.0"}, timeout=5)
+        res = requests.get(search_url, params=params, headers={"User-Agent": "FontPicker/1.0"}, timeout=5)
         if res.status_code == 200:
-            data = res.json()
-            search_results = data.get("search", [])
+            search_results = res.json().get("query", {}).get("search", [])
             if search_results:
-                company_id = search_results[0]["id"]
-                sparql_url = "https://query.wikidata.org/sparql"
-                query = f"""
-                SELECT ?subsidiaryLabel WHERE {{
-                  {{
-                    wd:{company_id} wdt:P355 ?subsidiary.
-                  }} UNION {{
-                    ?subsidiary wdt:P749 wd:{company_id}.
-                  }}
-                  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
-                }}
-                LIMIT 10
-                """
-                sparql_res = requests.get(sparql_url, params={"query": query, "format": "json"}, headers={"User-Agent": "FontPickerAuditAgent/1.0"}, timeout=8)
-                if sparql_res.status_code == 200:
-                    bindings = sparql_res.json().get("results", {}).get("bindings", [])
-                    for bind in bindings:
-                        label = bind.get("subsidiaryLabel", {}).get("value")
-                        if label and not label.startswith("Q") and label not in subsidiaries:
-                            subsidiaries.append(label)
+                title = search_results[0]["title"]
+                page_url = f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"
+                page_res = requests.get(page_url, headers={"User-Agent": "FontPicker/1.0"}, timeout=6)
+                if page_res.status_code == 200:
+                    soup = BeautifulSoup(page_res.text, "html.parser")
+                    infobox = soup.find("table", class_="infobox")
+                    if infobox:
+                        for row in infobox.find_all("tr"):
+                            th = row.find("th")
+                            td = row.find("td")
+                            if th and td:
+                                label = th.text.strip().lower()
+                                val_text = td.text.strip()
+                                val_text = re.sub(r'\[\d+\]', '', val_text)
+                                val_text = re.sub(r'\s+', ' ', val_text)
+                                
+                                if "parent" in label:
+                                    info["parent_entity"] = val_text
+                                elif "subsidiaries" in label:
+                                    lis = td.find_all("li")
+                                    if lis:
+                                        subs = [li.text.strip() for li in lis]
+                                    else:
+                                        subs = [s.strip() for s in re.split(r'\n|,', val_text) if s.strip()]
+                                    subs = [re.sub(r'\[\d+\]', '', s).strip() for s in subs]
+                                    info["corporate_subsidiaries"] = [s for s in subs if s]
+                                elif "revenue" in label:
+                                    info["revenue"] = val_text
     except Exception as e:
-        print(f"Failed to fetch subsidiaries from Wikidata: {e}")
-    return subsidiaries
+        print(f"Wikipedia scraper failed: {e}")
+        
+    tavily_key = os.environ.get("TAVILY_API_KEY")
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    
+    if not tavily_key and not openai_key:
+        return info
+        
+    search_snippets = ""
+    if tavily_key:
+        try:
+            tavily_res = requests.post(
+                "https://api.tavily.com/search",
+                json={
+                    "api_key": tavily_key,
+                    "query": f"{company_name} corporate parent subsidiaries and official annual revenue",
+                    "search_depth": "advanced"
+                },
+                timeout=10
+            )
+            if tavily_res.status_code == 200:
+                results = tavily_res.json().get("results", [])
+                search_snippets = "\n".join([r.get("content", "") for r in results])
+        except Exception as e:
+            print(f"Tavily search failed: {e}")
+            
+    if openai_key:
+        try:
+            openai_payload = {
+                "model": "gpt-4o",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a corporate intelligence analyst. Synthesize the parent entity, "
+                            "corporate subsidiaries, and revenue data for the company. Respond with a JSON object "
+                            "containing: 'parent_entity' (string or null), 'corporate_subsidiaries' (array of strings), "
+                            "and 'revenue' (string or null). Ensure 100% accuracy based on the provided search context."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            f"Company Name: {company_name}\n"
+                            f"Wikipedia Data: {json.dumps(wiki_info)}\n"
+                            f"Search Snippets: {search_snippets}"
+                        )
+                    }
+                ],
+                "response_format": {"type": "json_object"}
+            }
+            openai_res = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {openai_key}",
+                    "Content-Type": "application/json"
+                },
+                json=openai_payload,
+                timeout=15
+            )
+            if openai_res.status_code == 200:
+                choice = openai_res.json().get("choices", [])[0]
+                res_content = choice.get("message", {}).get("content", "{}")
+                ai_info = json.loads(res_content)
+                if "parent_entity" in ai_info:
+                    info["parent_entity"] = ai_info["parent_entity"]
+                if "corporate_subsidiaries" in ai_info:
+                    info["corporate_subsidiaries"] = ai_info["corporate_subsidiaries"]
+                if "revenue" in ai_info:
+                    info["revenue"] = ai_info["revenue"]
+        except Exception as e:
+            print(f"OpenAI synthesis failed: {e}")
+            
+    return info
 
 def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue: float = None):
     """
@@ -385,16 +474,21 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
                 "license_status": "Potential Match – Human Review Required"
             }
 
-        # Query Wikidata for real-world subsidiaries of the company
-        log(f"[WIKIDATA] Fetching corporate subsidiaries for '{company_name}' from Wikidata SPARQL graphs...")
-        wiki_subs = fetch_subsidiaries_from_wikidata(company_name)
-        if wiki_subs:
-            log(f"[WIKIDATA] Discovered {len(wiki_subs)} subsidiaries from open-source graphs.")
-            audit_data["corporate_subsidiaries"] = wiki_subs
+        # Query corporate intelligence dynamically (combining Wikipedia, Tavily, and OpenAI keys if present)
+        log(f"[INTELLIGENCE] Querying dynamic corporate profile graphs for '{company_name}'...")
+        corp_info = fetch_corporate_intelligence(company_name)
+        
+        if corp_info.get("parent_entity"):
+            audit_data["parent_entity"] = corp_info["parent_entity"]
+            
+        if corp_info.get("corporate_subsidiaries"):
+            audit_data["corporate_subsidiaries"] = corp_info["corporate_subsidiaries"]
         else:
-            log("[WIKIDATA] No dynamic subsidiaries found. Keeping default corporate registry records.")
             if not audit_data.get("corporate_subsidiaries"):
                 audit_data["corporate_subsidiaries"] = [f"{company_name} Digital LLC"]
+                
+        if corp_info.get("revenue"):
+            audit_data["revenue_tier"] = corp_info["revenue"]
             
         log(f"[EXTRACT] Found font resource URL: {audit_data['font_url']}")
         log(f"[EXTRACT] Raw Binary Package (.woff2) hash: {hashlib.sha256(domain.encode()).hexdigest()[:32]}...")
