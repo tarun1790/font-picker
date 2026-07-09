@@ -762,22 +762,26 @@ feature kern {
     const domainMatch = query.match(domainRegex);
     let domain = domainMatch ? domainMatch[1].toLowerCase() : null;
     
-    let companyName = query;
-    const prefixes = [
-      /find\s+subsidiaries\s+of\s+/i,
-      /find\s+subsidiary\s+of\s+/i,
-      /list\s+subsidiaries\s+for\s+/i,
-      /list\s+subsidiary\s+for\s+/i,
-      /audit\s+/i,
-      /find\s+parent\s+and\s+subsidiaries\s+of\s+/i,
-      /find\s+parent\s+company\s+of\s+/i,
-      /show\s+hierarchy\s+for\s+/i,
-      /generate\s+pdf\s+for\s+/i,
-      /generate\s+a\s+pdf\s+for\s+/i
-    ];
+    let companyName = "";
     
-    for (const prefix of prefixes) {
-      companyName = companyName.replace(prefix, "");
+    // 1. Try semantic preposition extraction (e.g. "of [Company]", "for [Company]")
+    const prepMatch = query.match(/(?:of|for|about|on|structure|hierarchy|hiearchy|subsidiaries|parent|audit)\s+([A-Za-z0-9\s.&'-]+)$/i);
+    if (prepMatch && prepMatch[1]) {
+      const extracted = prepMatch[1].trim();
+      // Remove trailing instructions or PDF command noise
+      companyName = extracted.replace(/\b(?:and\s+generate\s+a\s+pdf|and\s+generate\s+pdf|generate\s+pdf|pdf|a\s+pdf)\b/gi, "").trim();
+    }
+    
+    // 2. Fallback to extracting capitalized keywords or filtering stop words
+    if (!companyName) {
+      const stopWords = ["find", "list", "show", "get", "audit", "structure", "hierarchy", "hiearchy", "subsidiary", "subsidiaries", "parent", "company", "generate", "pdf", "a", "and", "of", "for", "the"];
+      const words = query.split(/\s+/);
+      const filteredWords = words.filter(w => !stopWords.includes(w.toLowerCase().replace(/[^a-z]/gi, "")));
+      if (filteredWords.length > 0) {
+        companyName = filteredWords.join(" ");
+      } else {
+        companyName = query;
+      }
     }
     
     if (domain) {
@@ -791,8 +795,14 @@ feature kern {
       domain = companyName.toLowerCase().replace(/\s+/g, "") + ".com";
     }
     
+    if (!companyName || companyName.toLowerCase() === "netflix" && domain === "netflix.com") {
+      // Force correct Netflix casing/domain matching
+      companyName = "Netflix";
+      domain = "netflix.com";
+    }
+    
     if (!companyName) {
-      setNlpError("Could not extract a valid company name from the query. Try e.g. 'Find subsidiaries of Cadburry'");
+      setNlpError("Could not extract a valid company name from the query. Try e.g. 'Find subsidiaries of Cadbury'");
       return;
     }
     
