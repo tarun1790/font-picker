@@ -700,6 +700,7 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
             audit_data = COMPANY_KNOWLEDGE[key].copy()
             if estimated_revenue is not None and estimated_revenue > 0:
                 audit_data["revenue_tier"] = rev_str
+            log(f"[INTELLIGENCE] Loading high-fidelity curated corporate registry for '{company_name}'...")
         else:
             # Generate dynamically
             audit_data = {
@@ -733,21 +734,21 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
                 "license_status": "Potential Match – Human Review Required"
             }
 
-        # Query corporate intelligence dynamically (combining Wikipedia, Tavily, and OpenAI keys if present)
-        log(f"[INTELLIGENCE] Querying dynamic corporate profile graphs for '{company_name}'...")
-        corp_info = fetch_corporate_intelligence(company_name)
-        
-        if corp_info.get("parent_entity"):
-            audit_data["parent_entity"] = corp_info["parent_entity"]
+            # Query corporate intelligence dynamically (combining Wikipedia, Tavily, and OpenAI keys if present)
+            log(f"[INTELLIGENCE] Querying dynamic corporate profile graphs for '{company_name}'...")
+            corp_info = fetch_corporate_intelligence(company_name)
             
-        if corp_info.get("corporate_subsidiaries"):
-            audit_data["corporate_subsidiaries"] = corp_info["corporate_subsidiaries"]
-        else:
-            if not audit_data.get("corporate_subsidiaries"):
-                audit_data["corporate_subsidiaries"] = [f"{company_name} Digital LLC"]
+            if corp_info.get("parent_entity"):
+                audit_data["parent_entity"] = corp_info["parent_entity"]
                 
-        if corp_info.get("revenue"):
-            audit_data["revenue_tier"] = corp_info["revenue"]
+            if corp_info.get("corporate_subsidiaries"):
+                audit_data["corporate_subsidiaries"] = corp_info["corporate_subsidiaries"]
+            else:
+                if not audit_data.get("corporate_subsidiaries"):
+                    audit_data["corporate_subsidiaries"] = [f"{company_name} Digital LLC"]
+                    
+            if corp_info.get("revenue"):
+                audit_data["revenue_tier"] = corp_info["revenue"]
             
         log(f"[EXTRACT] Located Parent Holding Node: {audit_data['parent_entity'] or 'None (Ultimate Parent)'}")
         time.sleep(0.1)
