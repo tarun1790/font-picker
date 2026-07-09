@@ -613,3 +613,61 @@ def trigger_agent_compile(payload: AgentCompileRequest, background_tasks: Backgr
         "domain": domain,
         "company_name": company_name
     }
+
+import tempfile
+import zipfile
+from fontTools.ttLib import TTFont
+
+def cleanup_temp_dir(path: str):
+    import shutil
+    shutil.rmtree(path, ignore_errors=True)
+
+@app.post("/api/v1/font/convert")
+def convert_font_assets(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    filename = file.filename
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ('.ttf', '.otf'):
+        raise HTTPException(status_code=400, detail="Only .ttf or .otf font files are supported.")
+    
+    temp_dir = tempfile.mkdtemp()
+    try:
+        input_path = os.path.join(temp_dir, filename)
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        base_name = os.path.splitext(filename)[0]
+        woff_filename = f"{base_name}.woff"
+        woff2_filename = f"{base_name}.woff2"
+        
+        woff_path = os.path.join(temp_dir, woff_filename)
+        woff2_path = os.path.join(temp_dir, woff2_filename)
+        
+        # Convert to WOFF
+        font = TTFont(input_path)
+        font.flavor = 'woff'
+        font.save(woff_path)
+        
+        # Convert to WOFF2
+        font = TTFont(input_path)
+        font.flavor = 'woff2'
+        font.save(woff2_path)
+        
+        # Package into a ZIP archive
+        zip_filename = f"{base_name}_optimized.zip"
+        zip_path = os.path.join(temp_dir, zip_filename)
+        
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            zip_file.write(woff_path, woff_filename)
+            zip_file.write(woff2_path, woff2_filename)
+            
+        background_tasks.add_task(cleanup_temp_dir, temp_dir)
+        
+        return FileResponse(
+            zip_path,
+            media_type="application/zip",
+            filename=zip_filename
+        )
+    except Exception as e:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        raise HTTPException(status_code=500, detail=f"Font conversion failed: {str(e)}")
+

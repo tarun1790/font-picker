@@ -167,6 +167,55 @@ function MorphingLetter({ char, timing }) {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('upload');
+
+  // Font Optimizer & Converter State
+  const [converterFile, setConverterFile] = useState(null);
+  const [converterStatus, setConverterStatus] = useState('IDLE');
+  const [converterResult, setConverterResult] = useState(null);
+  const [converterError, setConverterError] = useState(null);
+
+  const handleConvertFont = async () => {
+    if (!converterFile) return;
+    setConverterStatus('CONVERTING');
+    setConverterError(null);
+    setConverterResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', converterFile);
+
+      const res = await fetch(`${API_BASE}/api/v1/font/convert`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Font conversion failed.');
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const baseName = converterFile.name.substring(0, converterFile.name.lastIndexOf('.'));
+      a.download = `${baseName}_optimized.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      setConverterStatus('COMPLETED');
+      setConverterResult({
+        originalName: converterFile.name,
+        originalSize: (converterFile.size / 1024).toFixed(1) + ' KB',
+      });
+    } catch (err) {
+      console.error(err);
+      setConverterStatus('FAILED');
+      setConverterError(err.message || 'Font conversion failed.');
+    }
+  };
   
   // Brand Configuration State
   const [brandName, setBrandName] = useState('Aura Premium');
@@ -3119,6 +3168,83 @@ feature kern {
                       >
                         <Sparkles className="h-4 w-4" />
                         <span>{ingestAgentStatus === 'PROCESSING' ? 'Agent Ingestion Active...' : 'Activate Agent Crawler'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Font Converter & Optimizer Card */}
+                  <div className="glass-panel rounded-2xl p-5 border border-brand-border/40 bg-brand-bg/25">
+                    <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center">
+                      <Download className="h-4 w-4 mr-2 text-brand-primary" />
+                      Font Converter (TTF to WOFF)
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      <div 
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files[0];
+                          if (file && (file.name.endsWith('.ttf') || file.name.endsWith('.otf'))) {
+                            setConverterFile(file);
+                          }
+                        }}
+                        className="border-2 border-dashed border-brand-border hover:border-brand-primary/60 transition-all rounded-lg p-5 text-center cursor-pointer bg-brand-bg/10 flex flex-col items-center justify-center space-y-2"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = '.ttf,.otf';
+                          input.onchange = (e) => {
+                            const file = e.target.files[0];
+                            if (file) setConverterFile(file);
+                          };
+                          input.click();
+                        }}
+                      >
+                        <Upload className="h-6 w-6 text-brand-muted" />
+                        {converterFile ? (
+                          <div className="space-y-1">
+                            <div className="text-xs text-white font-semibold truncate max-w-[180px]">{converterFile.name}</div>
+                            <div className="text-[10px] text-brand-muted">{(converterFile.size / 1024).toFixed(1)} KB</div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="text-xs text-white font-semibold">Upload TTF or OTF</div>
+                            <div className="text-[10px] text-brand-muted">Drag & drop or click to browse</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {converterStatus === 'CONVERTING' && (
+                        <div className="space-y-1.5 text-center">
+                          <div className="text-[10px] text-brand-accent animate-pulse font-mono">[CONVERTING] Compressing with Brotli...</div>
+                          <div className="w-full h-1 bg-brand-border rounded-full overflow-hidden">
+                            <div className="h-full bg-brand-accent animate-[pulse_1s_infinite] w-full"></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {converterStatus === 'COMPLETED' && converterResult && (
+                        <div className="p-2.5 bg-brand-secondary/10 border border-brand-secondary/30 rounded-lg text-xs space-y-1">
+                          <div className="text-brand-secondary font-semibold">✓ Optimization Complete!</div>
+                          <div className="text-[10px] text-brand-muted truncate">File: {converterResult.originalName}</div>
+                          <div className="text-[10px] text-brand-muted">Package: ZIP containing WOFF & WOFF2</div>
+                        </div>
+                      )}
+
+                      {converterStatus === 'FAILED' && converterError && (
+                        <div className="p-2.5 bg-rose-500/10 text-rose-500 border border-rose-500/30 rounded text-[10px] font-mono leading-relaxed">
+                          [ERROR] {converterError}
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleConvertFont}
+                        disabled={!converterFile || converterStatus === 'CONVERTING'}
+                        className="w-full py-2.5 bg-brand-primary hover:bg-brand-primary/90 disabled:bg-brand-border text-white font-bold rounded-lg transition-all text-xs flex items-center justify-center space-x-2"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${converterStatus === 'CONVERTING' ? 'animate-spin' : ''}`} />
+                        <span>Optimize & Download WOFFs</span>
                       </button>
                     </div>
                   </div>
