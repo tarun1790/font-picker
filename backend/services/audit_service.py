@@ -359,17 +359,23 @@ def fetch_corporate_intelligence(company_name):
                     {
                         "role": "system",
                         "content": (
-                            "You are a corporate intelligence analyst. Synthesize the parent entity, "
-                            "corporate subsidiaries, and revenue data for the company. Respond with a JSON object "
-                            "containing: 'parent_entity' (string or null), 'corporate_subsidiaries' (array of strings), "
-                            "and 'revenue' (string or null). Ensure 100% accuracy based on the provided search context."
+                            "You are a professional corporate registry auditor. Your objective is to extract "
+                            "an EXHAUSTIVE, 100% accurate list of ALL corporate subsidiaries owned by the target company. "
+                            "Combine (1) the Wikipedia parsed data, (2) the Tavily search snippets, and (3) your own "
+                            "extensive parametric knowledge of corporate corporate structures. "
+                            "List every single regional entity, studio, joint venture, and acquired brand (e.g. for Netflix, "
+                            "list Netflix Animation, Netflix Studios, Albuquerque Studios, Scanline VFX, Millarworld, Next Games, "
+                            "Boss Fight, Spry Fox, and all regional operating entities). Deduplicate the list, filter out competitors "
+                            "or parent companies, and return a clean JSON object containing 'parent_entity' (string/null), "
+                            "'corporate_subsidiaries' (flat array of strings containing all detected subsidiaries), and "
+                            "'revenue' (string/null). Aim for maximum completeness and accuracy."
                         )
                     },
                     {
                         "role": "user",
                         "content": (
                             f"Company Name: {company_name}\n"
-                            f"Wikipedia Data: {json.dumps(wiki_info)}\n"
+                            f"Wikipedia Data: {json.dumps(info)}\n"
                             f"Search Snippets: {search_snippets}"
                         )
                     }
