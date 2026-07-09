@@ -7,7 +7,7 @@
             "Roboto"
         ],
         "average_weight": 400.0,
-        "scanned_count": 901,
+        "scanned_count": 902,
         "brand_personality": "Elegant & Formal",
         "accessibility_index": 0.85
     },
@@ -20,9 +20,9 @@
             "Playfair Display",
             "Montserrat"
         ],
-        "average_weight": 580.0,
-        "scanned_count": 5,
+        "average_weight": 600.0,
+        "scanned_count": 6,
         "brand_personality": "Elegant & Formal",
-        "accessibility_index": 0.87
+        "accessibility_index": 0.86
     }
 }
