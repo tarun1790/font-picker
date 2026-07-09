@@ -770,6 +770,14 @@ feature kern {
       const extracted = prepMatch[1].trim();
       // Remove trailing instructions or PDF command noise
       companyName = extracted.replace(/\b(?:and\s+generate\s+a\s+pdf|and\s+generate\s+pdf|generate\s+pdf|pdf|a\s+pdf)\b/gi, "").trim();
+      
+      // Strip leading prepositions if captured by regex
+      if (companyName.toLowerCase().startsWith("of ")) {
+        companyName = companyName.slice(3).trim();
+      }
+      if (companyName.toLowerCase().startsWith("for ")) {
+        companyName = companyName.slice(4).trim();
+      }
     }
     
     // 2. Fallback to extracting capitalized keywords or filtering stop words
