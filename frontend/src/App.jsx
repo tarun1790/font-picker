@@ -3404,6 +3404,14 @@ feature kern {
                             <span className="text-gray-500 block text-[9px] uppercase">Revenue Tier</span>
                             <span className="text-white font-bold">{currentAuditResult.audit_data.revenue_tier}</span>
                           </div>
+                          {currentAuditResult.audit_data.corporate_subsidiaries && currentAuditResult.audit_data.corporate_subsidiaries.length > 0 && (
+                            <div className="col-span-2 border-t border-brand-border/40 pt-2 mt-1">
+                              <span className="text-gray-500 block text-[9px] uppercase">Corporate Subsidiaries</span>
+                              <span className="text-white font-bold block text-[10px] truncate max-w-full">
+                                {currentAuditResult.audit_data.corporate_subsidiaries.join(', ')}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 

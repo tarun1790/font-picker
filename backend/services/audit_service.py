@@ -271,6 +271,46 @@ def generate_audit_pdf(report_path, task_id, domain, company_name, audit_data):
     
     doc.build(story)
 
+def fetch_subsidiaries_from_wikidata(company_name):
+    import requests
+    subsidiaries = []
+    try:
+        search_url = "https://www.wikidata.org/w/api.php"
+        params = {
+            "action": "wbsearchentities",
+            "search": company_name,
+            "language": "en",
+            "format": "json"
+        }
+        res = requests.get(search_url, params=params, headers={"User-Agent": "FontPickerAuditAgent/1.0"}, timeout=5)
+        if res.status_code == 200:
+            data = res.json()
+            search_results = data.get("search", [])
+            if search_results:
+                company_id = search_results[0]["id"]
+                sparql_url = "https://query.wikidata.org/sparql"
+                query = f"""
+                SELECT ?subsidiaryLabel WHERE {{
+                  {{
+                    wd:{company_id} wdt:P355 ?subsidiary.
+                  }} UNION {{
+                    ?subsidiary wdt:P749 wd:{company_id}.
+                  }}
+                  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
+                }}
+                LIMIT 10
+                """
+                sparql_res = requests.get(sparql_url, params={"query": query, "format": "json"}, headers={"User-Agent": "FontPickerAuditAgent/1.0"}, timeout=8)
+                if sparql_res.status_code == 200:
+                    bindings = sparql_res.json().get("results", {}).get("bindings", [])
+                    for bind in bindings:
+                        label = bind.get("subsidiaryLabel", {}).get("value")
+                        if label and not label.startswith("Q") and label not in subsidiaries:
+                            subsidiaries.append(label)
+    except Exception as e:
+        print(f"Failed to fetch subsidiaries from Wikidata: {e}")
+    return subsidiaries
+
 def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue: float = None):
     """
     Simulates the background crawl, vector DB matching, and PDF generation.
@@ -322,7 +362,7 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
                 "headquarters": "New York, NY, USA",
                 "country": "United States",
                 "parent_entity": f"{company_name} Holdings Inc.",
-                "corporate_subsidiaries": [f"{company_name} Digital LLC"],
+                "corporate_subsidiaries": [],
                 "brands": [company_name],
                 "products": ["Digital Solutions"],
                 "services": ["Consulting Portal"],
@@ -344,6 +384,17 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
                 "dom_elements": ["body", "p", "a.nav-link"],
                 "license_status": "Potential Match – Human Review Required"
             }
+
+        # Query Wikidata for real-world subsidiaries of the company
+        log(f"[WIKIDATA] Fetching corporate subsidiaries for '{company_name}' from Wikidata SPARQL graphs...")
+        wiki_subs = fetch_subsidiaries_from_wikidata(company_name)
+        if wiki_subs:
+            log(f"[WIKIDATA] Discovered {len(wiki_subs)} subsidiaries from open-source graphs.")
+            audit_data["corporate_subsidiaries"] = wiki_subs
+        else:
+            log("[WIKIDATA] No dynamic subsidiaries found. Keeping default corporate registry records.")
+            if not audit_data.get("corporate_subsidiaries"):
+                audit_data["corporate_subsidiaries"] = [f"{company_name} Digital LLC"]
             
         log(f"[EXTRACT] Found font resource URL: {audit_data['font_url']}")
         log(f"[EXTRACT] Raw Binary Package (.woff2) hash: {hashlib.sha256(domain.encode()).hexdigest()[:32]}...")
