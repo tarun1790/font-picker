@@ -27,7 +27,7 @@ const getApiBase = () => {
   }
 
   // Default directly to the active secure public tunnel so the hosted GitHub link works out-of-the-box
-  return 'https://292acb5c24da0d0b-175-101-96-36.serveousercontent.com';
+  return 'https://b381f7f9eef5f731-175-101-96-36.serveousercontent.com';
 };
 const API_BASE = getApiBase();
 
