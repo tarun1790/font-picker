@@ -718,6 +718,51 @@ def scrape_fonts_from_url(url):
         print(f"Scraper request failed: {e}")
     return list(set(font_urls))
 
+from playwright.sync_api import sync_playwright
+
+def scrape_fonts_from_url_playwright(url):
+    font_files = {}
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            
+            def handle_response(response):
+                try:
+                    content_type = response.headers.get("content-type", "").lower()
+                    url_path = response.url.split('?')[0].lower()
+                    
+                    is_font = False
+                    if "font" in content_type:
+                        is_font = True
+                    elif url_path.endswith((".ttf", ".otf", ".woff", ".woff2")):
+                        is_font = True
+                        
+                    if is_font:
+                        body = response.body()
+                        filename = os.path.basename(response.url.split('?')[0])
+                        if not filename or '.' not in filename:
+                            ext = ".woff2"
+                            if "woff" in content_type and "2" not in content_type:
+                                ext = ".woff"
+                            elif "truetype" in content_type or "ttf" in content_type:
+                                ext = ".ttf"
+                            elif "opentype" in content_type or "otf" in content_type:
+                                ext = ".otf"
+                            filename = f"font_{uuid.uuid4().hex[:8]}{ext}"
+                        font_files[filename] = body
+                        print(f"[PLAYWRIGHT] Scraped font: {response.url}")
+                except Exception:
+                    pass
+            
+            page.on("response", handle_response)
+            page.goto(url, wait_until="networkidle", timeout=25000)
+            page.wait_for_timeout(3000)
+            browser.close()
+    except Exception as e:
+        print(f"[PLAYWRIGHT ERROR] Scraper run failed: {e}")
+    return font_files
+
 @app.post("/api/v1/font/scrape-and-optimize")
 def scrape_and_optimize_fonts(background_tasks: BackgroundTasks, payload: ScrapeRequest):
     url = payload.url
@@ -726,67 +771,76 @@ def scrape_and_optimize_fonts(background_tasks: BackgroundTasks, payload: Scrape
         
     temp_dir = tempfile.mkdtemp()
     try:
-        font_urls = scrape_fonts_from_url(url)
-        if not font_urls:
+        # 1. Grab font files directly from Playwright network inspection
+        font_files_dict = scrape_fonts_from_url_playwright(url)
+        
+        # 2. Fall back to static BeautifulSoup crawler if browser capture found nothing
+        if not font_files_dict:
+            print("[PLAYWRIGHT] No fonts detected. Falling back to static BeautifulSoup crawler...")
+            font_urls = scrape_fonts_from_url(url)
+            for font_url in font_urls:
+                try:
+                    f_res = requests.get(font_url, headers={'User-Agent': 'Mozilla/5.0'}, stream=True, timeout=10)
+                    if f_res.status_code == 200:
+                        filename = os.path.basename(font_url.split('?')[0])
+                        if not filename:
+                            filename = f"font_{uuid.uuid4().hex[:8]}.ttf"
+                        content = f_res.content
+                        font_files_dict[filename] = content
+                except Exception as e:
+                    print(f"Static fallback failed to download {font_url}: {e}")
+
+        if not font_files_dict:
             raise HTTPException(status_code=404, detail="No custom font assets (.ttf, .otf, .woff, .woff2) were detected on this webpage.")
             
         downloaded_files = []
-        for font_url in font_urls:
+        for filename, binary_content in font_files_dict.items():
             try:
-                f_res = requests.get(font_url, headers={'User-Agent': 'Mozilla/5.0'}, stream=True, timeout=10)
-                if f_res.status_code == 200:
-                    filename = os.path.basename(font_url.split('?')[0])
-                    filename = re.sub(r'[^\w\.-]', '_', filename)
-                    if not filename:
-                        filename = f"font_{uuid.uuid4().hex[:8]}.ttf"
-                        
-                    dest_path = os.path.join(temp_dir, filename)
-                    with open(dest_path, 'wb') as f:
-                        for chunk in f_res.iter_content(chunk_size=8192):
-                            f.write(chunk)
-                        
-                    base_name = os.path.splitext(filename)[0]
-                    woff_filename = f"{base_name}.woff"
-                    woff2_filename = f"{base_name}.woff2"
-                    woff_path = os.path.join(temp_dir, woff_filename)
-                    woff2_path = os.path.join(temp_dir, woff2_filename)
+                filename = re.sub(r'[^\w\.-]', '_', filename)
+                dest_path = os.path.join(temp_dir, filename)
+                with open(dest_path, 'wb') as f:
+                    f.write(binary_content)
                     
-                    # Check first 4 bytes of the downloaded file
-                    with open(dest_path, "rb") as f_head:
-                        header = f_head.read(4)
-                        
-                    is_woff2 = header == b"wOF2"
-                    is_woff = header == b"wOFF"
-                    is_sfnt = header in (b"\x00\x01\x00\x00", b"OTTO", b"true", b"typ1")
+                base_name = os.path.splitext(filename)[0]
+                woff_filename = f"{base_name}.woff"
+                woff2_filename = f"{base_name}.woff2"
+                woff_path = os.path.join(temp_dir, woff_filename)
+                woff2_path = os.path.join(temp_dir, woff2_filename)
+                
+                with open(dest_path, "rb") as f_head:
+                    header = f_head.read(4)
                     
-                    if is_woff2:
-                        os.rename(dest_path, woff2_path)
-                        downloaded_files.append((woff2_path, woff2_filename))
-                    elif is_woff:
-                        os.rename(dest_path, woff_path)
-                        downloaded_files.append((woff_path, woff_filename))
-                    elif is_sfnt:
-                        font = TTFont(dest_path)
-                        font.flavor = 'woff'
-                        font.save(woff_path)
-                        
-                        font = TTFont(dest_path)
-                        font.flavor = 'woff2'
-                        font.save(woff2_path)
-                        
-                        downloaded_files.extend([
-                            (woff_path, woff_filename),
-                            (woff2_path, woff2_filename)
-                        ])
-                    else:
-                        downloaded_files.append((dest_path, filename))
+                is_woff2 = header == b"wOF2"
+                is_woff = header == b"wOFF"
+                is_sfnt = header in (b"\x00\x01\x00\x00", b"OTTO", b"true", b"typ1")
+                
+                if is_woff2:
+                    os.rename(dest_path, woff2_path)
+                    downloaded_files.append((woff2_path, woff2_filename))
+                elif is_woff:
+                    os.rename(dest_path, woff_path)
+                    downloaded_files.append((woff_path, woff_filename))
+                elif is_sfnt:
+                    font = TTFont(dest_path)
+                    font.flavor = 'woff'
+                    font.save(woff_path)
+                    
+                    font = TTFont(dest_path)
+                    font.flavor = 'woff2'
+                    font.save(woff2_path)
+                    
+                    downloaded_files.extend([
+                        (woff_path, woff_filename),
+                        (woff2_path, woff2_filename)
+                    ])
+                else:
+                    downloaded_files.append((dest_path, filename))
             except Exception as e:
-                print(f"Failed to process font {font_url}: {e}")
+                print(f"Failed to process font {filename}: {e}")
                 
         if not downloaded_files:
             raise HTTPException(status_code=404, detail="Found font links, but failed to download or parse them.")
             
-        # Bundle into ZIP
         zip_filename = "scraped_optimized_fonts.zip"
         zip_path = os.path.join(temp_dir, zip_filename)
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zip_file:
