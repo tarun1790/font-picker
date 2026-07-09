@@ -7,7 +7,7 @@
             "Roboto"
         ],
         "average_weight": 400.0,
-        "scanned_count": 910,
+        "scanned_count": 912,
         "brand_personality": "Elegant & Formal",
         "accessibility_index": 0.85
     },
@@ -31,6 +31,18 @@
         ],
         "common_pairings": [
             "Netflix Sans"
+        ],
+        "average_weight": 400.0,
+        "scanned_count": 1,
+        "brand_personality": "Elegant & Formal",
+        "accessibility_index": 0.91
+    },
+    "Retail & Technology": {
+        "common_font_styles": [
+            "Corporate Sans-Serif"
+        ],
+        "common_pairings": [
+            "Amazon Ember"
         ],
         "average_weight": 400.0,
         "scanned_count": 1,

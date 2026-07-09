@@ -395,6 +395,59 @@ def generate_audit_pdf(report_path, task_id, domain, company_name, audit_data):
     
     doc.build(story)
 
+def is_valid_legal_entity(name):
+    import re
+    clean_name = name.strip(",. ")
+    lower_name = clean_name.lower()
+    
+    # Strict Legal Entity Suffixes
+    legal_suffixes = [
+        "ltd", "limited", "llc", "inc", "inc.", "corporation", "corp", "corp.", 
+        "plc", "gmbh", "sas", "bv", "b.v.", "ag", "s.a.", "s.a.s.", "s.r.l.", 
+        "ulc", "llp", "pte. ltd.", "pte ltd", "pty ltd", "pty. ltd.", "co.", "co", 
+        "kk", "nv", "ab", "oy", "as", "sp. z o.o."
+    ]
+    
+    # Check if ends with any suffix
+    has_suffix = False
+    for suffix in legal_suffixes:
+        if lower_name.endswith(" " + suffix) or lower_name.endswith(suffix):
+            has_suffix = True
+            break
+            
+    # Rejection list
+    # Financial metrics
+    financial_words = ["ebitda", "revenue", "income", "assets", "sales", "profit", "earnings", "cash", "debt", "margin"]
+    if any(w in lower_name for w in financial_words):
+        return False
+        
+    # Dates
+    months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"]
+    if any(w in lower_name for w in months) or re.search(r'\b(?:19|20)\d{2}\b', lower_name) or "fy20" in lower_name:
+        return False
+        
+    # Geographic regions alone
+    regions = ["americas", "europe", "france", "germany", "japan", "united kingdom", "canada", "mexico", "brazil", "asia", "middle east", "africa", "regional", "global", "national"]
+    if lower_name in regions:
+        return False
+        
+    # Table headers & noise
+    noise_headers = ["notes", "total", "consolidated", "group", "index", "subsidiary", "parent", "company", "corporation", "report", "source", "reference"]
+    if any(w == lower_name for w in noise_headers):
+        return False
+        
+    # Reject if it's very short
+    if len(clean_name) < 3:
+        return False
+        
+    # A candidate must EITHER have one of the explicit suffixes OR contain brand/division indicators
+    if not has_suffix:
+        brand_indicators = ["studios", "operations", "holdings", "fresh", "market", "aws", "fanzine", "interactive", "foster", "productions", "animation", "audio", "robotics", "pharmacy", "fresh"]
+        if not any(w in lower_name for w in brand_indicators):
+            return False
+            
+    return True
+
 def fetch_corporate_intelligence(company_name):
     import os
     import json
@@ -668,10 +721,10 @@ def fetch_corporate_intelligence(company_name):
                     candidates = re.findall(r'\b[A-Z][a-zA-Z0-9\-\.\&]+(?:\s+[A-Z][a-zA-Z0-9\-\.\&]+)*\b', sent_clean)
                     for cand in candidates:
                         cand_clean = cand.strip(",. ")
-                        cand_l = cand_clean.lower()
-                        
-                        if len(cand_clean) <= 4 and cand_clean.isupper():
+                        if not is_valid_legal_entity(cand_clean):
                             continue
+                            
+                        cand_l = cand_clean.lower()
                         if cand_l == comp_l:
                             continue
                         if any(w == cand_l for w in noise_keywords) or any(w in cand_l for w in ["limited data", "data preview"]):
@@ -680,9 +733,7 @@ def fetch_corporate_intelligence(company_name):
                         if cand_clean.endswith("a") and not cand_clean.endswith("ia") and not cand_clean.endswith("ma") and not cand_clean.endswith("da"):
                             if cand_clean[:-1].lower() in ["ltd", "llc", "gmbh", "ulc", "b.v", "c.v", "ltda", "s.a.s"]:
                                 cand_clean = cand_clean[:-1]
-                        if len(cand_clean) < 3:
-                            continue
-                            
+                                
                         if cand_clean not in discovered_subs:
                             discovered_subs.append(cand_clean)
                             
