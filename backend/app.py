@@ -744,15 +744,27 @@ def scrape_and_optimize_fonts(background_tasks: BackgroundTasks, payload: Scrape
                     with open(dest_path, 'wb') as f:
                         shutil.copyfileobj(f_res.raw, f)
                         
-                    ext = os.path.splitext(filename)[1].lower()
                     base_name = os.path.splitext(filename)[0]
-                    
                     woff_filename = f"{base_name}.woff"
                     woff2_filename = f"{base_name}.woff2"
                     woff_path = os.path.join(temp_dir, woff_filename)
                     woff2_path = os.path.join(temp_dir, woff2_filename)
                     
-                    if ext in ('.ttf', '.otf'):
+                    # Check first 4 bytes of the downloaded file
+                    with open(dest_path, "rb") as f_head:
+                        header = f_head.read(4)
+                        
+                    is_woff2 = header == b"wOF2"
+                    is_woff = header == b"wOFF"
+                    is_sfnt = header in (b"\x00\x01\x00\x00", b"OTTO", b"true", b"typ1")
+                    
+                    if is_woff2:
+                        os.rename(dest_path, woff2_path)
+                        downloaded_files.append((woff2_path, woff2_filename))
+                    elif is_woff:
+                        os.rename(dest_path, woff_path)
+                        downloaded_files.append((woff_path, woff_filename))
+                    elif is_sfnt:
                         font = TTFont(dest_path)
                         font.flavor = 'woff'
                         font.save(woff_path)
