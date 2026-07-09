@@ -465,7 +465,17 @@ def fetch_corporate_intelligence(company_name):
     if not openai_success and gemini_key:
         try:
             print("[INTELLIGENCE] OpenAI/HF model not available or failed. Using free Gemini model synthesis...")
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+            
+            # Auto-detect if key is API key or OAuth access token
+            if gemini_key.startswith("AIzaSy"):
+                api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+                headers = {"Content-Type": "application/json"}
+            else:
+                api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {gemini_key}"
+                }
             
             prompt = (
                 "You are a professional corporate registry auditor. Your objective is to extract "
@@ -491,7 +501,7 @@ def fetch_corporate_intelligence(company_name):
                 }
             }
             
-            gemini_res = requests.post(api_url, headers={"Content-Type": "application/json"}, json=payload, timeout=15)
+            gemini_res = requests.post(api_url, headers=headers, json=payload, timeout=15)
             if gemini_res.status_code == 200:
                 res_data = gemini_res.json()
                 text = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
