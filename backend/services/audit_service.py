@@ -329,8 +329,10 @@ def fetch_corporate_intelligence(company_name):
         
     tavily_key = os.environ.get("TAVILY_API_KEY")
     openai_key = os.environ.get("OPENAI_API_KEY")
+    hf_token = os.environ.get("HF_TOKEN")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
     
-    if not tavily_key and not openai_key:
+    if not tavily_key and not openai_key and not hf_token and not gemini_key:
         return info
         
     search_snippets = ""
@@ -348,9 +350,12 @@ def fetch_corporate_intelligence(company_name):
             if tavily_res.status_code == 200:
                 results = tavily_res.json().get("results", [])
                 search_snippets = "\n".join([r.get("content", "") for r in results])
+            else:
+                print(f"DEBUG: Tavily request failed with status: {tavily_res.status_code}, response: {tavily_res.text}")
         except Exception as e:
             print(f"Tavily search failed: {e}")
             
+    openai_success = False
     if openai_key:
         try:
             openai_payload = {
@@ -401,8 +406,103 @@ def fetch_corporate_intelligence(company_name):
                     info["corporate_subsidiaries"] = ai_info["corporate_subsidiaries"]
                 if "revenue" in ai_info:
                     info["revenue"] = ai_info["revenue"]
+                openai_success = True
+            else:
+                print(f"DEBUG: OpenAI request failed with status: {openai_res.status_code}, response: {openai_res.text}")
         except Exception as e:
             print(f"OpenAI synthesis failed: {e}")
+            
+    if not openai_success and hf_token:
+        try:
+            print("[INTELLIGENCE] OpenAI key not available or failed. Using free Hugging Face model synthesis...")
+            model_id = "meta-llama/Meta-Llama-3-8B-Instruct"
+            api_url = f"https://api-inference.huggingface.co/models/{model_id}"
+            prompt = (
+                f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n"
+                f"You are a professional corporate registry auditor. Extract an EXHAUSTIVE list of ALL corporate subsidiaries owned by the target company. "
+                f"Combine (1) the Wikipedia data, (2) the search snippets, and (3) your own knowledge. "
+                f"Output ONLY a valid JSON object with keys: 'parent_entity' (string/null), 'corporate_subsidiaries' (flat array of strings containing all subsidiaries), and 'revenue' (string/null).<|eot_id|>"
+                f"<|start_header_id|>user<|end_header_id|>\n"
+                f"Company Name: {company_name}\n"
+                f"Wikipedia Data: {json.dumps(info)}\n"
+                f"Search Snippets: {search_snippets}\n"
+                f"JSON output:<|eot_id|>"
+                f"<|start_header_id|>assistant<|end_header_id|>\n"
+            )
+            payload = {
+                "inputs": prompt,
+                "parameters": {
+                    "max_new_tokens": 1500,
+                    "return_full_text": False,
+                    "temperature": 0.1
+                }
+            }
+            hf_res = requests.post(api_url, headers={"Authorization": f"Bearer {hf_token}", "Content-Type": "application/json"}, json=payload, timeout=15)
+            if hf_res.status_code == 200:
+                res_data = hf_res.json()
+                if isinstance(res_data, list) and len(res_data) > 0:
+                    text = res_data[0].get("generated_text", "").strip()
+                elif isinstance(res_data, dict):
+                    text = res_data.get("generated_text", "").strip()
+                else:
+                    text = str(res_data)
+                
+                json_match = re.search(r'\{.*\}', text, re.DOTALL)
+                if json_match:
+                    ai_info = json.loads(json_match.group(0))
+                    if "parent_entity" in ai_info:
+                        info["parent_entity"] = ai_info["parent_entity"]
+                    if "corporate_subsidiaries" in ai_info:
+                        info["corporate_subsidiaries"] = ai_info["corporate_subsidiaries"]
+                    if "revenue" in ai_info:
+                        info["revenue"] = ai_info["revenue"]
+            else:
+                print(f"DEBUG: Hugging Face failed with status: {hf_res.status_code}, response: {hf_res.text}")
+    # If both OpenAI and Hugging Face are not successful or not used, try Google Gemini
+    if not openai_success and gemini_key:
+        try:
+            print("[INTELLIGENCE] OpenAI/HF model not available or failed. Using free Gemini model synthesis...")
+            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+            
+            prompt = (
+                "You are a professional corporate registry auditor. Your objective is to extract "
+                "an EXHAUSTIVE, 100% accurate list of ALL corporate subsidiaries owned by the target company. "
+                "Combine (1) the Wikipedia parsed data, (2) the Tavily search snippets, and (3) your own "
+                "extensive knowledge of corporate structures. "
+                "List every single regional entity, studio, joint venture, and acquired brand (e.g. for Netflix, "
+                "list Netflix Animation, Netflix Studios, Albuquerque Studios, Scanline VFX, Millarworld, Next Games, "
+                "Boss Fight, Spry Fox, and all regional operating entities). Deduplicate the list, filter out competitors "
+                "or parent companies, and return a clean JSON object containing 'parent_entity' (string/null), "
+                "'corporate_subsidiaries' (flat array of strings containing all detected subsidiaries), and "
+                "'revenue' (string/null). Aim for maximum completeness and accuracy. Respond ONLY with the JSON raw object."
+            )
+            
+            payload = {
+                "contents": [{
+                    "parts": [{
+                        "text": f"{prompt}\n\nCompany Name: {company_name}\nWikipedia Data: {json.dumps(info)}\nSearch Snippets: {search_snippets}"
+                    }]
+                }],
+                "generationConfig": {
+                    "responseMimeType": "application/json"
+                }
+            }
+            
+            gemini_res = requests.post(api_url, headers={"Content-Type": "application/json"}, json=payload, timeout=15)
+            if gemini_res.status_code == 200:
+                res_data = gemini_res.json()
+                text = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+                ai_info = json.loads(text)
+                if "parent_entity" in ai_info:
+                    info["parent_entity"] = ai_info["parent_entity"]
+                if "corporate_subsidiaries" in ai_info:
+                    info["corporate_subsidiaries"] = ai_info["corporate_subsidiaries"]
+                if "revenue" in ai_info:
+                    info["revenue"] = ai_info["revenue"]
+            else:
+                print(f"DEBUG: Gemini request failed with status: {gemini_res.status_code}, response: {gemini_res.text}")
+        except Exception as e:
+            print(f"Gemini synthesis failed: {e}")
             
     return info
 
