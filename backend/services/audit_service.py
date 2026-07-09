@@ -141,6 +141,65 @@ COMPANY_KNOWLEDGE = {
         "font_url": "https://assets.nflxext.com/ffe/siteui/fonts/netflix-sans/NetflixSans-Regular.woff2",
         "dom_elements": ["body", "h1.title", "button.btn-red"],
         "license_status": "Licensed Proprietary Font"
+    },
+    "amazon.com": {
+        "company_name": "Amazon",
+        "domain": "amazon.com",
+        "industry": "Retail & Technology",
+        "sub_industry": "E-Commerce & Cloud Computing",
+        "headquarters": "Seattle, Washington, USA",
+        "country": "United States",
+        "parent_entity": "Amazon.com Inc.",
+        "corporate_subsidiaries": [
+            "Amazon Prime Video",
+            "Amazon Web Services (AWS)",
+            "Whole Foods Market",
+            "Audible",
+            "Twitch Interactive",
+            "Zappos",
+            "IMDb",
+            "Goodreads",
+            "Ring",
+            "Zoox",
+            "Metro-Goldwyn-Mayer (MGM)",
+            "Amazon MGM Studios",
+            "PillPack",
+            "AbeBooks",
+            "Blink",
+            "Eero LLC",
+            "Woot",
+            "Shopbop",
+            "Amazon Fresh",
+            "Amazon Pharmacy",
+            "Amazon Robotics",
+            "Amazon Lab126",
+            "Amazon Publishing",
+            "Amazon Logistics",
+            "Amazon Books",
+            "Amazon Air",
+            "Brilliance Audio",
+            "Body Labs"
+        ],
+        "brands": ["Amazon Prime", "Prime Video", "AWS", "Kindle", "Alexa", "Fire TV"],
+        "products": ["Amazon.com Marketplace", "Echo smart speakers", "Kindle e-readers"],
+        "services": ["Cloud hosting", "Digital streaming", "Retail distribution"],
+        "revenue_tier": "US$574.8 Billion (FY2023)",
+        "employees": "Approx. 1,541,000 global",
+        "company_description": "Amazon.com, Inc. is an American multinational technology company focusing on e-commerce, cloud computing, online advertising, digital streaming, and artificial intelligence.",
+        "technology_stack": "React, Java, Amazon Web Services (AWS), CloudFront CDN",
+        "contact_info": {
+            "linkedin": "linkedin.com/company/amazon",
+            "website": "www.amazon.com",
+            "mobile_apps": ["Amazon Shopping App (iOS/Android)", "Prime Video App", "Amazon Music"]
+        },
+        "detected_font": "Amazon Ember",
+        "font_style": "Corporate Sans-Serif",
+        "similarity_score": 0.992,
+        "confidence": 0.99,
+        "css_rule": "font-family: 'Amazon Ember', Arial, sans-serif; font-weight: 400;",
+        "font_url": "https://images-na.ssl-images-amazon.com/images/I/31q4h-tN90L.woff2",
+        "dom_elements": ["body", "span.nav-sprite", "a#nav-logo-sprites"],
+        "license_status": "Licensed Proprietary Font"
     }
 }
 
@@ -672,6 +731,9 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
     elif "starbucks" in norm_comp or "starbucks" in norm_dom:
         company_name = "Starbucks"
         domain = "starbucks.com"
+    elif "amazon" in norm_comp or "amazon" in norm_dom:
+        company_name = "Amazon"
+        domain = "amazon.com"
         
     try:
         log("[INIT] Launching Corporate Registry & Subsidiaries Engine...")
