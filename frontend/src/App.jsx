@@ -3172,7 +3172,7 @@ feature kern {
                   <div className="glass-panel rounded-2xl p-5 border border-brand-accent/40 bg-brand-accent/5">
                     <h3 className="text-sm font-bold text-white mb-2.5 uppercase tracking-wider flex items-center">
                       <Sparkles className="h-4 w-4 mr-2 text-brand-accent animate-pulse" />
-                      NLP Auditor Assistant
+                      Company Subsidiaries
                     </h3>
                     <p className="text-[10px] text-brand-muted mb-3">Ask in plain English to audit any company (e.g., "Find subsidiaries of Cadburry and generate a PDF").</p>
                     
