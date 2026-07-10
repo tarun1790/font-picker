@@ -1618,7 +1618,7 @@ feature kern {
             { id: 'registry', label: '100k Font Browser', icon: Database },
             { id: 'agents', label: 'AI Agent Console', icon: MessageSquare },
             { id: 'dashboard', label: 'Dashboard & Reports', icon: BarChart2 },
-            { id: 'auditor', label: 'Company Subsidiaries', icon: ShieldAlert }
+            { id: 'auditor', label: 'Font Monitor', icon: ShieldAlert }
           ].map(tab => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
@@ -3156,9 +3156,9 @@ feature kern {
                 <div>
                   <h2 className="text-xl font-bold text-white uppercase tracking-wider flex items-center">
                     <ShieldAlert className="h-6 w-6 mr-2.5 text-brand-accent" />
-                    Company Subsidiaries
+                    24/7 Font Monitor
                   </h2>
-                  <p className="text-xs text-brand-muted">Search and crawl target domains and corporate registries to extract Ultimate Parents, holding companies, and verified subsidiary tree nodes.</p>
+                  <p className="text-xs text-brand-muted">Scrape target domains to identify unauthorized usage of custom, commercial, and proprietary fonts, while training typography trends.</p>
                 </div>
                 <span className="mt-2 md:mt-0 px-3.5 py-1 text-[10px] rounded-full border border-brand-accent/40 text-brand-accent bg-brand-accent/5 font-mono uppercase">
                   Compliance Monitoring: ACTIVE
