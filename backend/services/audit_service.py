@@ -66,11 +66,114 @@ COMPANY_KNOWLEDGE = {
         "headquarters": "Seattle, Washington, USA",
         "country": "United States",
         "parent_entity": "Starbucks Corporation",
-        "corporate_subsidiaries": ["Seattle's Best Coffee", "Teavana", "Evolution Fresh", "Ethos Water"],
-        "brands": ["Starbucks Coffee", "Teavana Tea", "La Boulange Bakery"],
-        "products": ["Fresh Coffee", "Beverages", "Espresso Machines", "Merchandise"],
+        "corporate_subsidiaries": [
+            "Seattle's Best Coffee LLC",
+            "Starbucks Coffee Japan, Ltd.",
+            "Starbucks Coffee (Shanghai) Co., Ltd.",
+            "Starbucks Coffee EMEA B.V.",
+            "Starbucks Coffee Trading Company SARL",
+            "Starbucks Manufacturing Corporation",
+            "Teavana Corporation",
+            "Evolution Fresh, Inc.",
+            "Ethos Water (Brand)",
+            "Emerald City Sourcing, Inc."
+        ],
+        "subsidiaries_details": [
+            {
+                "legal_name": "Seattle's Best Coffee LLC",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Starbucks Corporation",
+                "ultimate_parent": "Starbucks Corporation",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Starbucks Coffee Japan, Ltd.",
+                "entity_type": "International Operating Subsidiary",
+                "parent": "Starbucks Corporation",
+                "ultimate_parent": "Starbucks Corporation",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "Japan"
+            },
+            {
+                "legal_name": "Starbucks Coffee (Shanghai) Co., Ltd.",
+                "entity_type": "International Operating Subsidiary",
+                "parent": "Starbucks Corporation",
+                "ultimate_parent": "Starbucks Corporation",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "China"
+            },
+            {
+                "legal_name": "Starbucks Coffee EMEA B.V.",
+                "entity_type": "Regional Holding Company",
+                "parent": "Starbucks Corporation",
+                "ultimate_parent": "Starbucks Corporation",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "Netherlands"
+            },
+            {
+                "legal_name": "Starbucks Coffee Trading Company SARL",
+                "entity_type": "Sourcing & Trading Subsidiary",
+                "parent": "Starbucks Coffee EMEA B.V.",
+                "ultimate_parent": "Starbucks Corporation",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "Switzerland"
+            },
+            {
+                "legal_name": "Starbucks Manufacturing Corporation",
+                "entity_type": "Manufacturing Subsidiary",
+                "parent": "Starbucks Corporation",
+                "ultimate_parent": "Starbucks Corporation",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Teavana Corporation",
+                "entity_type": "Brand / Division",
+                "parent": "Starbucks Corporation",
+                "ultimate_parent": "Starbucks Corporation",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Evolution Fresh, Inc.",
+                "entity_type": "Acquired Company",
+                "parent": "Starbucks Corporation",
+                "ultimate_parent": "Starbucks Corporation",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Ethos Water (Brand)",
+                "entity_type": "Brand / Operating Name",
+                "parent": "Starbucks Corporation",
+                "ultimate_parent": "Starbucks Corporation",
+                "ownership": "N/A",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Emerald City Sourcing, Inc.",
+                "entity_type": "Sourcing Subsidiary",
+                "parent": "Starbucks Corporation",
+                "ultimate_parent": "Starbucks Corporation",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            }
+        ],
+        "brands": ["Starbucks Coffee", "Teavana Tea", "Seattle's Best Coffee", "Evolution Fresh", "Ethos Water"],
+        "products": ["Fresh Coffee", "Beverages", "Espresso Machines", "Merchandise", "Packaged Coffee"],
         "services": ["Starbucks Rewards Mobile Payment Portal", "In-store Wi-Fi network"],
-        "revenue_tier": "$35.9 Billion (FY2023)",
+        "revenue_tier": "$38.0 Billion (FY2023)",
         "employees": "Approx. 381,000 global",
         "company_description": "Starbucks Corporation is an American multinational chain of coffeehouses and roastery reserves headquartered in Seattle, Washington.",
         "technology_stack": "Next.js, Microsoft Azure Cloud, Akamai Edge, Optimizely",
@@ -79,7 +182,6 @@ COMPANY_KNOWLEDGE = {
             "website": "www.starbucks.com",
             "mobile_apps": ["Starbucks Card & Payment App (iOS/Android)"]
         },
-        # Font Detection Metrics
         "detected_font": "Montserrat",
         "font_style": "Geometric Sans-Serif",
         "similarity_score": 0.948,
@@ -883,7 +985,7 @@ def fetch_corporate_intelligence(company_name):
                 "https://api.tavily.com/search",
                 json={
                     "api_key": tavily_key,
-                    "query": f"{company_name} corporate parent subsidiaries and official annual revenue",
+                    "query": f"{company_name} SEC Exhibit 21 list of subsidiaries annual report appendix MCA filings",
                     "search_depth": "advanced"
                 },
                 timeout=10

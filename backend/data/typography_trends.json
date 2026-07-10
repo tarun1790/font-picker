@@ -20,8 +20,8 @@
             "Playfair Display",
             "Montserrat"
         ],
-        "average_weight": 625.0,
-        "scanned_count": 8,
+        "average_weight": 600.0,
+        "scanned_count": 9,
         "brand_personality": "Elegant & Formal",
         "accessibility_index": 0.85
     },
@@ -68,6 +68,18 @@
         ],
         "common_pairings": [
             "Inter"
+        ],
+        "average_weight": 400.0,
+        "scanned_count": 1,
+        "brand_personality": "Elegant & Formal",
+        "accessibility_index": 0.91
+    },
+    "Conglomerate": {
+        "common_font_styles": [
+            "Corporate Sans-Serif"
+        ],
+        "common_pairings": [
+            "Helvetica Neue"
         ],
         "average_weight": 400.0,
         "scanned_count": 1,
