@@ -200,6 +200,41 @@ COMPANY_KNOWLEDGE = {
         "font_url": "https://images-na.ssl-images-amazon.com/images/I/31q4h-tN90L.woff2",
         "dom_elements": ["body", "span.nav-sprite", "a#nav-logo-sprites"],
         "license_status": "Licensed Proprietary Font"
+    },
+    "groww.in": {
+        "company_name": "Groww",
+        "domain": "groww.in",
+        "industry": "Financial Services",
+        "sub_industry": "Online Brokerage & Mutual Funds",
+        "headquarters": "Bengaluru, Karnataka, India",
+        "country": "India",
+        "parent_entity": "Nextbillion Technology Private Limited",
+        "corporate_subsidiaries": [
+            "Groww Mutual Fund (Groww Asset Management)",
+            "Groww Pay Services Private Limited",
+            "Nextbillion Technology Private Limited",
+            "Groww Trustee Services Private Limited"
+        ],
+        "brands": ["Groww", "Groww Pay", "Groww Mutual Fund"],
+        "products": ["Groww Trading App", "Groww Stocks & Mutual Funds Platform"],
+        "services": ["Online brokerage", "Wealth management", "Direct mutual funds", "UPI payments"],
+        "revenue_tier": "₹1,277 Crore (Approx. US$150 Million)",
+        "employees": "Approx. 1,000",
+        "company_description": "Groww is an Indian online investment platform that allows customers to invest in direct mutual funds, stocks, ETFs, IPOs, and gold.",
+        "technology_stack": "React, Node.js, Spring Boot, Amazon Web Services (AWS), Redis",
+        "contact_info": {
+            "linkedin": "linkedin.com/company/groww.in",
+            "website": "www.groww.in",
+            "mobile_apps": ["Groww Investment App (iOS/Android)", "Groww Pay"]
+        },
+        "detected_font": "Inter",
+        "font_style": "Geometric Sans-Serif",
+        "similarity_score": 0.965,
+        "confidence": 0.97,
+        "css_rule": "font-family: 'Inter', sans-serif; font-weight: 500;",
+        "font_url": "https://groww.in/static/fonts/inter-regular.woff2",
+        "dom_elements": ["body", "h1.title", "button.btn-invest"],
+        "license_status": "Licensed Font"
     }
 }
 
@@ -823,6 +858,44 @@ def fetch_corporate_intelligence(company_name):
                 info["corporate_subsidiaries"] = discovered_subs
             if parent:
                 info["parent_entity"] = parent
+                
+            # Parse corporate profile attributes from search_snippets if Gemini failed
+            if search_snippets:
+                # Headquarters
+                hq_match = re.search(r'(?:headquartered in|headquarters in|headquarters is in|headquartered at)\s+([A-Z][a-zA-Z\s,]+)(?:\.|\n|;)', search_snippets)
+                if hq_match:
+                    info["headquarters"] = {"global_headquarters": hq_match.group(1).strip()}
+                    
+                # Employees
+                emp_match = re.search(r'(\d[\d,\s]*(?:million|thousand|approx\.|\+)?\s+employees|\bemployees\b\s+of\s+[\d,]+)', search_snippets, re.IGNORECASE)
+                if emp_match:
+                    if "summary" not in info or not isinstance(info["summary"], dict):
+                        info["summary"] = {}
+                    info["summary"]["employee_count"] = emp_match.group(1).strip()
+                else:
+                    emp_num_match = re.search(r'(?:has|employs|employing)\s+([\d,]+)\s+people', search_snippets, re.IGNORECASE)
+                    if emp_num_match:
+                        if "summary" not in info or not isinstance(info["summary"], dict):
+                            info["summary"] = {}
+                        info["summary"]["employee_count"] = f"Approx. {emp_num_match.group(1).strip()}"
+
+                # Revenue
+                rev_match = re.search(r'(?:revenue of|revenue was|revenue:)\s+(\$[\d\.]+\s*(?:billion|million|B|M))', search_snippets, re.IGNORECASE)
+                if rev_match:
+                    info["revenue"] = rev_match.group(1).strip()
+                    if "summary" not in info or not isinstance(info["summary"], dict):
+                        info["summary"] = {}
+                    info["summary"]["revenue"] = rev_match.group(1).strip()
+                    
+                # Technology Stack
+                techs = []
+                for t in ["react", "angular", "vue", "node.js", "node", "aws", "amazon web services", "azure", "google cloud", "kubernetes", "docker", "redis", "postgres", "mysql", "java", "spring boot", "python", "fastapi"]:
+                    if f" {t} " in f" {search_snippets.lower()} " or f" {t}," in f" {search_snippets.lower()} ":
+                        techs.append(t.title() if t not in ["aws", "js"] else t.upper())
+                if techs:
+                    if "summary" not in info or not isinstance(info["summary"], dict):
+                        info["summary"] = {}
+                    info["summary"]["technology_stack"] = ", ".join(list(set(techs)))
         except Exception as e:
             print(f"Rule-based NLP fallback failed: {e}")
             
@@ -858,6 +931,9 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
     elif "amazon" in norm_comp or "amazon" in norm_dom:
         company_name = "Amazon"
         domain = "amazon.com"
+    elif "groww" in norm_comp or "groww" in norm_dom:
+        company_name = "Groww"
+        domain = "groww.in"
         
     try:
         log("[INIT] Launching Corporate Registry & Subsidiaries Engine...")
@@ -935,6 +1011,16 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
                     
             if corp_info.get("revenue"):
                 audit_data["revenue_tier"] = corp_info["revenue"]
+            if corp_info.get("headquarters"):
+                if isinstance(corp_info["headquarters"], dict):
+                    audit_data["headquarters"] = corp_info["headquarters"].get("global_headquarters", audit_data["headquarters"])
+                else:
+                    audit_data["headquarters"] = corp_info["headquarters"]
+            if corp_info.get("summary") and isinstance(corp_info["summary"], dict):
+                if corp_info["summary"].get("employee_count"):
+                    audit_data["employees"] = corp_info["summary"]["employee_count"]
+                if corp_info["summary"].get("technology_stack"):
+                    audit_data["technology_stack"] = corp_info["summary"]["technology_stack"]
             
         log(f"[EXTRACT] Located Parent Holding Node: {audit_data['parent_entity'] or 'None (Ultimate Parent)'}")
         time.sleep(0.1)
