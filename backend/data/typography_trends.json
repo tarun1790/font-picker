@@ -7,7 +7,7 @@
             "Roboto"
         ],
         "average_weight": 400.0,
-        "scanned_count": 925,
+        "scanned_count": 926,
         "brand_personality": "Elegant & Formal",
         "accessibility_index": 0.85
     },
@@ -33,10 +33,10 @@
             "Netflix Sans",
             "YouTube Sans"
         ],
-        "average_weight": 450.0,
-        "scanned_count": 6,
+        "average_weight": 437.5,
+        "scanned_count": 8,
         "brand_personality": "Elegant & Formal",
-        "accessibility_index": 0.86
+        "accessibility_index": 0.85
     },
     "Retail & Technology": {
         "common_font_styles": [
@@ -75,6 +75,18 @@
         "accessibility_index": 0.91
     },
     "Conglomerate": {
+        "common_font_styles": [
+            "Corporate Sans-Serif"
+        ],
+        "common_pairings": [
+            "Helvetica Neue"
+        ],
+        "average_weight": 400.0,
+        "scanned_count": 1,
+        "brand_personality": "Elegant & Formal",
+        "accessibility_index": 0.91
+    },
+    "Software & Tech": {
         "common_font_styles": [
             "Corporate Sans-Serif"
         ],

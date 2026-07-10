@@ -809,6 +809,99 @@ COMPANY_KNOWLEDGE = {
         "font_url": "https://www.monotype.com/static/fonts/helvetica.woff2",
         "dom_elements": ["body", "h1", "div.monotype-card"],
         "license_status": "Licensed Font"
+    },
+    "apollo.com": {
+        "company_name": "Apollo Global Management",
+        "domain": "apollo.com",
+        "industry": "Financial Services",
+        "sub_industry": "Asset Management & Private Equity",
+        "headquarters": "New York, NY, USA",
+        "country": "United States",
+        "parent_entity": "Apollo Global Management, Inc.",
+        "corporate_subsidiaries": [
+            "Athene Holding Ltd.",
+            "Aspen Insurance Holdings Limited",
+            "MidCap Financial",
+            "Apollo Strategic Growth Capital",
+            "Apollo Commercial Real Estate Finance, Inc.",
+            "Apollo Investment Corporation"
+        ],
+        "subsidiaries_details": [
+            {
+                "legal_name": "Athene Holding Ltd.",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Apollo Global Management, Inc.",
+                "ultimate_parent": "Apollo Global Management, Inc.",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "Bermuda"
+            },
+            {
+                "legal_name": "Aspen Insurance Holdings Limited",
+                "entity_type": "Majority-Owned Subsidiary",
+                "parent": "Apollo Global Management, Inc.",
+                "ultimate_parent": "Apollo Global Management, Inc.",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United Kingdom"
+            },
+            {
+                "legal_name": "MidCap Financial",
+                "entity_type": "Associate Company",
+                "parent": "Apollo Global Management, Inc.",
+                "ultimate_parent": "Apollo Global Management, Inc.",
+                "ownership": "Majority",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Apollo Strategic Growth Capital",
+                "entity_type": "Sponsor Entity",
+                "parent": "Apollo Global Management, Inc.",
+                "ultimate_parent": "Apollo Global Management, Inc.",
+                "ownership": "Sponsor",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Apollo Commercial Real Estate Finance, Inc.",
+                "entity_type": "Holding Company",
+                "parent": "Apollo Global Management, Inc.",
+                "ultimate_parent": "Apollo Global Management, Inc.",
+                "ownership": "Publicly Managed",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Apollo Investment Corporation",
+                "entity_type": "Holding Company",
+                "parent": "Apollo Global Management, Inc.",
+                "ultimate_parent": "Apollo Global Management, Inc.",
+                "ownership": "Publicly Managed",
+                "status": "Active",
+                "country": "United States"
+            }
+        ],
+        "brands": ["Apollo", "Athene", "Aspen Insurance", "MidCap Financial"],
+        "products": ["Private Equity Investments", "Credit & Yield Solutions", "Retirement Services"],
+        "services": ["Asset management", "Alternative investment advising", "Commercial lending"],
+        "revenue_tier": "$31.8 Billion (FY2023)",
+        "employees": "Approx. 4,000 global",
+        "company_description": "Apollo Global Management, Inc. is an American high-growth alternative asset manager, specializing in credit, private equity, and real estate investment strategies.",
+        "technology_stack": "React, Angular, SAP, Salesforce, Marketo, Google Tag Manager",
+        "contact_info": {
+            "linkedin": "linkedin.com/company/apollo-global-management-llc",
+            "website": "www.apollo.com",
+            "mobile_apps": []
+        },
+        "detected_font": "Helvetica Neue",
+        "font_style": "Corporate Sans-Serif",
+        "similarity_score": 0.985,
+        "confidence": 0.98,
+        "css_rule": "font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 500;",
+        "font_url": "https://www.apollo.com/static/fonts/helvetica.woff2",
+        "dom_elements": ["body", "h1", "div.apollo-card"],
+        "license_status": "Licensed Font"
     }
 }
 
@@ -1315,25 +1408,56 @@ def fetch_corporate_intelligence(company_name):
             
             # --- AGENT 1: EXTRACTOR AGENT ---
             extractor_prompt = (
-                "You are a corporate registry extraction engine.\n"
-                "Extract ONLY ONE company per record from the documents.\n"
+                "You are an Enterprise Corporate Registry Intelligence Agent.\n"
+                "Your task is NOT to search the internet.\n"
+                "Your task is ONLY to analyze the retrieved official documents.\n\n"
                 "Rules:\n"
-                "- Never merge two company names. If names are concatenated (e.g. 'Tata Consultancy Services Limited Tata Sons Pvt Ltd' or 'Tata Capital Limited Tata Sons Pvt Ltd'), split them or keep ONLY the primary subsidiary entity ('Tata Consultancy Services Limited' or 'Tata Capital Limited').\n"
-                "- Every output row must contain exactly one distinct legal entity.\n"
-                "- Ignore formatting errors, index columns, or page remnants. Filter out garbage text like '35 (See full list)', 'Incorporation', 'Table', 'Index', 'Notes', or list headers.\n"
-                "- If two company names appear together (e.g. 'Google Fiber Calico', 'Mandiant Owlchemy Labs', 'Investments Tata Africa Holdings'), split them into separate clean records.\n"
-                "- Preserve the exact legal company name.\n"
-                "- Do not infer ownership. Do not invent subsidiaries.\n"
-                "- If the relationship is unclear, mark it as NOT VERIFIED.\n"
-                "- Return a valid JSON list of records matching this schema:\n"
+                "1. Never hallucinate.\n"
+                "2. Never infer subsidiaries.\n"
+                "3. Never merge company names.\n"
+                "4. One entity per output row.\n"
+                "5. Ignore advertisements.\n"
+                "6. Ignore unrelated acquisitions.\n"
+                "7. Ignore search snippets.\n"
+                "8. Ignore Wikipedia sidebars unless confirmed by official filings.\n"
+                "9. Every entity must have evidence.\n"
+                "10. If evidence is missing return NOT VERIFIED.\n\n"
+                "Only extract:\n"
+                "• Ultimate Parent\n"
+                "• Parent Company\n"
+                "• Holding Company\n"
+                "• Subsidiary\n"
+                "• Joint Venture\n"
+                "• Associate\n"
+                "• Brand\n"
+                "• Product Division\n"
+                "• Regional Operating Company\n"
+                "• Business Unit\n\n"
+                "For every company return:\n"
+                "- Legal Name\n"
+                "- Entity Type\n"
+                "- Parent\n"
+                "- Ultimate Parent\n"
+                "- Ownership %\n"
+                "- Country\n"
+                "- Status\n"
+                "- Official Source\n"
+                "- Evidence\n"
+                "- Confidence\n\n"
+                "Never output 'Inc', 'Ltd', 'Limited', 'Company', 'Corporation', 'PLC', 'LLC' alone. Reject incomplete names. Reject unrelated companies. Reject companies belonging to another parent.\n"
+                "If multiple documents disagree, return CONFLICT DETECTED. Never choose one.\n\n"
+                "Return JSON list only matching this schema:\n"
                 "[\n"
                 "  {\n"
                 "    \"legal_name\": \"\",\n"
                 "    \"entity_type\": \"\",\n"
                 "    \"parent\": \"\",\n"
-                "    \"ownership\": \"\",\n"
+                "    \"ultimate_parent\": \"\",\n"
+                "    \"ownership_pct\": \"\",\n"
                 "    \"country\": \"\",\n"
-                "    \"source\": \"\",\n"
+                "    \"status\": \"\",\n"
+                "    \"official_source\": \"\",\n"
+                "    \"evidence\": \"\",\n"
                 "    \"confidence\": \"\"\n"
                 "  }\n"
                 "]"
@@ -1361,15 +1485,28 @@ def fetch_corporate_intelligence(company_name):
                 
             # --- AGENT 2: VERIFIER AGENT ---
             verifier_prompt = (
-                "You are an enterprise corporate verification agent.\n"
-                "Your task is to review the extracted company records and verify their authenticity and relationship to the target company.\n"
-                "Questions to ask for each entity:\n"
-                "1. Is this a real legal entity? Rejects garbage inputs (like '35 (See full list)', 'Incorporation', 'Table').\n"
-                "2. Is it actually related to the target parent company? (Rejects sibling companies of the parent, e.g. for YouTube, Google's other subsidiaries like Nest, Calico, Mandiant, DeepMind, Owlchemy Labs are sibling/parent entities, NOT subsidiaries of YouTube itself! Similarly, for Monotype, reject unrelated chipmakers like AMD, Xilinx, and ATI Technologies that might appear in general search results due to unrelated license agreements).\n"
-                "3. Is there official evidence of this relationship?\n"
-                "4. Should it be removed, split, or cleaned of concatenated parent names?\n\n"
-                "Only keep verified entities that are directly owned, parented, or branded by the target company.\n"
-                "Correct the company profile metadata (headquarters, revenue, employee count, ultimate parent) to be factually accurate (e.g. Tata Group is headquartered in Mumbai, India, parent is Tata Sons Private Limited, total employees are approx 1,020,000, and annual revenue is approx $165 Billion. Similarly, Monotype is headquartered in Woburn, MA, parent is HGGC, employees approx 1,000, and revenue is approx $350 Million).\n\n"
+                "You are an enterprise corporate verification and relationship verification agent.\n"
+                "Your task is to verify every extracted entity from the candidate list.\n\n"
+                "Verification Questions for each entity:\n"
+                "1. Is this company legally registered?\n"
+                "2. Is it owned by the target company? (Reject sibling companies, e.g. for Apollo, reject Xilinx, AMD, Silo AI, and ATI Technologies which belong to other parents).\n"
+                "3. Does an official filing mention it?\n"
+                "4. Does the annual report mention it?\n"
+                "5. Is it present in SEC/MCA filings?\n"
+                "6. Is it only a brand?\n"
+                "7. Is it only a product?\n"
+                "8. Is it another company's subsidiary?\n\n"
+                "If any answer to verification is NO (such as it is not owned by target, or belongs to another parent, or is incomplete/garbage), REJECT the entity.\n\n"
+                "Confidence Scoring Rules:\n"
+                "- Annual Report + SEC: 100\n"
+                "- Annual Report: 98\n"
+                "- Official Website + Annual Report: 97\n"
+                "- SEC Only: 95\n"
+                "- Government Registry: 95\n"
+                "- Wikipedia: 60\n"
+                "- Search Results: 40\n\n"
+                "Rule: Reject anything with a confidence score below 90.\n\n"
+                "Correct the company profile metadata (headquarters, revenue, employee count, ultimate parent) to be factually accurate (e.g. Tata Group in Mumbai, India; Monotype in Woburn, MA; Starbucks in Seattle, WA).\n\n"
                 "Return ONLY a valid JSON matching this schema:\n"
                 "{\n"
                 "  \"company\": \"\",\n"
@@ -1582,6 +1719,9 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
     elif "monotype" in norm_comp or "monotype" in norm_dom:
         company_name = "Monotype"
         domain = "monotype.com"
+    elif "apollo" in norm_comp or "apollo" in norm_dom:
+        company_name = "Apollo Global Management"
+        domain = "apollo.com"
         
     try:
         log("[INIT] Launching Corporate Registry & Subsidiaries Engine...")
