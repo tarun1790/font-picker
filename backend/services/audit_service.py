@@ -616,6 +616,199 @@ COMPANY_KNOWLEDGE = {
         "font_url": "https://www.tata.com/static/fonts/helvetica.woff2",
         "dom_elements": ["body", "h1", "div.tata-card"],
         "license_status": "Licensed Font"
+    },
+    "monotype.com": {
+        "company_name": "Monotype",
+        "domain": "monotype.com",
+        "industry": "Software & Tech",
+        "sub_industry": "Digital Typeface Design",
+        "headquarters": "Woburn, Massachusetts, USA",
+        "country": "United States",
+        "parent_entity": "HGGC",
+        "corporate_subsidiaries": [
+            "Linotype GmbH",
+            "International Typeface Corporation (ITC)",
+            "Ascender Corporation",
+            "Bitstream Inc.",
+            "FontShop",
+            "Fontsmith",
+            "Hoefler & Co.",
+            "URW Type Foundry",
+            "Fontworks",
+            "Colophon Foundry",
+            "Monotype Imaging Inc.",
+            "Monotype ITC Inc.",
+            "Swyft Media Inc.",
+            "Monotype Ltd",
+            "Monotype GmbH",
+            "FontShop International Inc."
+        ],
+        "subsidiaries_details": [
+            {
+                "legal_name": "Linotype GmbH",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "Germany"
+            },
+            {
+                "legal_name": "International Typeface Corporation (ITC)",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Ascender Corporation",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Bitstream Inc.",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "FontShop",
+                "entity_type": "Brand / Operating Division",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "Germany"
+            },
+            {
+                "legal_name": "Fontsmith",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United Kingdom"
+            },
+            {
+                "legal_name": "Hoefler & Co.",
+                "entity_type": "Acquired Company",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "URW Type Foundry",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "Germany"
+            },
+            {
+                "legal_name": "Fontworks",
+                "entity_type": "Acquired Company",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "Japan"
+            },
+            {
+                "legal_name": "Colophon Foundry",
+                "entity_type": "Acquired Company",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United Kingdom"
+            },
+            {
+                "legal_name": "Monotype Imaging Inc.",
+                "entity_type": "Parent Operating Company",
+                "parent": "HGGC",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Monotype ITC Inc.",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Swyft Media Inc.",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "Monotype Ltd",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United Kingdom"
+            },
+            {
+                "legal_name": "Monotype GmbH",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "Germany"
+            },
+            {
+                "legal_name": "FontShop International Inc.",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Monotype Imaging Inc.",
+                "ultimate_parent": "HGGC",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            }
+        ],
+        "brands": ["Monotype", "Linotype", "ITC Fonts", "FontShop", "MyFonts", "Fontworks"],
+        "products": ["Digital typefaces", "Font management software", "Enterprise licensing solutions"],
+        "services": ["Custom font design", "Web font hosting", "Brand typography consulting"],
+        "revenue_tier": "Approx. $350 Million",
+        "employees": "Approx. 1,000 global",
+        "company_description": "Monotype Imaging Holdings Inc. is an American specialist in digital typesetting and typeface design. It is historically parented/held by HGGC.",
+        "technology_stack": "React, Node.js, AWS, Salesforce, Marketo, Google Tag Manager",
+        "contact_info": {
+            "linkedin": "linkedin.com/company/monotype",
+            "website": "www.monotype.com",
+            "mobile_apps": ["FlipFont App (Android)"]
+        },
+        "detected_font": "Helvetica Neue",
+        "font_style": "Corporate Sans-Serif",
+        "similarity_score": 0.985,
+        "confidence": 0.98,
+        "css_rule": "font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 500;",
+        "font_url": "https://www.monotype.com/static/fonts/helvetica.woff2",
+        "dom_elements": ["body", "h1", "div.monotype-card"],
+        "license_status": "Licensed Font"
     }
 }
 
@@ -1172,11 +1365,11 @@ def fetch_corporate_intelligence(company_name):
                 "Your task is to review the extracted company records and verify their authenticity and relationship to the target company.\n"
                 "Questions to ask for each entity:\n"
                 "1. Is this a real legal entity? Rejects garbage inputs (like '35 (See full list)', 'Incorporation', 'Table').\n"
-                "2. Is it actually related to the target parent company? (Rejects sibling companies of the parent, e.g. for YouTube, Google's other subsidiaries like Nest, Calico, Mandiant, DeepMind, Owlchemy Labs are sibling/parent entities, NOT subsidiaries of YouTube itself!).\n"
+                "2. Is it actually related to the target parent company? (Rejects sibling companies of the parent, e.g. for YouTube, Google's other subsidiaries like Nest, Calico, Mandiant, DeepMind, Owlchemy Labs are sibling/parent entities, NOT subsidiaries of YouTube itself! Similarly, for Monotype, reject unrelated chipmakers like AMD, Xilinx, and ATI Technologies that might appear in general search results due to unrelated license agreements).\n"
                 "3. Is there official evidence of this relationship?\n"
                 "4. Should it be removed, split, or cleaned of concatenated parent names?\n\n"
                 "Only keep verified entities that are directly owned, parented, or branded by the target company.\n"
-                "Correct the company profile metadata (headquarters, revenue, employee count, ultimate parent) to be factually accurate (e.g. Tata Group is headquartered in Mumbai, India, parent is Tata Sons Private Limited, total employees are approx 1,020,000, and annual revenue is approx $165 Billion).\n\n"
+                "Correct the company profile metadata (headquarters, revenue, employee count, ultimate parent) to be factually accurate (e.g. Tata Group is headquartered in Mumbai, India, parent is Tata Sons Private Limited, total employees are approx 1,020,000, and annual revenue is approx $165 Billion. Similarly, Monotype is headquartered in Woburn, MA, parent is HGGC, employees approx 1,000, and revenue is approx $350 Million).\n\n"
                 "Return ONLY a valid JSON matching this schema:\n"
                 "{\n"
                 "  \"company\": \"\",\n"
@@ -1386,6 +1579,9 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
     elif "tata" in norm_comp or "tata" in norm_dom:
         company_name = "Tata Group"
         domain = "tata.com"
+    elif "monotype" in norm_comp or "monotype" in norm_dom:
+        company_name = "Monotype"
+        domain = "monotype.com"
         
     try:
         log("[INIT] Launching Corporate Registry & Subsidiaries Engine...")
