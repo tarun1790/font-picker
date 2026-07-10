@@ -390,6 +390,20 @@ def generate_audit_pdf(report_path, task_id, domain, company_name, audit_data):
         
     story.append(draw_tree)
     
+    if audit_data.get("corporate_tree"):
+        story.append(Spacer(1, 15))
+        story.append(Paragraph("5. Corporate Hierarchy Tree Diagram", style_heading))
+        tree_style = ParagraphStyle(
+            'TreeStyle',
+            parent=styles['Normal'],
+            fontName='Courier',
+            fontSize=7.5,
+            leading=10,
+            textColor=colors.HexColor("#0F172A")
+        )
+        tree_text = audit_data["corporate_tree"].replace("\n", "<br/>").replace(" ", "&nbsp;")
+        story.append(Paragraph(tree_text, tree_style))
+        
     story.append(Spacer(1, 20))
     story.append(Paragraph("<b>End of Report.</b> This document is certified as a true extract from corporate filings.", style_body))
     
@@ -456,6 +470,24 @@ def fetch_corporate_intelligence(company_name):
     from bs4 import BeautifulSoup
     
     info = {
+        "company": company_name,
+        "ultimate_parent": {},
+        "parent_company": {},
+        "holding_company": {},
+        "headquarters": {},
+        "subsidiaries": [],
+        "regional_entities": [],
+        "brands": [],
+        "joint_ventures": [],
+        "divisions": [],
+        "business_units": [],
+        "acquisitions": [],
+        "former_subsidiaries": [],
+        "corporate_tree": "",
+        "mind_map": "",
+        "summary": {},
+        "sources": [],
+        "confidence": "HIGH",
         "parent_entity": None,
         "corporate_subsidiaries": [],
         "revenue": None
@@ -655,16 +687,40 @@ def fetch_corporate_intelligence(company_name):
                 }
             
             prompt = (
-                "You are a professional corporate registry auditor. Your objective is to extract "
-                "an EXHAUSTIVE, 100% accurate list of ALL corporate subsidiaries owned by the target company. "
-                "Combine (1) the Wikipedia parsed data, (2) the Tavily search snippets, and (3) your own "
-                "extensive knowledge of corporate structures. "
-                "List every single regional entity, studio, joint venture, and acquired brand (e.g. for Netflix, "
-                "list Netflix Animation, Netflix Studios, Albuquerque Studios, Scanline VFX, Millarworld, Next Games, "
-                "Boss Fight, Spry Fox, and all regional operating entities). Deduplicate the list, filter out competitors "
-                "or parent companies, and return a clean JSON object containing 'parent_entity' (string/null), "
-                "'corporate_subsidiaries' (flat array of strings containing all detected subsidiaries), and "
-                "'revenue' (string/null). Aim for maximum completeness and accuracy. Respond ONLY with the JSON raw object."
+                "ROLE:\n"
+                "You are Enterprise Corporate Ownership Intelligence AI. Your primary objective is to identify every legally verified company related to the target company.\n"
+                "Never hallucinate. Never assume. Never invent.\n"
+                "If evidence is unavailable, explicitly state 'NOT VERIFIED'.\n"
+                "Your answer must be based ONLY on corporate information and files. Accuracy is more important than completeness.\n\n"
+                "OBJECTIVE:\n"
+                "Identify: Ultimate Parent Company, Parent Company, Holding Company, Global/Regional Headquarters, Listed status.\n"
+                "Identify related entities: Subsidiaries, Wholly Owned, Majority/Minority Owned, Joint Ventures, Associate Companies, Sister Companies, Operating/Regional Companies, Brands, Product Divisions, Business Units, Technology Divisions, Acquired/Merged Companies, Former Subsidiaries, Dissolved Companies.\n\n"
+                "VALIDATION & DEDUPLICATION:\n"
+                "Never guess. Never infer ownership. Never estimate percentages. Every entity must contain evidence. "
+                "Ownership or Status = 'NOT VERIFIED' if unverified. Confidence = 'LOW' or 'HIGH'.\n"
+                "Remove duplicates, merge spelling variations, keep official legal entity names.\n\n"
+                "OUTPUT FORMAT:\n"
+                "Return ONLY a valid JSON object matching this schema:\n"
+                "{\n"
+                "  \"company\": \"\",\n"
+                "  \"ultimate_parent\": {\"legal_name\": \"\", \"country\": \"\", \"ownership_pct\": \"\", \"entity_type\": \"\", \"parent\": \"\", \"status\": \"\", \"official_website\": \"\", \"source_document\": \"\", \"evidence\": \"\", \"confidence_score\": \"\"},\n"
+                "  \"parent_company\": {},\n"
+                "  \"holding_company\": {},\n"
+                "  \"headquarters\": {},\n"
+                "  \"subsidiaries\": [{\"legal_name\": \"\", \"country\": \"\", \"entity_type\": \"\", \"parent\": \"\", \"verification_sources\": [], \"confidence\": \"\"}],\n"
+                "  \"regional_entities\": [],\n"
+                "  \"brands\": [],\n"
+                "  \"joint_ventures\": [],\n"
+                "  \"divisions\": [],\n"
+                "  \"business_units\": [],\n"
+                "  \"acquisitions\": [],\n"
+                "  \"former_subsidiaries\": [],\n"
+                "  \"corporate_tree\": \"\",\n"
+                "  \"mind_map\": \"\",\n"
+                "  \"summary\": {\"company_overview\": \"\", \"ownership_overview\": \"\", \"corporate_structure_summary\": \"\", \"business_presence\": \"\", \"countries\": [], \"employee_count\": \"\", \"revenue\": \"\", \"industries\": []},\n"
+                "  \"sources\": [],\n"
+                "  \"confidence\": \"\"\n"
+                "}"
             )
             
             payload = {
@@ -683,12 +739,29 @@ def fetch_corporate_intelligence(company_name):
                 res_data = gemini_res.json()
                 text = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
                 ai_info = json.loads(text)
-                if "parent_entity" in ai_info:
-                    info["parent_entity"] = ai_info["parent_entity"]
-                if "corporate_subsidiaries" in ai_info:
-                    info["corporate_subsidiaries"] = ai_info["corporate_subsidiaries"]
-                if "revenue" in ai_info:
-                    info["revenue"] = ai_info["revenue"]
+                
+                # Map all parsed keys into info
+                for k, v in ai_info.items():
+                    info[k] = v
+                
+                # Maintain legacy compatibility keys for the pipeline
+                if "ultimate_parent" in ai_info and isinstance(ai_info["ultimate_parent"], dict):
+                    info["parent_entity"] = ai_info["ultimate_parent"].get("legal_name")
+                elif "parent_company" in ai_info and isinstance(ai_info["parent_company"], dict):
+                    info["parent_entity"] = ai_info["parent_company"].get("legal_name")
+                
+                # Extract subsidiaries names
+                subs_list = []
+                if "subsidiaries" in ai_info and isinstance(ai_info["subsidiaries"], list):
+                    for sub in ai_info["subsidiaries"]:
+                        if isinstance(sub, dict) and sub.get("legal_name"):
+                            subs_list.append(sub["legal_name"])
+                        elif isinstance(sub, str):
+                            subs_list.append(sub)
+                info["corporate_subsidiaries"] = subs_list
+                
+                if "summary" in ai_info and isinstance(ai_info["summary"], dict):
+                    info["revenue"] = ai_info["summary"].get("revenue")
             else:
                 print(f"DEBUG: Gemini request failed with status: {gemini_res.status_code}, response: {gemini_res.text}")
         except Exception as e:
