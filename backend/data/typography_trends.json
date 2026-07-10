@@ -7,7 +7,7 @@
             "Roboto"
         ],
         "average_weight": 400.0,
-        "scanned_count": 922,
+        "scanned_count": 923,
         "brand_personality": "Elegant & Formal",
         "accessibility_index": 0.85
     },
@@ -50,6 +50,18 @@
         "accessibility_index": 0.91
     },
     "Financial Services": {
+        "common_font_styles": [
+            "Geometric Sans-Serif"
+        ],
+        "common_pairings": [
+            "Inter"
+        ],
+        "average_weight": 400.0,
+        "scanned_count": 1,
+        "brand_personality": "Elegant & Formal",
+        "accessibility_index": 0.91
+    },
+    "Aviation": {
         "common_font_styles": [
             "Geometric Sans-Serif"
         ],

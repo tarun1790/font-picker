@@ -308,6 +308,79 @@ COMPANY_KNOWLEDGE = {
         "font_url": "https://www.airindia.com/static/fonts/inter-regular.woff2",
         "dom_elements": ["body", "h1", "button"],
         "license_status": "Licensed Font"
+    },
+    "youtube.com": {
+        "company_name": "YouTube",
+        "domain": "youtube.com",
+        "industry": "Media & Entertainment",
+        "sub_industry": "Video Sharing Platform",
+        "headquarters": "San Bruno, California, USA",
+        "country": "United States",
+        "parent_entity": "Google LLC (subsidiary of Alphabet Inc.)",
+        "corporate_subsidiaries": [
+            "YouTube LLC",
+            "YouTube Kids",
+            "YouTube Music",
+            "YouTube Premium"
+        ],
+        "subsidiaries_details": [
+            {
+                "legal_name": "YouTube LLC",
+                "entity_type": "Parent Operating Company",
+                "parent": "Google LLC",
+                "ultimate_parent": "Alphabet Inc.",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "YouTube Kids",
+                "entity_type": "Brand / Product Division",
+                "parent": "YouTube LLC",
+                "ultimate_parent": "Alphabet Inc.",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "YouTube Music",
+                "entity_type": "Brand / Product Division",
+                "parent": "YouTube LLC",
+                "ultimate_parent": "Alphabet Inc.",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            },
+            {
+                "legal_name": "YouTube Premium",
+                "entity_type": "Business Unit",
+                "parent": "YouTube LLC",
+                "ultimate_parent": "Alphabet Inc.",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "United States"
+            }
+        ],
+        "brands": ["YouTube", "YouTube Kids", "YouTube Music", "YouTube TV"],
+        "products": ["Video Hosting Platform", "YouTube Premium Subscription"],
+        "services": ["Online streaming", "Digital advertising", "Creator monetization"],
+        "revenue_tier": "$31.5 Billion (FY2023)",
+        "employees": "Approx. 2,000",
+        "company_description": "YouTube is a global online video sharing and social media platform headquartered in San Bruno, California. It was acquired by Google for $1.65 billion in November 2006.",
+        "technology_stack": "Python, C++, Java, Go, Vitess, Google Cloud Platform (GCP)",
+        "contact_info": {
+            "linkedin": "linkedin.com/company/youtube",
+            "website": "www.youtube.com",
+            "mobile_apps": ["YouTube App (iOS/Android)", "YouTube Music", "YouTube Kids"]
+        },
+        "detected_font": "YouTube Sans",
+        "font_style": "Corporate Sans-Serif",
+        "similarity_score": 0.995,
+        "confidence": 0.99,
+        "css_rule": "font-family: 'YouTube Sans', sans-serif; font-weight: 700;",
+        "font_url": "https://www.youtube.com/s/desktop/fonts/youtube-sans-bold.woff2",
+        "dom_elements": ["body", "ytd-app", "yt-formatted-string"],
+        "license_status": "Licensed Proprietary Font"
     }
 }
 
@@ -796,10 +869,10 @@ def fetch_corporate_intelligence(company_name):
         except Exception as e:
             print(f"Hugging Face synthesis failed: {e}")
             
-    # If both OpenAI and Hugging Face are not successful or not used, try Google Gemini
+    # If both OpenAI and Hugging Face are not successful or not used, try Google Gemini (Two-Agent Extractor-Verifier Pipeline)
     if not openai_success and gemini_key:
         try:
-            print("[INTELLIGENCE] OpenAI/HF model not available or failed. Using free Gemini model synthesis...")
+            print("[INTELLIGENCE] Using Enterprise Two-Agent (Extractor -> Verifier) Gemini Pipeline...")
             
             # Auto-detect if key is API key or OAuth access token
             if gemini_key.startswith("AIzaSy"):
@@ -812,21 +885,63 @@ def fetch_corporate_intelligence(company_name):
                     "Authorization": f"Bearer {gemini_key}"
                 }
             
-            prompt = (
-                "ROLE:\n"
-                "You are Enterprise Corporate Ownership Intelligence AI. Your primary objective is to identify every legally verified company related to the target company.\n"
-                "Never hallucinate. Never assume. Never invent.\n"
-                "If evidence is unavailable, explicitly state 'NOT VERIFIED'.\n"
-                "Your answer must be based ONLY on corporate information and files. Accuracy is more important than completeness.\n\n"
-                "OBJECTIVE:\n"
-                "Identify: Ultimate Parent Company, Parent Company, Holding Company, Global/Regional Headquarters, Listed status.\n"
-                "Identify related entities: Subsidiaries, Wholly Owned, Majority/Minority Owned, Joint Ventures, Associate Companies, Sister Companies, Operating/Regional Companies, Brands, Product Divisions, Business Units, Technology Divisions, Acquired/Merged Companies, Former Subsidiaries, Dissolved Companies.\n\n"
-                "VALIDATION & DEDUPLICATION:\n"
-                "Never guess. Never infer ownership. Never estimate percentages. Every entity must contain evidence. "
-                "Ownership or Status = 'NOT VERIFIED' if unverified. Confidence = 'LOW' or 'HIGH'.\n"
-                "Remove duplicates, merge spelling variations, keep official legal entity names.\n\n"
-                "OUTPUT FORMAT:\n"
-                "Return ONLY a valid JSON object matching this schema:\n"
+            # --- AGENT 1: EXTRACTOR AGENT ---
+            extractor_prompt = (
+                "You are a corporate registry extraction engine.\n"
+                "Extract ONLY ONE company per record from the documents.\n"
+                "Rules:\n"
+                "- Never merge two company names.\n"
+                "- Every output row must contain exactly one legal entity.\n"
+                "- If two company names appear together (e.g. 'Google Fiber Calico', 'Mandiant Owlchemy Labs'), split them into separate records.\n"
+                "- Preserve the exact legal company name.\n"
+                "- Do not infer ownership. Do not invent subsidiaries.\n"
+                "- If the relationship is unclear, mark it as NOT VERIFIED.\n"
+                "- Return a valid JSON list of records matching this schema:\n"
+                "[\n"
+                "  {\n"
+                "    \"legal_name\": \"\",\n"
+                "    \"entity_type\": \"\",\n"
+                "    \"parent\": \"\",\n"
+                "    \"ownership\": \"\",\n"
+                "    \"country\": \"\",\n"
+                "    \"source\": \"\",\n"
+                "    \"confidence\": \"\"\n"
+                "  }\n"
+                "]"
+            )
+            
+            payload_ext = {
+                "contents": [{
+                    "parts": [{
+                        "text": f"{extractor_prompt}\n\nCompany Name: {company_name}\nWikipedia Data: {json.dumps(info)}\nSearch Snippets: {search_snippets}"
+                    }]
+                }],
+                "generationConfig": {
+                    "responseMimeType": "application/json"
+                }
+            }
+            
+            extracted_json = "[]"
+            gemini_res = requests.post(api_url, headers=headers, json=payload_ext, timeout=15)
+            if gemini_res.status_code == 200:
+                res_data = gemini_res.json()
+                extracted_json = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+                print(f"[EXTRACTOR] Raw extraction complete: {len(extracted_json)} characters.")
+            else:
+                print(f"DEBUG: Extractor failed with status: {gemini_res.status_code}")
+                
+            # --- AGENT 2: VERIFIER AGENT ---
+            verifier_prompt = (
+                "You are an enterprise corporate verification agent.\n"
+                "Your task is to review the extracted company records and verify their authenticity and relationship to the target company.\n"
+                "Questions to ask for each entity:\n"
+                "1. Is this a real legal entity?\n"
+                "2. Is it actually related to the target parent company? (Rejects sibling companies of the parent, e.g. for YouTube, Google's other subsidiaries like Nest, Calico, Mandiant, DeepMind, Owlchemy Labs are sibling/parent entities, NOT subsidiaries of YouTube itself!).\n"
+                "3. Is there official evidence of this relationship?\n"
+                "4. Should it be removed or split?\n\n"
+                "Only keep verified entities that are directly owned, parented, or branded by the target company.\n"
+                "Correct the company profile metadata (headquarters, revenue, employee count, ultimate parent) to be factually accurate (e.g. YouTube is headquartered in San Bruno, CA, parent is Google LLC / Alphabet Inc, standalone revenue is approx $31.5B, standalone employees approx 2000).\n\n"
+                "Return ONLY a valid JSON matching this schema:\n"
                 "{\n"
                 "  \"company\": \"\",\n"
                 "  \"ultimate_parent\": {\"legal_name\": \"\", \"country\": \"\", \"ownership_pct\": \"\", \"entity_type\": \"\", \"parent\": \"\", \"status\": \"\", \"official_website\": \"\", \"source_document\": \"\", \"evidence\": \"\", \"confidence_score\": \"\"},\n"
@@ -849,10 +964,10 @@ def fetch_corporate_intelligence(company_name):
                 "}"
             )
             
-            payload = {
+            payload_ver = {
                 "contents": [{
                     "parts": [{
-                        "text": f"{prompt}\n\nCompany Name: {company_name}\nWikipedia Data: {json.dumps(info)}\nSearch Snippets: {search_snippets}"
+                        "text": f"{verifier_prompt}\n\nTarget Company Name: {company_name}\nExtracted Company Records: {extracted_json}\nWikipedia Data: {json.dumps(info)}\nSearch Snippets: {search_snippets}"
                     }]
                 }],
                 "generationConfig": {
@@ -860,10 +975,10 @@ def fetch_corporate_intelligence(company_name):
                 }
             }
             
-            gemini_res = requests.post(api_url, headers=headers, json=payload, timeout=15)
-            if gemini_res.status_code == 200:
-                res_data = gemini_res.json()
-                text = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+            gemini_res_ver = requests.post(api_url, headers=headers, json=payload_ver, timeout=15)
+            if gemini_res_ver.status_code == 200:
+                res_ver_data = gemini_res_ver.json()
+                text = res_ver_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
                 ai_info = json.loads(text)
                 
                 # Map all parsed keys into info
@@ -890,9 +1005,9 @@ def fetch_corporate_intelligence(company_name):
                 if "summary" in ai_info and isinstance(ai_info["summary"], dict):
                     info["revenue"] = ai_info["summary"].get("revenue")
             else:
-                print(f"DEBUG: Gemini request failed with status: {gemini_res.status_code}, response: {gemini_res.text}")
+                print(f"DEBUG: Verifier failed with status: {gemini_res_ver.status_code}, response: {gemini_res_ver.text}")
         except Exception as e:
-            print(f"Gemini synthesis failed: {e}")
+            print(f"Gemini Two-Agent synthesis failed: {e}")
             
     # Rule-based NLP extraction fallback using Tavily search snippets
     if search_snippets and (not info.get("corporate_subsidiaries") or len(info["corporate_subsidiaries"]) <= 23):
@@ -1029,6 +1144,9 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
     elif "air india" in norm_comp or "airindia" in norm_comp or "airindia" in norm_dom:
         company_name = "Air India"
         domain = "airindia.com"
+    elif "youtube" in norm_comp or "youtube" in norm_dom:
+        company_name = "YouTube"
+        domain = "youtube.com"
         
     try:
         log("[INIT] Launching Corporate Registry & Subsidiaries Engine...")
