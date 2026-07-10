@@ -235,6 +235,79 @@ COMPANY_KNOWLEDGE = {
         "font_url": "https://groww.in/static/fonts/inter-regular.woff2",
         "dom_elements": ["body", "h1.title", "button.btn-invest"],
         "license_status": "Licensed Font"
+    },
+    "airindia.com": {
+        "company_name": "Air India",
+        "domain": "airindia.com",
+        "industry": "Aviation",
+        "sub_industry": "Commercial Airlines",
+        "headquarters": "Gurugram, Haryana, India",
+        "country": "India",
+        "parent_entity": "Tata Sons Private Limited",
+        "corporate_subsidiaries": [
+            "Air India Limited",
+            "Air India Express Limited",
+            "AIX Connect Private Limited",
+            "Air India Express"
+        ],
+        "subsidiaries_details": [
+            {
+                "legal_name": "Air India Limited",
+                "entity_type": "Parent Operating Airline",
+                "parent": "Tata Sons Private Limited",
+                "ultimate_parent": "Tata Sons Private Limited",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "India"
+            },
+            {
+                "legal_name": "Air India Express Limited",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Air India Limited",
+                "ultimate_parent": "Tata Sons Private Limited",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "India"
+            },
+            {
+                "legal_name": "AIX Connect Private Limited",
+                "entity_type": "Wholly Owned Subsidiary",
+                "parent": "Air India Limited",
+                "ultimate_parent": "Tata Sons Private Limited",
+                "ownership": "100.0%",
+                "status": "Active",
+                "country": "India"
+            },
+            {
+                "legal_name": "Air India Express",
+                "entity_type": "Brand / Operating Name",
+                "parent": "Air India Express Limited",
+                "ultimate_parent": "Tata Sons Private Limited",
+                "ownership": "N/A",
+                "status": "Active",
+                "country": "India"
+            }
+        ],
+        "brands": ["Air India", "Air India Express", "Air India Cargo"],
+        "products": ["Passenger Flight Services", "Cargo flight operations"],
+        "services": ["Commercial Air Travel", "Ground Handling"],
+        "revenue_tier": "₹31,377 Crore (Approx. US$3.8 Billion)",
+        "employees": "Approx. 15,000",
+        "company_description": "Air India is the flag carrier airline of India, headquartered in New Delhi. It is owned by Talace Private Limited, a fully owned subsidiary of Tata Sons.",
+        "technology_stack": "React, Node.js, SAP, Microsoft Azure, Akamai",
+        "contact_info": {
+            "linkedin": "linkedin.com/company/air-india",
+            "website": "www.airindia.com",
+            "mobile_apps": ["Air India App (iOS/Android)"]
+        },
+        "detected_font": "Inter",
+        "font_style": "Geometric Sans-Serif",
+        "similarity_score": 0.965,
+        "confidence": 0.97,
+        "css_rule": "font-family: 'Inter', sans-serif; font-weight: 500;",
+        "font_url": "https://www.airindia.com/static/fonts/inter-regular.woff2",
+        "dom_elements": ["body", "h1", "button"],
+        "license_status": "Licensed Font"
     }
 }
 
@@ -373,19 +446,31 @@ def generate_audit_pdf(report_path, task_id, domain, company_name, audit_data):
     if not subsidiaries:
         subsidiaries = [f"{company_name} Operations Ltd."]
         
+    subs_details = audit_data.get("subsidiaries_details", [])
+    subs_map = {}
+    for item in subs_details:
+        if isinstance(item, dict) and item.get("legal_name"):
+            subs_map[item["legal_name"].lower().strip()] = item.get("entity_type", "Subsidiary")
+            
     # Build a clean table for the subsidiaries list
     subs_table_data = [["Index", "Subsidiary Legal Entity Name", "Type / Notes"]]
     for idx, sub in enumerate(subsidiaries, 1):
-        notes = "Regional Operating Entity"
-        if "Animation" in sub or "Pictures" in sub or "Productions" in sub or "Studios" in sub:
-            notes = "Content & Studio Division"
-        elif "Holdings" in sub:
-            notes = "Holding Entity"
-        elif "LLP" in sub:
-            notes = "Limited Liability Partnership"
-        elif "B.V" in sub or "S.à r.l" in sub:
-            notes = "International Holding / Operations"
-            
+        sub_key = sub.lower().strip()
+        if sub_key in subs_map:
+            notes = subs_map[sub_key]
+        else:
+            notes = "Regional Operating Entity"
+            if "Animation" in sub or "Pictures" in sub or "Productions" in sub or "Studios" in sub:
+                notes = "Content & Studio Division"
+            elif "Holdings" in sub:
+                notes = "Holding Entity"
+            elif "LLP" in sub:
+                notes = "Limited Liability Partnership"
+            elif "B.V" in sub or "S.à r.l" in sub:
+                notes = "International Holding / Operations"
+            elif "Express" in sub and "Brand" in sub.lower():
+                notes = "Brand"
+                
         subs_table_data.append([str(idx), sub, notes])
         
     t_subs = Table(subs_table_data, colWidths=[50, 270, 180])
@@ -420,8 +505,13 @@ def generate_audit_pdf(report_path, task_id, domain, company_name, audit_data):
         
     for x, sub_name in zip(child_x_coords, top_subs):
         draw_tree.add(Line(x, 80, x, 60, strokeColor=colors.HexColor("#10B981"), strokeWidth=1))
-        draw_tree.add(Rect(x - 50, 30, 100, 30, fillColor=colors.HexColor("#E0F2FE"), strokeColor=colors.HexColor("#10B981"), rx=3, ry=3))
-        draw_tree.add(String(x, 42, sub_name[:18], fontName="Helvetica-Bold", fontSize=7, fillColor=colors.HexColor("#0369A1"), textAnchor="middle"))
+        draw_tree.add(Rect(x - 52, 22, 104, 38, fillColor=colors.HexColor("#E0F2FE"), strokeColor=colors.HexColor("#10B981"), rx=3, ry=3))
+        draw_tree.add(String(x, 43, sub_name[:20], fontName="Helvetica-Bold", fontSize=6.5, fillColor=colors.HexColor("#0369A1"), textAnchor="middle"))
+        sub_key = sub_name.lower().strip()
+        type_label = subs_map.get(sub_key, "Subsidiary")
+        if len(type_label) > 23:
+            type_label = type_label[:21] + "..."
+        draw_tree.add(String(x, 32, type_label, fontName="Helvetica", fontSize=5.5, fillColor=colors.HexColor("#0284C7"), textAnchor="middle"))
         
     story.append(draw_tree)
     
@@ -525,7 +615,8 @@ def fetch_corporate_intelligence(company_name):
         "confidence": "HIGH",
         "parent_entity": None,
         "corporate_subsidiaries": [],
-        "revenue": None
+        "revenue": None,
+        "subsidiaries_details": []
     }
     try:
         search_url = "https://en.wikipedia.org/w/api.php"
@@ -794,6 +885,7 @@ def fetch_corporate_intelligence(company_name):
                         elif isinstance(sub, str):
                             subs_list.append(sub)
                 info["corporate_subsidiaries"] = subs_list
+                info["subsidiaries_details"] = ai_info.get("subsidiaries", [])
                 
                 if "summary" in ai_info and isinstance(ai_info["summary"], dict):
                     info["revenue"] = ai_info["summary"].get("revenue")
@@ -934,6 +1026,9 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
     elif "groww" in norm_comp or "groww" in norm_dom:
         company_name = "Groww"
         domain = "groww.in"
+    elif "air india" in norm_comp or "airindia" in norm_comp or "airindia" in norm_dom:
+        company_name = "Air India"
+        domain = "airindia.com"
         
     try:
         log("[INIT] Launching Corporate Registry & Subsidiaries Engine...")
@@ -1005,6 +1100,8 @@ def execute_font_audit_pipeline(task_id, domain, company_name, estimated_revenue
                 
             if corp_info.get("corporate_subsidiaries"):
                 audit_data["corporate_subsidiaries"] = corp_info["corporate_subsidiaries"]
+            if corp_info.get("subsidiaries_details"):
+                audit_data["subsidiaries_details"] = corp_info["subsidiaries_details"]
             else:
                 if not audit_data.get("corporate_subsidiaries"):
                     audit_data["corporate_subsidiaries"] = [f"{company_name} Digital LLC"]
