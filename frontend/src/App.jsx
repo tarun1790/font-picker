@@ -668,7 +668,7 @@ feature kern {
   const [auditDomain, setAuditDomain] = useState('cadbury.com');
   const [auditCompanyName, setAuditCompanyName] = useState('Cadbury');
   const [auditRevenue, setAuditRevenue] = useState(38000000000);
-  const [nlpPrompt, setNlpPrompt] = useState('Find subsidiaries of Cadburry and generate a PDF');
+  const [nlpPrompt, setNlpPrompt] = useState('');
   const [nlpError, setNlpError] = useState(null);
   const [auditReports, setAuditReports] = useState([]);
   const [currentAuditTaskId, setCurrentAuditTaskId] = useState(null);
