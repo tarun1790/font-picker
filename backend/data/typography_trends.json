@@ -7,7 +7,7 @@
             "Roboto"
         ],
         "average_weight": 400.0,
-        "scanned_count": 926,
+        "scanned_count": 933,
         "brand_personality": "Elegant & Formal",
         "accessibility_index": 0.85
     },
@@ -33,8 +33,8 @@
             "Netflix Sans",
             "YouTube Sans"
         ],
-        "average_weight": 437.5,
-        "scanned_count": 8,
+        "average_weight": 425.0,
+        "scanned_count": 12,
         "brand_personality": "Elegant & Formal",
         "accessibility_index": 0.85
     },
@@ -52,15 +52,17 @@
     },
     "Financial Services": {
         "common_font_styles": [
-            "Geometric Sans-Serif"
+            "Geometric Sans-Serif",
+            "Corporate Sans-Serif"
         ],
         "common_pairings": [
-            "Inter"
+            "Inter",
+            "Helvetica Neue"
         ],
         "average_weight": 400.0,
-        "scanned_count": 1,
+        "scanned_count": 2,
         "brand_personality": "Elegant & Formal",
-        "accessibility_index": 0.91
+        "accessibility_index": 0.9
     },
     "Aviation": {
         "common_font_styles": [
