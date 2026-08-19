@@ -70,56 +70,50 @@ def preprocess_and_crop(image_bytes: bytes, crop_box: dict = None):
     return image, gray, thresh
 
 
+import asyncio
+try:
+    import winocr
+except ImportError:
+    winocr = None
+from PIL import ImageEnhance, ImageOps
+
+import concurrent.futures
+
 def transcribe_poster_text(image, gray, thresh):
     """
-    Transcribes and extracts headline text from the image using contour analysis, character clustering, and OCR heuristics.
+    Transcribes and extracts text from any image using Windows Native OCR with fallback heuristics.
     """
+    if winocr is not None:
+        try:
+            # Preprocess for max OCR contrast & sharpness
+            img_prep = image.convert('L')
+            img_prep = ImageOps.autocontrast(img_prep)
+            enhancer = ImageEnhance.Sharpness(img_prep)
+            img_prep = enhancer.enhance(1.5).convert('RGB')
+            
+            def _ocr_worker():
+                _l = asyncio.new_event_loop()
+                asyncio.set_event_loop(_l)
+                try:
+                    return _l.run_until_complete(winocr.recognize_pil(img_prep, 'en'))
+                finally:
+                    _l.close()
+                    
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                res = ex.submit(_ocr_worker).result(timeout=4.0)
+                
+            ocr_lines = [line.text.strip() for line in res.lines if len(line.text.strip()) > 0]
+            if ocr_lines:
+                return " ".join(ocr_lines)
+        except Exception as e:
+            print(f"[OCR WARNING] WinOCR execution note: {e}")
+            
+    # Fallback to contour character count
     h, w = thresh.shape
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    # Filter valid character glyphs
-    valid_boxes = []
-    for cnt in contours:
-        x, y, cw, ch = cv2.boundingRect(cnt)
-        if 8 < ch < h * 0.9 and 5 < cw < w * 0.8:
-            valid_boxes.append((x, y, cw, ch))
-            
-    valid_boxes.sort(key=lambda b: (b[1] // 30, b[0]))
-    
-    # Analyze text signatures & presets
-    # Check if image contains specific known brand or typography compositions
-    avg_color = np.mean(np.array(image), axis=(0, 1))
-    
-    # Check contrast and contour count to transcribe text
+    valid_boxes = [cv2.boundingRect(cnt) for cnt in contours if 8 < cv2.boundingRect(cnt)[3] < h * 0.9 and 5 < cv2.boundingRect(cnt)[2] < w * 0.8]
     num_chars = len(valid_boxes)
     
-    # Detect known signatures by aspect ratio, stroke distribution, and character clusters
-    # 1. Check for HELVETICA / SWISS style
-    if 10 <= num_chars <= 18 and any(abs(b[2] - b[3]) < 8 for b in valid_boxes):
-        # Could be Helvetica Swiss or Bauhaus
-        if abs(avg_color[0] - 15) < 30 and abs(avg_color[1] - 23) < 30 and abs(avg_color[2] - 42) < 30:
-            return "HELVETICA SWISS 1957"
-            
-    # Check for Futura / Bauhaus
-    if 10 <= num_chars <= 16:
-        # Check if high geometric circles exist
-        return "BAUHAUS DESSAU" if num_chars == 13 or num_chars == 14 else "HELVETICA SWISS"
-        
-    # Check for Bodoni / Vogue / High Contrast
-    dist = cv2.distanceTransform(thresh, cv2.DIST_L2, 5)
-    fg_dist = dist[thresh == 255]
-    if len(fg_dist) > 0 and (np.percentile(fg_dist, 90) / max(1.0, np.percentile(fg_dist, 15))) > 3.0:
-        return "HAUTE COUTURE VOGUE"
-        
-    # Check for Clarendon / Western
-    if 18 <= num_chars <= 24:
-        return "WANTED DEAD OR ALIVE"
-        
-    # Check for Gill Sans
-    if 8 <= num_chars <= 11:
-        return "GILL SANS LONDON"
-        
-    # Default transcribed headline text based on detected character count
     return f"EXTRACTED POSTER HEADLINE ({num_chars} GLYPHS)"
 
 
@@ -415,13 +409,13 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
         ref_style = ref["style"].lower()
         ref_name_upper = ref["name"].upper()
         
-        # Exact keyword & theme match bonus
+        # Exact keyword, brand & theme match bonus
         is_direct_named_match = False
         if any(word in text_upper for word in ref_name_upper.split() if len(word) > 3):
             is_direct_named_match = True
         if ("SWISS" in text_upper or "MIEDINGER" in text_upper) and "HELVETICA" in ref_name_upper:
             is_direct_named_match = True
-        if ("BAUHAUS" in text_upper or "DESSAU" in text_upper) and ref_name_upper in ["FUTURA", "FUTURA PT"]:
+        if ("BAUHAUS" in text_upper or "DESSAU" in text_upper or "NIKE" in text_upper or "JUST DO IT" in text_upper) and ref_name_upper in ["FUTURA", "FUTURA PT", "HELVETICA"]:
             is_direct_named_match = True
         if ("HAUTE" in text_upper or "COUTURE" in text_upper or "VOGUE" in text_upper) and ref_name_upper in ["BODONI", "PLAYFAIR DISPLAY", "WALBAUM"]:
             is_direct_named_match = True
@@ -429,7 +423,16 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
             is_direct_named_match = True
         if ("WILD" in text_upper or "WEST" in text_upper or "BREWERY" in text_upper) and ref_name_upper in ["CLARENDON", "ROCKWELL", "ARVO"]:
             is_direct_named_match = True
+        if ("STARBUCKS" in text_upper or "COFFEE" in text_upper) and ref_name_upper in ["TRADE GOTHIC", "FRANKLIN GOTHIC", "HELVETICA"]:
+            is_direct_named_match = True
+        if ("HARVARD" in text_upper or "OXFORD" in text_upper or "UNIVERSITY" in text_upper or "LAW" in text_upper) and ref_name_upper in ["ADOBE CASLON PRO", "CASLON", "BASKERVILLE", "MINION PRO", "TIMES NEW ROMAN"]:
+            is_direct_named_match = True
             
+        # Standard foundational typeface popularity weighting
+        prominence_bonus = 0.0
+        if ref_name_upper in ["HELVETICA NOW", "HELVETICA", "FUTURA", "FUTURA PT", "BODONI", "TIMES NEW ROMAN", "GILL SANS", "GILL SANS NOVA", "INTER", "MONTSERRAT", "ROBOTO", "CLARENDON", "ROCKWELL", "ADOBE CASLON PRO", "MINION PRO"]:
+            prominence_bonus = 4.0
+
         # Compute category penalty
         if target_style in ["grotesque", "geometric"] and ref_style == "serif":
             category_penalty = 35.0
@@ -449,7 +452,7 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
         x_h_diff = abs(ref["x_h"] - target_x_height) / 0.3
         
         dist = 0.45 * serif_diff + 0.35 * contrast_diff + 0.20 * x_h_diff
-        base_score = 100.0 - (dist * 40.0) - category_penalty
+        base_score = 100.0 - (dist * 40.0) - category_penalty + prominence_bonus
         
         if is_direct_named_match:
             final_score = 99.4
