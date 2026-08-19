@@ -79,11 +79,19 @@ from PIL import ImageEnhance, ImageOps
 
 import concurrent.futures
 
-def transcribe_poster_text(image, gray, thresh):
+def transcribe_poster_text(image, gray=None, thresh=None):
     """
     Multi-pass OpenCV & Windows OCR Engine:
     Runs OCR across 5 specialized OpenCV contrast & frequency passes to extract the exact words.
     """
+    if gray is None or thresh is None:
+        np_img = np.array(image.convert('RGB'))
+        gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
+        if np.mean(gray) < 127:
+            _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        else:
+            _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
     if winocr is not None:
         try:
             # Generate multi-pass OpenCV enhancements
