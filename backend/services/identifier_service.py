@@ -476,10 +476,24 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
         ref_style = ref["style"].lower()
         ref_name_upper = ref["name"].upper()
         
-        # Exact keyword, brand & theme match bonus
+        # Check for explicit proper typeface name mentions (excluding common dictionary words)
+        EXCLUDED_COMMON_WORDS = {
+            "GREAT", "NEW", "STYLE", "FREE", "BOOK", "DARK", "PLAY", "TIME", "SPACE", "PLUS", 
+            "ONE", "ALL", "MODERN", "ROMAN", "GOTHIC", "SANS", "SERIF", "DISPLAY", "NEXT", 
+            "PRO", "FONT", "TYPE", "TEXT", "NEWS", "BLACK", "LIGHT", "BOLD", "ROUND", "DECORATIVE",
+            "DESIGN", "STUDIO", "ORIGINALS", "STD", "PT", "VAR"
+        }
+        
         is_direct_named_match = False
-        if any(word in text_upper for word in ref_name_upper.split() if len(word) > 3):
+        # Full family match
+        if ref_name_upper in text_upper:
             is_direct_named_match = True
+        else:
+            # Word-level match ONLY for unique proper nouns (e.g. "BODONI", "GARAMOND", "BASKERVILLE", "CASLON", "DIDOT", "CLARENDON", "FRUTIGER", "MIEDINGER", "HELVETICA", "FUTURA")
+            for word in ref_name_upper.split():
+                if len(word) >= 5 and word not in EXCLUDED_COMMON_WORDS and word in text_upper:
+                    is_direct_named_match = True
+                    
         if ("SWISS" in text_upper or "MIEDINGER" in text_upper) and "HELVETICA" in ref_name_upper:
             is_direct_named_match = True
         if ("BAUHAUS" in text_upper or "DESSAU" in text_upper) and ref_name_upper in ["FUTURA", "FUTURA PT"]:
