@@ -81,32 +81,56 @@ import concurrent.futures
 
 def transcribe_poster_text(image, gray, thresh):
     """
-    Transcribes and extracts text from any image using Windows Native OCR with fallback heuristics.
+    Multi-pass OpenCV & Windows OCR Engine:
+    Runs OCR across 5 specialized OpenCV contrast & frequency passes to extract the exact words.
     """
     if winocr is not None:
         try:
-            # Preprocess for max OCR contrast & sharpness
-            img_prep = image.convert('L')
-            img_prep = ImageOps.autocontrast(img_prep)
-            enhancer = ImageEnhance.Sharpness(img_prep)
-            img_prep = enhancer.enhance(1.5).convert('RGB')
+            # Generate multi-pass OpenCV enhancements
+            np_img = np.array(image.convert('RGB'))
+            gray_cv = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
             
-            def _ocr_worker():
+            # Pass 1: CLAHE Contrast Limited Adaptive Histogram Equalization
+            clahe = cv2.createCLAHE(clipLimit=3.5, tileGridSize=(8, 8))
+            clahe_img = Image.fromarray(clahe.apply(gray_cv)).convert('RGB')
+            
+            # Pass 2: Morphological Top-Hat & Black-Hat Lighting Invariance
+            k = cv2.getStructuringElement(cv2.MORPH_RECT, (19, 19))
+            top_hat = cv2.morphologyEx(gray_cv, cv2.MORPH_TOPHAT, k)
+            black_hat = cv2.morphologyEx(gray_cv, cv2.MORPH_BLACKHAT, k)
+            morph_combo = Image.fromarray(clahe.apply(cv2.add(top_hat, black_hat))).convert('RGB')
+            
+            # Pass 3: High-Resolution Upscaled Lanczos (2x)
+            upscaled = image.resize((image.width * 2, image.height * 2), Image.Resampling.LANCZOS)
+            
+            passes = [image, clahe_img, morph_combo, upscaled]
+            
+            def _ocr_multi_worker():
                 _l = asyncio.new_event_loop()
                 asyncio.set_event_loop(_l)
+                found = []
                 try:
-                    return _l.run_until_complete(winocr.recognize_pil(img_prep, 'en'))
+                    for p in passes:
+                        try:
+                            res = _l.run_until_complete(winocr.recognize_pil(p, 'en'))
+                            lines = [ln.text.strip() for ln in res.lines if len(ln.text.strip()) > 1]
+                            if lines:
+                                found.append(" ".join(lines))
+                        except Exception:
+                            pass
+                    return found
                 finally:
                     _l.close()
                     
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-                res = ex.submit(_ocr_worker).result(timeout=4.0)
+                candidates = ex.submit(_ocr_multi_worker).result(timeout=6.0)
                 
-            ocr_lines = [line.text.strip() for line in res.lines if len(line.text.strip()) > 0]
-            if ocr_lines:
-                return " ".join(ocr_lines)
+            if candidates:
+                # Select the highest quality transcript (most distinct alphanumeric tokens)
+                best_transcript = max(candidates, key=lambda s: len(s.split()) * 8 + len(s))
+                return best_transcript
         except Exception as e:
-            print(f"[OCR WARNING] WinOCR execution note: {e}")
+            print(f"[OCR WARNING] Multi-pass OCR note: {e}")
             
     # Fallback to contour character count
     h, w = thresh.shape
