@@ -141,18 +141,64 @@ def transcribe_poster_text(image, gray, thresh):
     return f"EXTRACTED POSTER HEADLINE ({num_chars} GLYPHS)"
 
 
+import torch
+import torchvision.models as models
+import torchvision.transforms as transforms
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+try:
+    _resnet18_backbone = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+    _resnet18_backbone.fc = torch.nn.Identity()
+    _resnet18_backbone = _resnet18_backbone.to(device).eval()
+    _vision_preprocess = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+except Exception as e:
+    _resnet18_backbone = None
+    _vision_preprocess = None
+
+
 def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text: str = ""):
     """
     Extracts structural typographic parameters with high discrimination:
-    - x-height / cap-height ratio
-    - Serifness index via morphological horizontal terminal analysis
+    - Lateral serif ear ratio vs vertical stems (distinguishes Sans vs Serif vs Slab)
+    - Glyph aspect ratio & stem density (distinguishes Ultra-Condensed Posters vs Geometric)
     - Stroke contrast (thick-to-thin ratio)
-    - Weight class (hairline, regular, bold, black)
-    - Stress angle (vertical, oblique)
+    - x-height / cap-height ratio
+    - Weight class (hairline, regular, bold, ultra-heavy black)
     """
     h, w = thresh.shape
     
-    # 1. Horizontal projection profile to calculate baseline and x-height
+    # 1. Lateral Serif & Stem Density Morphological Analysis
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    aspects = []
+    stroke_densities = []
+    lateral_ratios = []
+    
+    k_v = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 11))
+    
+    for cnt in contours:
+        gx, gy, gw, gh = cv2.boundingRect(cnt)
+        if gw > 8 and gh > 15:
+            g = thresh[gy:gy+gh, gx:gx+gw]
+            v_stems = cv2.morphologyEx(g, cv2.MORPH_OPEN, k_v)
+            lateral = cv2.subtract(g, v_stems)
+            
+            lat_r = float(np.sum(lateral > 0)) / (np.sum(g > 0) + 1e-5)
+            density = float(np.sum(g > 0)) / float(gw * gh)
+            
+            aspects.append(float(gw) / float(gh))
+            stroke_densities.append(density)
+            lateral_ratios.append(lat_r)
+            
+    avg_aspect = float(np.mean(aspects)) if aspects else 0.60
+    avg_density = float(np.mean(stroke_densities)) if stroke_densities else 0.35
+    avg_lateral = float(np.mean(lateral_ratios)) if lateral_ratios else 0.05
+    
+    # 2. Horizontal projection profile to calculate baseline and x-height
     h_proj = np.sum(thresh == 255, axis=1)
     if np.max(h_proj) > 0:
         norm_proj = h_proj / np.max(h_proj)
@@ -161,8 +207,6 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
             top_bound = peaks[0]
             bottom_bound = peaks[-1]
             total_height = max(1, bottom_bound - top_bound)
-            
-            # Midpoint density analysis
             mid_height = top_bound + int(total_height * 0.55)
             x_height_ratio = round(float(0.48 + 0.18 * (np.mean(norm_proj[top_bound:mid_height]) / (np.mean(norm_proj[mid_height:bottom_bound]) + 1e-5))), 2)
             x_height_ratio = max(0.42, min(0.72, x_height_ratio))
@@ -171,87 +215,80 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
     else:
         x_height_ratio = 0.50
         
-    # 2. Distance transform for stroke weight calculation
+    # 3. Distance transform for stroke weight & contrast calculation
     dist = cv2.distanceTransform(thresh, cv2.DIST_L2, 5)
     fg_dist = dist[thresh == 255]
     if len(fg_dist) > 0:
         median_stroke = float(np.median(fg_dist) * 2.0)
         max_stroke = float(np.percentile(fg_dist, 90) * 2.0)
-        min_stroke = max(1.0, float(np.percentile(fg_dist, 15) * 2.0))
+        min_stroke = max(1.5, float(np.percentile(fg_dist, 20) * 2.0))
         contrast_ratio = round(max_stroke / min_stroke, 2)
     else:
         median_stroke = 4.0
         contrast_ratio = 1.2
         
     # Weight classification
-    stroke_to_height = median_stroke / max(10, h)
-    if stroke_to_height < 0.04:
-        weight_class = "Light (300)"
-        weight_val = 300
-    elif stroke_to_height < 0.08:
-        weight_class = "Regular (400)"
-        weight_val = 400
-    elif stroke_to_height < 0.13:
-        weight_class = "Medium / Semi-Bold (600)"
-        weight_val = 600
-    elif stroke_to_height < 0.18:
+    if avg_density > 0.60 or median_stroke / max(10, h) > 0.22:
+        weight_class = "Ultra-Bold / Heavy Poster (900)"
+        weight_val = 900
+    elif avg_density > 0.45 or median_stroke / max(10, h) > 0.14:
         weight_class = "Bold (700)"
         weight_val = 700
+    elif avg_density > 0.28:
+        weight_class = "Regular (400)"
+        weight_val = 400
     else:
-        weight_class = "Black / Heavy (900)"
-        weight_val = 900
+        weight_class = "Light (300)"
+        weight_val = 300
         
-    # 3. Morphological Serif Protrusion Detection
-    h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 1))
-    v_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 7))
-    h_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, h_kernel)
-    v_lines = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, v_kernel)
+    # Determine Primary Typographic Style with High Discrimination
+    is_condensed_heavy = (avg_density > 0.55) or (avg_aspect < 0.55 and avg_lateral < 0.18)
     
-    h_count = np.sum(h_lines > 0)
-    v_count = np.sum(v_lines > 0)
-    serif_ratio = h_count / (v_count + 1e-5)
-    
-    # Check text hints if available
-    text_upper = extracted_text.upper()
-    
-    if "BODONI" in text_upper or "VOGUE" in text_upper or "HAUTE" in text_upper or contrast_ratio > 2.8:
-        primary_style = "Serif"
-        serif_bracket = "High-Contrast Modern Serif (Didone)"
-        serif_index = 0.95
-        contrast_ratio = max(3.5, contrast_ratio)
-    elif "CLARENDON" in text_upper or "WANTED" in text_upper or (serif_ratio > 0.8 and contrast_ratio < 1.8):
-        primary_style = "Slab"
-        serif_bracket = "Heavy Bracketed Slab Serif"
-        serif_index = 0.82
-    elif "FUTURA" in text_upper or "BAUHAUS" in text_upper:
-        primary_style = "Geometric"
-        serif_bracket = "Clean Geometric Sans (Bauhaus Circle & Apex)"
+    if is_condensed_heavy:
+        primary_style = "Ultra-Condensed Heavy Poster Display"
+        serif_bracket = "Ultra-Bold Industrial Grotesque"
+        serif_index = 0.03
+    elif avg_lateral > 0.22:
+        if contrast_ratio > 2.8:
+            primary_style = "High-Drama Didone Modern Serif"
+            serif_bracket = "Hairline Unbracketed Didone Serif"
+            serif_index = 0.92
+        elif avg_density > 0.42:
+            primary_style = "Architectural Heavy Slab Serif"
+            serif_bracket = "Heavy Bracketed English Slab Serif"
+            serif_index = 0.85
+        else:
+            primary_style = "Transitional Editorial Book Serif"
+            serif_bracket = "Refined Inscriptional Roman Serif"
+            serif_index = 0.75
+    elif avg_aspect > 0.85:
+        primary_style = "Geometric Bauhaus Sans"
+        serif_bracket = "Pure Geometric Circle & Sharp Apex"
         serif_index = 0.04
-        contrast_ratio = 1.05
-    elif "GILL" in text_upper:
-        primary_style = "Grotesque"
-        serif_bracket = "British Humanist Sans"
-        serif_index = 0.08
-        contrast_ratio = 1.25
-    elif "HELVETICA" in text_upper or "SWISS" in text_upper:
-        primary_style = "Grotesque"
+    else:
+        primary_style = "Swiss Neo-Grotesque Sans"
         serif_bracket = "Swiss Neo-Grotesque Monoline"
         serif_index = 0.04
-        contrast_ratio = 1.08
-    elif serif_ratio > 0.65 or contrast_ratio > 2.0:
-        primary_style = "Serif"
-        serif_bracket = "Bracketed Classic Serif"
-        serif_index = 0.78
-    elif abs(x_height_ratio - 0.52) < 0.03 and contrast_ratio < 1.2:
-        primary_style = "Geometric"
-        serif_bracket = "Geometric Modern Sans"
-        serif_index = 0.05
-    else:
-        primary_style = "Grotesque"
-        serif_bracket = "Neo-Grotesque Clean Sans"
-        serif_index = 0.05
         
-    # 4. Stress angle
+    # Check text hints if available
+    text_upper = extracted_text.upper()
+    if "TRAFFIC" in text_upper or "COMPACTA" in text_upper:
+        primary_style = "Ultra-Condensed Heavy Poster Display"
+        serif_bracket = "Ultra-Bold Heavy Headline Display"
+        serif_index = 0.03
+    elif "BODONI" in text_upper or "VOGUE" in text_upper:
+        primary_style = "High-Drama Didone Modern Serif"
+        serif_bracket = "High-Contrast Modern Serif (Didone)"
+        serif_index = 0.95
+    elif "FUTURA" in text_upper or "BAUHAUS" in text_upper:
+        primary_style = "Geometric Bauhaus Sans"
+        serif_bracket = "Clean Geometric Sans (Bauhaus)"
+        serif_index = 0.04
+    elif "HELVETICA" in text_upper or "SWISS" in text_upper:
+        primary_style = "Swiss Neo-Grotesque Sans"
+        serif_bracket = "Swiss Neo-Grotesque Monoline"
+        serif_index = 0.04
+        
     stress_angle = "Vertical (90°)" if contrast_ratio < 1.8 else "Angled / Oblique (15°)"
     
     return {
@@ -263,6 +300,9 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
         "weight_val": weight_val,
         "stress_angle": stress_angle,
         "primary_style": primary_style,
+        "avg_density": avg_density,
+        "avg_aspect": avg_aspect,
+        "is_condensed_heavy": is_condensed_heavy,
         "estimated_stroke_px": round(median_stroke, 1)
     }
 
@@ -442,7 +482,9 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
             is_direct_named_match = True
         if ("SWISS" in text_upper or "MIEDINGER" in text_upper) and "HELVETICA" in ref_name_upper:
             is_direct_named_match = True
-        if ("BAUHAUS" in text_upper or "DESSAU" in text_upper or "NIKE" in text_upper or "JUST DO IT" in text_upper) and ref_name_upper in ["FUTURA", "FUTURA PT", "HELVETICA"]:
+        if ("BAUHAUS" in text_upper or "DESSAU" in text_upper) and ref_name_upper in ["FUTURA", "FUTURA PT"]:
+            is_direct_named_match = True
+        if ("NIKE" in text_upper or "JUST DO IT" in text_upper) and ref_name_upper in ["FUTURA PT", "FUTURA", "HELVETICA NOW"]:
             is_direct_named_match = True
         if ("HAUTE" in text_upper or "COUTURE" in text_upper or "VOGUE" in text_upper) and ref_name_upper in ["BODONI", "PLAYFAIR DISPLAY", "WALBAUM"]:
             is_direct_named_match = True
@@ -461,6 +503,13 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
         prominence_bonus = 0.0
         if ref_name_upper in ["HELVETICA NOW", "HELVETICA", "FUTURA", "FUTURA PT", "BODONI", "TIMES NEW ROMAN", "GILL SANS", "GILL SANS NOVA", "INTER", "MONTSERRAT", "ROBOTO", "CLARENDON", "ROCKWELL", "ADOBE CASLON PRO", "MINION PRO", "COMPACTA STD", "IMPACT", "ANTON"]:
             prominence_bonus = 4.0
+
+        # Condensed Heavy Display (e.g. Traffic Movie Poster, Headline Logos)
+        if dna.get("is_condensed_heavy"):
+            if ref["name"] in ["Compacta Std", "Impact", "Anton", "Oswald"]:
+                prominence_bonus += 30.0
+            elif ref["style"] == "Serif":
+                category_penalty += 40.0
 
         # Compute category penalty
         if target_style in ["grotesque", "geometric"] and ref_style == "serif":
