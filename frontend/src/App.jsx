@@ -2475,6 +2475,44 @@ feature kern {
                       </div>
                     </div>
 
+                    {/* MULTI-LAYER TYPOGRAPHY & LOGO INSPECTOR */}
+                    {identifierResults.detected_layers && identifierResults.detected_layers.length > 1 && (
+                      <div className="glass-panel rounded-3xl p-5 border border-purple-500/40 bg-gradient-to-r from-purple-950/30 via-slate-900/70 to-slate-950/80 shadow-xl space-y-3">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2.5 py-0.5 text-[10px] rounded-lg bg-purple-500/20 text-purple-300 font-mono font-bold uppercase tracking-wider border border-purple-500/40">
+                              Multi-Layer Poster Decomposer ({identifierResults.detected_layers.length} Layers Detected)
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-brand-muted font-mono">CLICK TO INSPECT ANY LAYER</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                          {identifierResults.detected_layers.map((layer, idx) => (
+                            <button
+                              key={layer.layer_id || idx}
+                              onClick={() => {
+                                setSelectedMatch(layer.matched_font);
+                                setCompareText(layer.extracted_text || 'SAMPLE TEXT');
+                              }}
+                              className="p-3 rounded-2xl bg-slate-950/80 hover:bg-slate-900 border border-brand-border/60 hover:border-purple-400/60 transition text-left space-y-1.5 group"
+                            >
+                              <div className="flex justify-between items-center text-[10px]">
+                                <span className="font-mono text-purple-300 font-bold uppercase">{layer.role}</span>
+                                <span className="font-mono text-emerald-400 font-bold">{layer.matched_font?.match_score}%</span>
+                              </div>
+                              <p className="text-xs font-bold text-white truncate font-mono">
+                                "{layer.extracted_text}"
+                              </p>
+                              <div className="text-[11px] text-brand-muted flex items-center justify-between">
+                                <span>Font: <span className="text-white font-semibold">{layer.matched_font?.name}</span></span>
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">{layer.matched_font?.style}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* 250,000+ Database Presence Verification Banner */}
                     <div className="glass-panel rounded-3xl p-5 border border-emerald-500/50 bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-slate-950/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl">
                       <div className="flex items-center space-x-3.5">

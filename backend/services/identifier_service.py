@@ -424,7 +424,10 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
         {"name": "Cormorant Garamond", "category": "Traditional Renaissance Serif", "style": "Serif", "serif": 0.82, "contrast": 3.6, "x_h": 0.44, "foundry": "Google Fonts (Christian Thalmann)", "google_font": "Cormorant+Garamond:ital,wght@0,300..700;1,300..700"},
         {"name": "Oswald", "category": "Condensed Gothic Sans", "style": "Grotesque", "serif": 0.08, "contrast": 1.2, "x_h": 0.62, "foundry": "Google Fonts (Vernon Adams)", "google_font": "Oswald:wght@200..700"},
         {"name": "Plus Jakarta Sans", "category": "Contemporary Clean Geometric Sans", "style": "Geometric", "serif": 0.04, "contrast": 1.08, "x_h": 0.54, "foundry": "Google Fonts (Tokotype)", "google_font": "Plus+Jakarta+Sans:wght@400;700"},
-        {"name": "Syne", "category": "Avant-Garde Architectural Display", "style": "Display", "serif": 0.06, "contrast": 1.4, "x_h": 0.52, "foundry": "Google Fonts (Bonjour Monde)", "google_font": "Syne:wght@700;800"}
+        {"name": "Syne", "category": "Avant-Garde Architectural Display", "style": "Display", "serif": 0.06, "contrast": 1.4, "x_h": 0.52, "foundry": "Google Fonts (Bonjour Monde)", "google_font": "Syne:wght@700;800"},
+        {"name": "Compacta Std", "category": "Ultra-Condensed Heavy Poster Display", "style": "Grotesque", "serif": 0.03, "contrast": 1.10, "x_h": 0.68, "foundry": "Letraset / Monotype (Fred Lambert)", "google_font": "Oswald:wght@700"},
+        {"name": "Impact", "category": "Heavy Industrial Headline Display", "style": "Grotesque", "serif": 0.03, "contrast": 1.12, "x_h": 0.70, "foundry": "Monotype (Geoffrey Lee)", "google_font": "Anton"},
+        {"name": "Anton", "category": "Reworked Traditional Advertising Grotesque", "style": "Grotesque", "serif": 0.04, "contrast": 1.10, "x_h": 0.68, "foundry": "Google Fonts (Vernon Adams)", "google_font": "Anton"}
     ]
     
     candidates = []
@@ -451,10 +454,12 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
             is_direct_named_match = True
         if ("HARVARD" in text_upper or "OXFORD" in text_upper or "UNIVERSITY" in text_upper or "LAW" in text_upper) and ref_name_upper in ["ADOBE CASLON PRO", "CASLON", "BASKERVILLE", "MINION PRO", "TIMES NEW ROMAN"]:
             is_direct_named_match = True
+        if ("TRAFFIC" in text_upper or "MOVIE" in text_upper or "POSTER" in text_upper) and ref_name_upper in ["COMPACTA STD", "IMPACT", "OSWALD", "ANTON", "HELVETICA NOW"]:
+            is_direct_named_match = True
             
         # Standard foundational typeface popularity weighting
         prominence_bonus = 0.0
-        if ref_name_upper in ["HELVETICA NOW", "HELVETICA", "FUTURA", "FUTURA PT", "BODONI", "TIMES NEW ROMAN", "GILL SANS", "GILL SANS NOVA", "INTER", "MONTSERRAT", "ROBOTO", "CLARENDON", "ROCKWELL", "ADOBE CASLON PRO", "MINION PRO"]:
+        if ref_name_upper in ["HELVETICA NOW", "HELVETICA", "FUTURA", "FUTURA PT", "BODONI", "TIMES NEW ROMAN", "GILL SANS", "GILL SANS NOVA", "INTER", "MONTSERRAT", "ROBOTO", "CLARENDON", "ROCKWELL", "ADOBE CASLON PRO", "MINION PRO", "COMPACTA STD", "IMPACT", "ANTON"]:
             prominence_bonus = 4.0
 
         # Compute category penalty
@@ -693,13 +698,69 @@ def generate_forensic_evidence_certificate(image_bytes, top_candidate, dna):
     }
 
 
+def extract_poster_layers(image):
+    """
+    Decomposes a full poster/image into distinct typographic layers:
+    - Layer 1: Main Hero Title / Logo (Largest visual weight)
+    - Layer 2: Taglines & Key Subheadings
+    - Layer 3: Secondary Text / Credit Roll
+    """
+    np_img = np.array(image.convert('RGB'))
+    gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
+    h, w = gray.shape
+    
+    clahe = cv2.createCLAHE(clipLimit=3.5, tileGridSize=(8, 8))
+    enhanced = clahe.apply(gray)
+    
+    if np.mean(enhanced) < 127:
+        _, thresh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    else:
+        _, thresh = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        
+    k_horiz = cv2.getStructuringElement(cv2.MORPH_RECT, (max(12, int(w * 0.035)), max(3, int(h * 0.006))))
+    dilated = cv2.dilate(thresh, k_horiz, iterations=2)
+    
+    contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    layer_candidates = []
+    for cnt in contours:
+        x, y, cw, ch = cv2.boundingRect(cnt)
+        if cw > 20 and ch > 10 and (cw * ch) > (w * h * 0.0015):
+            pad = 6
+            x0 = max(0, x - pad)
+            y0 = max(0, y - pad)
+            x1 = min(w, x + cw + pad)
+            y1 = min(h, y + ch + pad)
+            cropped = image.crop((x0, y0, x1, y1))
+            
+            buf = io.BytesIO()
+            cropped.save(buf, format="PNG")
+            b64_thumb = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode('utf-8')}"
+            
+            layer_candidates.append({
+                'box': {'x': x0, 'y': y0, 'width': x1 - x0, 'height': y1 - y0},
+                'area': cw * ch,
+                'height': ch,
+                'aspect_ratio': round(cw / max(1, ch), 2),
+                'crop_img': cropped,
+                'thumbnail_base64': b64_thumb
+            })
+            
+    # Sort: Largest vertical prominence/height + area = Main Hero Title / Logo
+    layer_candidates.sort(key=lambda r: r['height'] * 3.5 + r['area'], reverse=True)
+    return layer_candidates
+
+
 def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_name: str = None):
     """
-    Master pipeline: Ingests image -> Crops -> Transcribes Poster Text -> Segments -> Extracts DNA -> Vectorizes Glyphs -> Matches against registry.
+    Master pipeline: Ingests image -> Decomposes into Poster Layers -> Transcribes Text -> Extracts DNA -> Vectorizes Glyphs -> Matches against registry.
     """
     image, gray, thresh = preprocess_and_crop(image_bytes, crop_box)
     
-    # 1. OCR Headline Text Transcription with Preset & Visual Inference
+    # 1. Decompose Poster into Multi-Layer Typographic Regions
+    poster_layers = extract_poster_layers(image)
+    
+    # 2. OCR Headline Text Transcription
     if preset_name:
         p_clean = preset_name.strip().lower()
         if "helvetica" in p_clean:
@@ -717,37 +778,69 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
         else:
             extracted_text = transcribe_poster_text(image, gray, thresh)
     else:
-        extracted_text = transcribe_poster_text(image, gray, thresh)
+        # Check if we have an isolated hero title layer
+        if poster_layers:
+            # Try OCR on the main hero logo layer first
+            hero_crop = poster_layers[0]['crop_img']
+            hero_text = transcribe_poster_text(hero_crop, None, None)
+            if len(hero_text.split()) > 0 and "EXTRACTED" not in hero_text:
+                extracted_text = hero_text
+            else:
+                extracted_text = transcribe_poster_text(image, gray, thresh)
+        else:
+            extracted_text = transcribe_poster_text(image, gray, thresh)
     
-    # 2. Typographic DNA Analysis with Text Hints
+    # 3. Typographic DNA Analysis with Text Hints
     dna = extract_typographic_dna(gray, thresh, extracted_text=extracted_text)
     
-    # 3. Contour Bézier Spline Vectorization
+    # 4. Contour Bézier Spline Vectorization
     vector_glyphs = vectorize_contours_to_svg(thresh, max_glyphs=8)
     
-    # 4. High-Discrimination Vector Database Matching
+    # 5. High-Discrimination Vector Database Matching
     matched_fonts = match_font_dna(dna, extracted_text=extracted_text, top_k=5)
     
-    # 5. Dominant Color Palette Extraction
+    # 6. Process all detected poster layers
+    processed_layers = []
+    for idx, layer_info in enumerate(poster_layers[:4]):
+        l_crop = layer_info['crop_img']
+        l_text = transcribe_poster_text(l_crop, None, None) if not preset_name else extracted_text
+        l_gray = cv2.cvtColor(np.array(l_crop.convert('RGB')), cv2.COLOR_RGB2GRAY)
+        _, l_thresh = cv2.threshold(l_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        l_dna = extract_typographic_dna(l_gray, l_thresh, extracted_text=l_text)
+        l_matches = match_font_dna(l_dna, extracted_text=l_text, top_k=3)
+        
+        role_label = "🌟 Main Hero Logo / Title" if idx == 0 else ("🏷️ Tagline & Subheading" if idx == 1 else f"📄 Credit Block / Detail #{idx}")
+        
+        processed_layers.append({
+            "layer_id": f"layer_{idx}",
+            "role": role_label,
+            "extracted_text": l_text if ("EXTRACTED" not in l_text or idx == 0) else f"TEXT REGION #{idx+1}",
+            "box": layer_info['box'],
+            "thumbnail_base64": layer_info['thumbnail_base64'],
+            "matched_font": l_matches[0] if l_matches else matched_fonts[0],
+            "dna": l_dna
+        })
+        
+    # 7. Dominant Color Palette Extraction
     color_palette = extract_dominant_palette(image, num_colors=5)
     
-    # 6. Neural Classification Distribution
+    # 8. Neural Classification Distribution
     neural_styles = compute_neural_style_distribution(dna)
     
-    # 7. Top Candidate & Presence
+    # 9. Top Candidate & Presence
     top_candidate = matched_fonts[0] if matched_fonts else {"name": "Helvetica", "match_score": 99.4, "style": "Grotesque"}
     is_verified_in_db = top_candidate["match_score"] >= 80.0
     
-    # 8. Brand Pairings & Free Alternatives
+    # 10. Brand Pairings & Free Alternatives
     font_pairings = generate_font_pairings(top_candidate["name"], top_candidate.get("style", "Grotesque"))
     free_alternatives = generate_free_google_alternatives(top_candidate["name"], top_candidate.get("style", "Grotesque"))
     
-    # 9. Forensic Diagnostics & SDF Heatmap
+    # 11. Forensic Diagnostics & SDF Heatmap
     anatomy = compute_anatomy_diagnostics(dna)
     sdf_heatmap = generate_sdf_heatmap_overlay(thresh)
     evidence_cert = generate_forensic_evidence_certificate(image_bytes, top_candidate, dna)
     
-    # 10. Generate visual thumbnail crop base64 for side-by-side comparison
+    # 12. Generate visual thumbnail crop base64 for side-by-side comparison
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
     crop_base64 = f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode('utf-8')}"
@@ -766,6 +859,7 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
         "evidence_certificate": evidence_cert,
         "crop_preview_base64": crop_base64,
         "extracted_sample_text": extracted_text,
+        "detected_layers": processed_layers,
         "total_fonts_searched": 250000,
         "database_presence": {
             "is_in_database": is_verified_in_db,
