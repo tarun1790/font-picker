@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional, Dict, Any, List
 import os
 import shutil
 import uuid
@@ -257,13 +258,14 @@ def download_report(report_id: str):
     raise HTTPException(status_code=404, detail="Branding report not found")
 
 @app.post("/api/v1/font-similarity")
-def get_similar_fonts(font_name: str = Form(...), top_k: int = Form(100)):
+def get_similar_fonts(font_name: str = Form(None), top_k: int = Form(100)):
     """
     Lookup similar fonts in FAISS database.
     """
+    if not font_name:
+        font_name = "Helvetica"
     font_meta = font_db.get_font(font_name)
-    if not font_meta:
-        # If not found, use default embedding query
+    if not font_meta or "embedding" not in font_meta:
         query_emb = np.random.normal(0.0, 0.1, 1024).tolist()
     else:
         query_emb = font_meta["embedding"]
@@ -859,5 +861,86 @@ def scrape_and_optimize_fonts(background_tasks: BackgroundTasks, payload: Scrape
     except Exception as e:
         shutil.rmtree(temp_dir, ignore_errors=True)
         raise HTTPException(status_code=500, detail=f"Scraping and optimization failed: {str(e)}")
+
+
+# -------------------------------------------------------------
+# FONT IDENTIFIER & GLYPHCRAFT AI VECTORIZATION ENDPOINTS
+# -------------------------------------------------------------
+from backend.services.identifier_service import (
+    identify_font_pipeline, 
+    vectorize_contours_to_svg, 
+    preprocess_and_crop, 
+    extract_typographic_dna
+)
+import base64
+
+@app.post("/api/v1/font/identify")
+async def api_identify_font(
+    file: Optional[UploadFile] = File(None),
+    crop_x: Optional[float] = Form(None),
+    crop_y: Optional[float] = Form(None),
+    crop_width: Optional[float] = Form(None),
+    crop_height: Optional[float] = Form(None),
+    image_base64: Optional[str] = Form(None)
+):
+    try:
+        image_bytes = None
+        if file:
+            image_bytes = await file.read()
+        elif image_base64:
+            clean_b64 = image_base64.split(",")[-1]
+            image_bytes = base64.b64decode(clean_b64)
+        else:
+            raise HTTPException(status_code=400, detail="Must provide an image file or base64 data.")
+            
+        crop_box = None
+        if crop_width is not None and crop_height is not None:
+            crop_box = {
+                "x": crop_x or 0,
+                "y": crop_y or 0,
+                "width": crop_width,
+                "height": crop_height
+            }
+            
+        result = identify_font_pipeline(image_bytes, crop_box)
+        return result
+    except Exception as e:
+        print(f"[IDENTIFIER ERROR] Failed to identify font: {e}")
+        raise HTTPException(status_code=500, detail=f"Font identification failed: {str(e)}")
+
+@app.post("/api/v1/font/vectorize-glyph")
+async def api_vectorize_glyph(
+    file: Optional[UploadFile] = File(None),
+    image_base64: Optional[str] = Form(None),
+    crop_x: Optional[float] = Form(None),
+    crop_y: Optional[float] = Form(None),
+    crop_width: Optional[float] = Form(None),
+    crop_height: Optional[float] = Form(None)
+):
+    try:
+        if file:
+            image_bytes = await file.read()
+        elif image_base64:
+            clean_b64 = image_base64.split(",")[-1]
+            image_bytes = base64.b64decode(clean_b64)
+        else:
+            raise HTTPException(status_code=400, detail="Must provide an image file or base64 string.")
+            
+        crop_box = None
+        if crop_width is not None and crop_height is not None:
+            crop_box = {"x": crop_x or 0, "y": crop_y or 0, "width": crop_width, "height": crop_height}
+            
+        image, gray, thresh = preprocess_and_crop(image_bytes, crop_box)
+        vector_glyphs = vectorize_contours_to_svg(thresh, max_glyphs=12)
+        dna = extract_typographic_dna(gray, thresh)
+        
+        return {
+            "status": "SUCCESS",
+            "vector_glyphs": vector_glyphs,
+            "dna": dna
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Glyph vectorization failed: {str(e)}")
+
 
 

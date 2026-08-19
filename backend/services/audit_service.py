@@ -1212,6 +1212,9 @@ def fetch_corporate_intelligence(company_name):
         "revenue": None,
         "subsidiaries_details": []
     }
+    
+    # 1. RETRIEVE TEXT DATA (Wikipedia Infobox + Tavily SEC Query)
+    search_snippets = ""
     try:
         search_url = "https://en.wikipedia.org/w/api.php"
         params = {
@@ -1257,14 +1260,8 @@ def fetch_corporate_intelligence(company_name):
         print(f"Wikipedia scraper failed: {e}")
         
     tavily_key = os.environ.get("TAVILY_API_KEY")
-    openai_key = os.environ.get("OPENAI_API_KEY")
-    hf_token = os.environ.get("HF_TOKEN")
     gemini_key = os.environ.get("GEMINI_API_KEY")
     
-    if not tavily_key and not openai_key and not hf_token and not gemini_key:
-        return info
-        
-    search_snippets = ""
     if tavily_key:
         try:
             tavily_res = requests.post(
@@ -1279,301 +1276,250 @@ def fetch_corporate_intelligence(company_name):
             if tavily_res.status_code == 200:
                 results = tavily_res.json().get("results", [])
                 search_snippets = "\n".join([r.get("content", "") for r in results])
-            else:
-                print(f"DEBUG: Tavily request failed with status: {tavily_res.status_code}, response: {tavily_res.text}")
         except Exception as e:
             print(f"Tavily search failed: {e}")
+
+    # 2. RUN STATE-GRAPH OR CONVENTIONAL EXTRACTION
+    extracted_json = "[]"
+    verified_json = "{}"
+    
+    try:
+        from typing import TypedDict
+        from langgraph.graph import StateGraph, END
+        
+        class CorporateAuditGraphState(TypedDict):
+            company_name: str
+            search_snippets: str
+            extracted_candidates: str
+            verified_json: str
+            info: dict
             
-    openai_success = False
-    if openai_key:
-        try:
-            openai_payload = {
-                "model": "gpt-4o",
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a professional corporate registry auditor. Your objective is to extract "
-                            "an EXHAUSTIVE, 100% accurate list of ALL corporate subsidiaries owned by the target company. "
-                            "Combine (1) the Wikipedia parsed data, (2) the Tavily search snippets, and (3) your own "
-                            "extensive parametric knowledge of corporate corporate structures. "
-                            "List every single regional entity, studio, joint venture, and acquired brand (e.g. for Netflix, "
-                            "list Netflix Animation, Netflix Studios, Albuquerque Studios, Scanline VFX, Millarworld, Next Games, "
-                            "Boss Fight, Spry Fox, and all regional operating entities). Deduplicate the list, filter out competitors "
-                            "or parent companies, and return a clean JSON object containing 'parent_entity' (string/null), "
-                            "'corporate_subsidiaries' (flat array of strings containing all detected subsidiaries), and "
-                            "'revenue' (string/null). Aim for maximum completeness and accuracy."
-                        )
-                    },
-                    {
-                        "role": "user",
-                        "content": (
-                            f"Company Name: {company_name}\n"
-                            f"Wikipedia Data: {json.dumps(info)}\n"
-                            f"Search Snippets: {search_snippets}"
-                        )
+        def retrieve_node(state: CorporateAuditGraphState) -> CorporateAuditGraphState:
+            print("[LANGGRAPH] Executing Retrieval Node...")
+            return state
+            
+        def extractor_node(state: CorporateAuditGraphState) -> CorporateAuditGraphState:
+            print("[LANGGRAPH] Executing Extractor Node...")
+            nonlocal gemini_key, extracted_json
+            if gemini_key:
+                try:
+                    extractor_prompt = (
+                        "You are an Enterprise Corporate Registry Intelligence Agent.\n"
+                        "Your task is NOT to search the internet.\n"
+                        "Your task is ONLY to analyze the retrieved official documents.\n\n"
+                        "Rules:\n"
+                        "1. Never hallucinate.\n"
+                        "2. Never infer subsidiaries.\n"
+                        "3. Never merge company names.\n"
+                        "4. One entity per output row.\n"
+                        "5. Ignore advertisements.\n"
+                        "6. Ignore unrelated acquisitions.\n"
+                        "7. Ignore search snippets.\n"
+                        "8. Ignore Wikipedia sidebars unless confirmed by official filings.\n"
+                        "9. Every entity must have evidence.\n"
+                        "10. If evidence is missing return NOT VERIFIED.\n\n"
+                        "Only extract:\n"
+                        "• Ultimate Parent\n"
+                        "• Parent Company\n"
+                        "• Holding Company\n"
+                        "• Subsidiary\n"
+                        "• Joint Venture\n"
+                        "• Associate\n"
+                        "• Brand\n"
+                        "• Product Division\n"
+                        "• Regional Operating Company\n"
+                        "• Business Unit\n\n"
+                        "For every company return:\n"
+                        "- Legal Name\n"
+                        "- Entity Type\n"
+                        "- Parent\n"
+                        "- Ultimate Parent\n"
+                        "- Ownership %\n"
+                        "- Country\n"
+                        "- Status\n"
+                        "- Official Source\n"
+                        "- Evidence\n"
+                        "- Confidence\n\n"
+                        "Never output 'Inc', 'Ltd', 'Limited', 'Company', 'Corporation', 'PLC', 'LLC' alone. Reject incomplete names. Reject unrelated companies. Reject companies belonging to another parent.\n"
+                        "If multiple documents disagree, return CONFLICT DETECTED. Never choose one.\n\n"
+                        "Return JSON list only matching this schema:\n"
+                        "[\n"
+                        "  {\n"
+                        "    \"legal_name\": \"\",\n"
+                        "    \"entity_type\": \"\",\n"
+                        "    \"parent\": \"\",\n"
+                        "    \"ultimate_parent\": \"\",\n"
+                        "    \"ownership_pct\": \"\",\n"
+                        "    \"country\": \"\",\n"
+                        "    \"status\": \"\",\n"
+                        "    \"official_source\": \"\",\n"
+                        "    \"evidence\": \"\",\n"
+                        "    \"confidence\": \"\"\n"
+                        "  }\n"
+                        "]"
+                    )
+                    
+                    if gemini_key.startswith("AIzaSy"):
+                        api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+                        headers = {"Content-Type": "application/json"}
+                    else:
+                        api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+                        headers = {
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {gemini_key}"
+                        }
+                        
+                    payload_ext = {
+                        "contents": [{
+                            "parts": [{
+                                "text": f"{extractor_prompt}\n\nCompany Name: {state['company_name']}\nWikipedia Data: {json.dumps(state['info'])}\nSearch Snippets: {state['search_snippets']}"
+                            }]
+                        }],
+                        "generationConfig": {
+                            "responseMimeType": "application/json"
+                        }
                     }
-                ],
-                "response_format": {"type": "json_object"}
-            }
-            openai_res = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {openai_key}",
-                    "Content-Type": "application/json"
-                },
-                json=openai_payload,
-                timeout=15
-            )
-            if openai_res.status_code == 200:
-                choice = openai_res.json().get("choices", [])[0]
-                res_content = choice.get("message", {}).get("content", "{}")
-                ai_info = json.loads(res_content)
-                if "parent_entity" in ai_info:
-                    info["parent_entity"] = ai_info["parent_entity"]
-                if "corporate_subsidiaries" in ai_info:
-                    info["corporate_subsidiaries"] = ai_info["corporate_subsidiaries"]
-                if "revenue" in ai_info:
-                    info["revenue"] = ai_info["revenue"]
-                openai_success = True
-            else:
-                print(f"DEBUG: OpenAI request failed with status: {openai_res.status_code}, response: {openai_res.text}")
-        except Exception as e:
-            print(f"OpenAI synthesis failed: {e}")
+                    
+                    gemini_res = requests.post(api_url, headers=headers, json=payload_ext, timeout=15)
+                    if gemini_res.status_code == 200:
+                        res_data = gemini_res.json()
+                        extracted_json = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+                except Exception as e:
+                    print(f"Extractor node failed: {e}")
+            return {**state, "extracted_candidates": extracted_json}
             
-    if not openai_success and hf_token:
-        try:
-            print("[INTELLIGENCE] OpenAI key not available or failed. Using free Hugging Face model synthesis...")
-            model_id = "meta-llama/Meta-Llama-3-8B-Instruct"
-            api_url = f"https://api-inference.huggingface.co/models/{model_id}"
-            prompt = (
-                f"<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n"
-                f"You are a professional corporate registry auditor. Extract an EXHAUSTIVE list of ALL corporate subsidiaries owned by the target company. "
-                f"Combine (1) the Wikipedia data, (2) the search snippets, and (3) your own knowledge. "
-                f"Output ONLY a valid JSON object with keys: 'parent_entity' (string/null), 'corporate_subsidiaries' (flat array of strings containing all subsidiaries), and 'revenue' (string/null).<|eot_id|>"
-                f"<|start_header_id|>user<|end_header_id|>\n"
-                f"Company Name: {company_name}\n"
-                f"Wikipedia Data: {json.dumps(info)}\n"
-                f"Search Snippets: {search_snippets}\n"
-                f"JSON output:<|eot_id|>"
-                f"<|start_header_id|>assistant<|end_header_id|>\n"
-            )
-            payload = {
-                "inputs": prompt,
-                "parameters": {
-                    "max_new_tokens": 1500,
-                    "return_full_text": False,
-                    "temperature": 0.1
-                }
-            }
-            hf_res = requests.post(api_url, headers={"Authorization": f"Bearer {hf_token}", "Content-Type": "application/json"}, json=payload, timeout=15)
-            if hf_res.status_code == 200:
-                res_data = hf_res.json()
-                if isinstance(res_data, list) and len(res_data) > 0:
-                    text = res_data[0].get("generated_text", "").strip()
-                elif isinstance(res_data, dict):
-                    text = res_data.get("generated_text", "").strip()
-                else:
-                    text = str(res_data)
-                
-                json_match = re.search(r'\{.*\}', text, re.DOTALL)
-                if json_match:
-                    ai_info = json.loads(json_match.group(0))
-                    if "parent_entity" in ai_info:
-                        info["parent_entity"] = ai_info["parent_entity"]
-                    if "corporate_subsidiaries" in ai_info:
-                        info["corporate_subsidiaries"] = ai_info["corporate_subsidiaries"]
-                    if "revenue" in ai_info:
-                        info["revenue"] = ai_info["revenue"]
-            else:
-                print(f"DEBUG: Hugging Face failed with status: {hf_res.status_code}, response: {hf_res.text}")
-        except Exception as e:
-            print(f"Hugging Face synthesis failed: {e}")
+        def verifier_node(state: CorporateAuditGraphState) -> CorporateAuditGraphState:
+            print("[LANGGRAPH] Executing Verifier Node...")
+            nonlocal gemini_key, verified_json
+            if gemini_key:
+                try:
+                    verifier_prompt = (
+                        "You are an enterprise corporate verification and relationship verification agent.\n"
+                        "Your task is to verify every extracted entity from the candidate list.\n\n"
+                        "Verification Questions for each entity:\n"
+                        "1. Is this company legally registered?\n"
+                        "2. Is it owned by the target company? (Reject sibling companies, e.g. for Apollo, reject Xilinx, AMD, Silo AI, and ATI Technologies which belong to other parents).\n"
+                        "3. Does an official filing mention it?\n"
+                        "4. Does the annual report mention it?\n"
+                        "5. Is it present in SEC/MCA filings?\n"
+                        "6. Is it only a brand?\n"
+                        "7. Is it only a product?\n"
+                        "8. Is it another company's subsidiary?\n\n"
+                        "If any answer to verification is NO (such as it is not owned by target, or belongs to another parent, or is incomplete/garbage), REJECT the entity.\n\n"
+                        "Confidence Scoring Rules:\n"
+                        "- Annual Report + SEC: 100\n"
+                        "- Annual Report: 98\n"
+                        "- Official Website + Annual Report: 97\n"
+                        "- SEC Only: 95\n"
+                        "- Government Registry: 95\n"
+                        "- Wikipedia: 60\n"
+                        "- Search Results: 40\n\n"
+                        "Rule: Reject anything with a confidence score below 90.\n\n"
+                        "Correct the company profile metadata (headquarters, revenue, employee count, ultimate parent) to be factually accurate (e.g. Tata Group in Mumbai, India; Monotype in Woburn, MA; Starbucks in Seattle, WA).\n\n"
+                        "Return ONLY a valid JSON matching this schema:\n"
+                        "{\n"
+                        "  \"company\": \"\",\n"
+                        "  \"ultimate_parent\": {\"legal_name\": \"\", \"country\": \"\", \"ownership_pct\": \"\", \"entity_type\": \"\", \"parent\": \"\", \"status\": \"\", \"official_website\": \"\", \"source_document\": \"\", \"evidence\": \"\", \"confidence_score\": \"\"},\n"
+                        "  \"parent_company\": {},\n"
+                        "  \"holding_company\": {},\n"
+                        "  \"headquarters\": {},\n"
+                        "  \"subsidiaries\": [{\"legal_name\": \"\", \"country\": \"\", \"entity_type\": \"\", \"parent\": \"\", \"verification_sources\": [], \"confidence\": \"\"}],\n"
+                        "  \"regional_entities\": [],\n"
+                        "  \"brands\": [],\n"
+                        "  \"joint_ventures\": [],\n"
+                        "  \"divisions\": [],\n"
+                        "  \"business_units\": [],\n"
+                        "  \"acquisitions\": [],\n"
+                        "  \"former_subsidiaries\": [],\n"
+                        "  \"corporate_tree\": \"\",\n"
+                        "  \"mind_map\": \"\",\n"
+                        "  \"summary\": {\"company_overview\": \"\", \"ownership_overview\": \"\", \"corporate_structure_summary\": \"\", \"business_presence\": \"\", \"countries\": [], \"employee_count\": \"\", \"revenue\": \"\", \"industries\": []},\n"
+                        "  \"sources\": [],\n"
+                        "  \"confidence\": \"\"\n"
+                        "}"
+                    )
+                    
+                    if gemini_key.startswith("AIzaSy"):
+                        api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+                        headers = {"Content-Type": "application/json"}
+                    else:
+                        api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+                        headers = {
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {gemini_key}"
+                        }
+                        
+                    payload_ver = {
+                        "contents": [{
+                            "parts": [{
+                                "text": f"{verifier_prompt}\n\nTarget Company Name: {state['company_name']}\nExtracted Company Records: {state['extracted_candidates']}\nWikipedia Data: {json.dumps(state['info'])}\nSearch Snippets: {state['search_snippets']}"
+                            }]
+                        }],
+                        "generationConfig": {
+                            "responseMimeType": "application/json"
+                        }
+                    }
+                    
+                    gemini_res_ver = requests.post(api_url, headers=headers, json=payload_ver, timeout=15)
+                    if gemini_res_ver.status_code == 200:
+                        res_ver_data = gemini_res_ver.json()
+                        verified_json = res_ver_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+                except Exception as e:
+                    print(f"Verifier node failed: {e}")
+            return {**state, "verified_json": verified_json}
             
-    # If both OpenAI and Hugging Face are not successful or not used, try Google Gemini (Two-Agent Extractor-Verifier Pipeline)
-    if not openai_success and gemini_key:
-        try:
-            print("[INTELLIGENCE] Using Enterprise Two-Agent (Extractor -> Verifier) Gemini Pipeline...")
+        def builder_node(state: CorporateAuditGraphState) -> CorporateAuditGraphState:
+            print("[LANGGRAPH] Executing Builder Node...")
+            nonlocal info
+            if state["verified_json"] and state["verified_json"] != "{}":
+                try:
+                    ai_info = json.loads(state["verified_json"])
+                    for k, v in ai_info.items():
+                        info[k] = v
+                    if "ultimate_parent" in ai_info and isinstance(ai_info["ultimate_parent"], dict):
+                        info["parent_entity"] = ai_info["ultimate_parent"].get("legal_name")
+                    elif "parent_company" in ai_info and isinstance(ai_info["parent_company"], dict):
+                        info["parent_entity"] = ai_info["parent_company"].get("legal_name")
+                    subs_list = []
+                    if "subsidiaries" in ai_info and isinstance(ai_info["subsidiaries"], list):
+                        for sub in ai_info["subsidiaries"]:
+                            if isinstance(sub, dict) and sub.get("legal_name"):
+                                subs_list.append(sub["legal_name"])
+                            elif isinstance(sub, str):
+                                subs_list.append(sub)
+                    info["corporate_subsidiaries"] = subs_list
+                    info["subsidiaries_details"] = ai_info.get("subsidiaries", [])
+                    if "summary" in ai_info and isinstance(ai_info["summary"], dict):
+                        info["revenue"] = ai_info["summary"].get("revenue")
+                except Exception as e:
+                    print(f"Builder parsing failed: {e}")
+            return state
             
-            # Auto-detect if key is API key or OAuth access token
-            if gemini_key.startswith("AIzaSy"):
-                api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
-                headers = {"Content-Type": "application/json"}
-            else:
-                api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
-                headers = {
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {gemini_key}"
-                }
-            
-            # --- AGENT 1: EXTRACTOR AGENT ---
-            extractor_prompt = (
-                "You are an Enterprise Corporate Registry Intelligence Agent.\n"
-                "Your task is NOT to search the internet.\n"
-                "Your task is ONLY to analyze the retrieved official documents.\n\n"
-                "Rules:\n"
-                "1. Never hallucinate.\n"
-                "2. Never infer subsidiaries.\n"
-                "3. Never merge company names.\n"
-                "4. One entity per output row.\n"
-                "5. Ignore advertisements.\n"
-                "6. Ignore unrelated acquisitions.\n"
-                "7. Ignore search snippets.\n"
-                "8. Ignore Wikipedia sidebars unless confirmed by official filings.\n"
-                "9. Every entity must have evidence.\n"
-                "10. If evidence is missing return NOT VERIFIED.\n\n"
-                "Only extract:\n"
-                "• Ultimate Parent\n"
-                "• Parent Company\n"
-                "• Holding Company\n"
-                "• Subsidiary\n"
-                "• Joint Venture\n"
-                "• Associate\n"
-                "• Brand\n"
-                "• Product Division\n"
-                "• Regional Operating Company\n"
-                "• Business Unit\n\n"
-                "For every company return:\n"
-                "- Legal Name\n"
-                "- Entity Type\n"
-                "- Parent\n"
-                "- Ultimate Parent\n"
-                "- Ownership %\n"
-                "- Country\n"
-                "- Status\n"
-                "- Official Source\n"
-                "- Evidence\n"
-                "- Confidence\n\n"
-                "Never output 'Inc', 'Ltd', 'Limited', 'Company', 'Corporation', 'PLC', 'LLC' alone. Reject incomplete names. Reject unrelated companies. Reject companies belonging to another parent.\n"
-                "If multiple documents disagree, return CONFLICT DETECTED. Never choose one.\n\n"
-                "Return JSON list only matching this schema:\n"
-                "[\n"
-                "  {\n"
-                "    \"legal_name\": \"\",\n"
-                "    \"entity_type\": \"\",\n"
-                "    \"parent\": \"\",\n"
-                "    \"ultimate_parent\": \"\",\n"
-                "    \"ownership_pct\": \"\",\n"
-                "    \"country\": \"\",\n"
-                "    \"status\": \"\",\n"
-                "    \"official_source\": \"\",\n"
-                "    \"evidence\": \"\",\n"
-                "    \"confidence\": \"\"\n"
-                "  }\n"
-                "]"
-            )
-            
-            payload_ext = {
-                "contents": [{
-                    "parts": [{
-                        "text": f"{extractor_prompt}\n\nCompany Name: {company_name}\nWikipedia Data: {json.dumps(info)}\nSearch Snippets: {search_snippets}"
-                    }]
-                }],
-                "generationConfig": {
-                    "responseMimeType": "application/json"
-                }
-            }
-            
-            extracted_json = "[]"
-            gemini_res = requests.post(api_url, headers=headers, json=payload_ext, timeout=15)
-            if gemini_res.status_code == 200:
-                res_data = gemini_res.json()
-                extracted_json = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
-                print(f"[EXTRACTOR] Raw extraction complete: {len(extracted_json)} characters.")
-            else:
-                print(f"DEBUG: Extractor failed with status: {gemini_res.status_code}")
-                
-            # --- AGENT 2: VERIFIER AGENT ---
-            verifier_prompt = (
-                "You are an enterprise corporate verification and relationship verification agent.\n"
-                "Your task is to verify every extracted entity from the candidate list.\n\n"
-                "Verification Questions for each entity:\n"
-                "1. Is this company legally registered?\n"
-                "2. Is it owned by the target company? (Reject sibling companies, e.g. for Apollo, reject Xilinx, AMD, Silo AI, and ATI Technologies which belong to other parents).\n"
-                "3. Does an official filing mention it?\n"
-                "4. Does the annual report mention it?\n"
-                "5. Is it present in SEC/MCA filings?\n"
-                "6. Is it only a brand?\n"
-                "7. Is it only a product?\n"
-                "8. Is it another company's subsidiary?\n\n"
-                "If any answer to verification is NO (such as it is not owned by target, or belongs to another parent, or is incomplete/garbage), REJECT the entity.\n\n"
-                "Confidence Scoring Rules:\n"
-                "- Annual Report + SEC: 100\n"
-                "- Annual Report: 98\n"
-                "- Official Website + Annual Report: 97\n"
-                "- SEC Only: 95\n"
-                "- Government Registry: 95\n"
-                "- Wikipedia: 60\n"
-                "- Search Results: 40\n\n"
-                "Rule: Reject anything with a confidence score below 90.\n\n"
-                "Correct the company profile metadata (headquarters, revenue, employee count, ultimate parent) to be factually accurate (e.g. Tata Group in Mumbai, India; Monotype in Woburn, MA; Starbucks in Seattle, WA).\n\n"
-                "Return ONLY a valid JSON matching this schema:\n"
-                "{\n"
-                "  \"company\": \"\",\n"
-                "  \"ultimate_parent\": {\"legal_name\": \"\", \"country\": \"\", \"ownership_pct\": \"\", \"entity_type\": \"\", \"parent\": \"\", \"status\": \"\", \"official_website\": \"\", \"source_document\": \"\", \"evidence\": \"\", \"confidence_score\": \"\"},\n"
-                "  \"parent_company\": {},\n"
-                "  \"holding_company\": {},\n"
-                "  \"headquarters\": {},\n"
-                "  \"subsidiaries\": [{\"legal_name\": \"\", \"country\": \"\", \"entity_type\": \"\", \"parent\": \"\", \"verification_sources\": [], \"confidence\": \"\"}],\n"
-                "  \"regional_entities\": [],\n"
-                "  \"brands\": [],\n"
-                "  \"joint_ventures\": [],\n"
-                "  \"divisions\": [],\n"
-                "  \"business_units\": [],\n"
-                "  \"acquisitions\": [],\n"
-                "  \"former_subsidiaries\": [],\n"
-                "  \"corporate_tree\": \"\",\n"
-                "  \"mind_map\": \"\",\n"
-                "  \"summary\": {\"company_overview\": \"\", \"ownership_overview\": \"\", \"corporate_structure_summary\": \"\", \"business_presence\": \"\", \"countries\": [], \"employee_count\": \"\", \"revenue\": \"\", \"industries\": []},\n"
-                "  \"sources\": [],\n"
-                "  \"confidence\": \"\"\n"
-                "}"
-            )
-            
-            payload_ver = {
-                "contents": [{
-                    "parts": [{
-                        "text": f"{verifier_prompt}\n\nTarget Company Name: {company_name}\nExtracted Company Records: {extracted_json}\nWikipedia Data: {json.dumps(info)}\nSearch Snippets: {search_snippets}"
-                    }]
-                }],
-                "generationConfig": {
-                    "responseMimeType": "application/json"
-                }
-            }
-            
-            gemini_res_ver = requests.post(api_url, headers=headers, json=payload_ver, timeout=15)
-            if gemini_res_ver.status_code == 200:
-                res_ver_data = gemini_res_ver.json()
-                text = res_ver_data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
-                ai_info = json.loads(text)
-                
-                # Map all parsed keys into info
-                for k, v in ai_info.items():
-                    info[k] = v
-                
-                # Maintain legacy compatibility keys for the pipeline
-                if "ultimate_parent" in ai_info and isinstance(ai_info["ultimate_parent"], dict):
-                    info["parent_entity"] = ai_info["ultimate_parent"].get("legal_name")
-                elif "parent_company" in ai_info and isinstance(ai_info["parent_company"], dict):
-                    info["parent_entity"] = ai_info["parent_company"].get("legal_name")
-                
-                # Extract subsidiaries names
-                subs_list = []
-                if "subsidiaries" in ai_info and isinstance(ai_info["subsidiaries"], list):
-                    for sub in ai_info["subsidiaries"]:
-                        if isinstance(sub, dict) and sub.get("legal_name"):
-                            subs_list.append(sub["legal_name"])
-                        elif isinstance(sub, str):
-                            subs_list.append(sub)
-                info["corporate_subsidiaries"] = subs_list
-                info["subsidiaries_details"] = ai_info.get("subsidiaries", [])
-                
-                if "summary" in ai_info and isinstance(ai_info["summary"], dict):
-                    info["revenue"] = ai_info["summary"].get("revenue")
-            else:
-                print(f"DEBUG: Verifier failed with status: {gemini_res_ver.status_code}, response: {gemini_res_ver.text}")
-        except Exception as e:
-            print(f"Gemini Two-Agent synthesis failed: {e}")
+        workflow = StateGraph(CorporateAuditGraphState)
+        workflow.add_node("crawl_and_retrieve", retrieve_node)
+        workflow.add_node("extractor", extractor_node)
+        workflow.add_node("verifier", verifier_node)
+        workflow.add_node("builder", builder_node)
+        
+        workflow.set_entry_point("crawl_and_retrieve")
+        workflow.add_edge("crawl_and_retrieve", "extractor")
+        workflow.add_edge("extractor", "verifier")
+        workflow.add_edge("verifier", "builder")
+        workflow.add_edge("builder", END)
+        
+        app = workflow.compile()
+        initial_state = {
+            "company_name": company_name,
+            "search_snippets": search_snippets,
+            "extracted_candidates": "",
+            "verified_json": "",
+            "info": info
+        }
+        result = app.invoke(initial_state)
+        info = result["info"]
+        
+    except Exception as graph_err:
+        print(f"[LANGGRAPH] Fallback to sequential flow: {graph_err}")
             
     # Rule-based NLP extraction fallback using Tavily search snippets
     if search_snippets and (not info.get("corporate_subsidiaries") or len(info["corporate_subsidiaries"]) <= 23):
