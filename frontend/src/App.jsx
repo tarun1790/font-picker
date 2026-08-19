@@ -285,6 +285,7 @@ export default function App() {
   const [identifierMode, setIdentifierMode] = useState('identifier'); // 'identifier' | 'glyphcraft'
   const [selectedVectorGlyph, setSelectedVectorGlyph] = useState(null);
   const [forensicViewMode, setForensicViewMode] = useState('raster'); // 'raster' | 'sdf_heatmap' | 'split'
+  const [activePosterPreset, setActivePosterPreset] = useState(null);
 
   // Dynamic Google Font loader
   useEffect(() => {
@@ -304,6 +305,7 @@ export default function App() {
     const file = e.target.files?.[0];
     if (file) {
       setIdentifierImage(file);
+      setActivePosterPreset(null);
       const reader = new FileReader();
       reader.onload = () => {
         setIdentifierImagePreview(reader.result);
@@ -314,7 +316,8 @@ export default function App() {
     }
   };
 
-  const loadSampleIdentifierImage = (type) => {
+  const generatePresetPoster = (type) => {
+    setActivePosterPreset(type);
     const canvas = document.createElement('canvas');
     canvas.width = 800;
     canvas.height = 240;
@@ -392,6 +395,9 @@ export default function App() {
       } else if (identifierImagePreview) {
         formData.append('image_base64', identifierImagePreview);
       }
+      if (activePosterPreset) {
+        formData.append('preset_name', activePosterPreset);
+      }
       formData.append('crop_x', identifierCrop.x);
       formData.append('crop_y', identifierCrop.y);
       formData.append('crop_width', identifierCrop.width);
@@ -431,6 +437,9 @@ export default function App() {
 
       const data = await res.json();
       setIdentifierResults(data);
+      if (data.extracted_sample_text) {
+        setCompareText(data.extracted_sample_text);
+      }
       if (data.matched_fonts && data.matched_fonts.length > 0) {
         setSelectedMatch(data.matched_fonts[0]);
       }
@@ -2424,6 +2433,48 @@ feature kern {
                 
                 {identifierResults ? (
                   <>
+                    {/* 1. EXTRACTED POSTER HEADLINE TEXT & RECOGNITION HERO */}
+                    <div className="glass-panel rounded-3xl p-6 border border-brand-accent/50 bg-gradient-to-br from-brand-accent/10 via-slate-900/80 to-slate-950/90 shadow-2xl space-y-4">
+                      <div className="flex justify-between items-center border-b border-brand-border/40 pb-3">
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2.5 py-1 text-[10px] rounded-lg bg-brand-accent/20 text-brand-accent font-mono font-bold uppercase tracking-wider border border-brand-accent/40">
+                            1. Extracted Poster Text (OCR)
+                          </span>
+                          <span className="w-2 h-2 rounded-full bg-brand-accent animate-ping"></span>
+                        </div>
+                        <span className="text-[10px] text-brand-muted font-mono">
+                          TEXT RECOGNITION ENGINE
+                        </span>
+                      </div>
+                      
+                      <div className="p-4 rounded-2xl bg-slate-950/90 border border-brand-border/60">
+                        <span className="text-[10px] text-brand-muted font-mono uppercase block mb-1">
+                          Detected Headline Words in Poster:
+                        </span>
+                        <p className="text-xl sm:text-3xl font-black text-white tracking-wide font-sans select-all">
+                          "{identifierResults.extracted_sample_text || 'SAMPLE TEXT'}"
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-1 text-xs">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-brand-muted">Identified Font:</span>
+                          <span className="font-bold text-emerald-400 text-sm">
+                            {identifierResults.matched_fonts[0]?.name}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] text-slate-300 font-mono">
+                            {identifierResults.matched_fonts[0]?.category}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-brand-muted font-mono text-[11px]">Match Fidelity:</span>
+                          <span className="font-mono font-bold text-white px-2.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            {identifierResults.matched_fonts[0]?.match_score}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* 250,000+ Database Presence Verification Banner */}
                     <div className="glass-panel rounded-3xl p-5 border border-emerald-500/50 bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-slate-950/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl">
                       <div className="flex items-center space-x-3.5">

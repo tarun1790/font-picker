@@ -881,7 +881,8 @@ async def api_identify_font(
     crop_y: Optional[float] = Form(None),
     crop_width: Optional[float] = Form(None),
     crop_height: Optional[float] = Form(None),
-    image_base64: Optional[str] = Form(None)
+    image_base64: Optional[str] = Form(None),
+    preset_name: Optional[str] = Form(None)
 ):
     try:
         image_bytes = None
@@ -902,7 +903,7 @@ async def api_identify_font(
                 "height": crop_height
             }
             
-        result = identify_font_pipeline(image_bytes, crop_box)
+        result = identify_font_pipeline(image_bytes, crop_box, preset_name=preset_name)
         return result
     except Exception as e:
         print(f"[IDENTIFIER ERROR] Failed to identify font: {e}")
