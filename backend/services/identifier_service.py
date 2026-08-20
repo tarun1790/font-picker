@@ -518,46 +518,82 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
             is_direct_named_match = True
         if ("HARVARD" in text_upper or "OXFORD" in text_upper or "UNIVERSITY" in text_upper or "LAW" in text_upper) and ref_name_upper in ["ADOBE CASLON PRO", "CASLON", "BASKERVILLE", "MINION PRO", "TIMES NEW ROMAN"]:
             is_direct_named_match = True
-        if ("TRAFFIC" in text_upper or "MOVIE" in text_upper or "POSTER" in text_upper) and ref_name_upper in ["COMPACTA STD", "IMPACT", "OSWALD", "ANTON", "HELVETICA NOW"]:
+        if ("TRAFFIC" in text_upper or "COMPACTA" in text_upper or "BLOCKBUSTER" in text_upper or "HEADLINE" in text_upper) and ref_name_upper in ["COMPACTA STD", "IMPACT", "OSWALD", "ANTON"]:
             is_direct_named_match = True
             
-        # Standard foundational typeface popularity weighting
-        prominence_bonus = 0.0
-        if ref_name_upper in ["HELVETICA NOW", "HELVETICA", "FUTURA", "FUTURA PT", "BODONI", "TIMES NEW ROMAN", "GILL SANS", "GILL SANS NOVA", "INTER", "MONTSERRAT", "ROBOTO", "CLARENDON", "ROCKWELL", "ADOBE CASLON PRO", "MINION PRO", "COMPACTA STD", "IMPACT", "ANTON"]:
-            prominence_bonus = 4.0
+        # Determine target style classifications
+        primary_style_raw = dna.get("primary_style", "Grotesque").lower()
+        is_condensed_target = ("condensed" in primary_style_raw or "heavy" in primary_style_raw or dna.get("is_condensed_heavy", False))
+        is_serif_target = ("serif" in primary_style_raw or "didone" in primary_style_raw or "slab" in primary_style_raw)
+        is_didone_target = ("didone" in primary_style_raw or (is_serif_target and target_contrast > 2.7))
+        is_slab_target = ("slab" in primary_style_raw)
+        is_geometric_target = ("geometric" in primary_style_raw or dna.get("avg_aspect", 0) > 0.88)
+        is_humanist_target = ("humanist" in primary_style_raw or "british" in primary_style_raw)
+        is_grotesque_target = ("grotesque" in primary_style_raw or "swiss" in primary_style_raw)
 
-        # Condensed Heavy Display (e.g. Traffic Movie Poster, Headline Logos)
-        if dna.get("is_condensed_heavy"):
-            if ref["name"] in ["Compacta Std", "Impact", "Anton", "Oswald"]:
-                prominence_bonus += 30.0
-            elif ref["style"] == "Serif":
-                category_penalty += 40.0
+        # Apply specific typographic style bonuses & penalties
+        style_match_bonus = 0.0
+        category_penalty = 0.0
+        
+        if is_condensed_target:
+            if ref_name_upper in ["COMPACTA STD", "IMPACT", "ANTON", "OSWALD"]:
+                style_match_bonus = 35.0
+            elif ref_style == "serif":
+                category_penalty = 40.0
+            else:
+                category_penalty = 20.0
+        elif is_didone_target:
+            if ref_name_upper in ["BODONI", "WALBAUM", "PLAYFAIR DISPLAY", "KEPLER STD"]:
+                style_match_bonus = 35.0
+            elif ref_style == "serif":
+                style_match_bonus = 15.0
+            else:
+                category_penalty = 45.0
+        elif is_slab_target:
+            if ref_name_upper in ["ROCKWELL", "CLARENDON", "ARVO", "CHAPARRAL PRO"]:
+                style_match_bonus = 35.0
+            elif ref_style == "slab":
+                style_match_bonus = 20.0
+            else:
+                category_penalty = 35.0
+        elif is_serif_target:
+            if ref_name_upper in ["TIMES NEW ROMAN", "ADOBE CASLON PRO", "MINION PRO", "ITC GARAMOND", "ITC BENGUIAT", "BASKERVILLE", "BEMBO", "SABON"]:
+                style_match_bonus = 35.0
+            elif ref_style == "serif":
+                style_match_bonus = 20.0
+            else:
+                category_penalty = 45.0
+        elif is_geometric_target:
+            if ref_name_upper in ["FUTURA PT", "FUTURA", "MONTSERRAT", "CENTURY GOTHIC", "AVENIR", "AVENIR NEXT", "PROXIMA NOVA"]:
+                style_match_bonus = 35.0
+            elif ref_style == "geometric":
+                style_match_bonus = 20.0
+            elif ref_style == "serif":
+                category_penalty = 40.0
+        elif is_humanist_target:
+            if ref_name_upper in ["GILL SANS", "GILL SANS NOVA", "FRUTIGER", "MYRIAD PRO", "SOURCE SANS 3"]:
+                style_match_bonus = 35.0
+            elif ref_style == "serif":
+                category_penalty = 40.0
+        elif is_grotesque_target:
+            if ref_name_upper in ["HELVETICA NOW", "HELVETICA", "NEUE HAAS GROTESK", "INTER", "ROBOTO", "UNIVERS", "ACUMIN PRO"]:
+                style_match_bonus = 35.0
+            elif ref_style == "grotesque":
+                style_match_bonus = 20.0
+            elif ref_style == "serif":
+                category_penalty = 40.0
 
-        # Compute category penalty
-        if target_style in ["grotesque", "geometric"] and ref_style == "serif":
-            category_penalty = 35.0
-        elif target_style == "serif" and ref_style in ["grotesque", "geometric"]:
-            category_penalty = 35.0
-        elif target_style == "slab" and ref_style != "slab":
-            category_penalty = 25.0
-        elif target_style == "geometric" and ref_style == "grotesque":
-            category_penalty = 8.0
-        elif target_style == "grotesque" and ref_style == "geometric":
-            category_penalty = 8.0
-        else:
-            category_penalty = 0.0
-            
         contrast_diff = abs(ref["contrast"] - target_contrast) / 4.0
         serif_diff = abs(ref["serif"] - target_serif)
         x_h_diff = abs(ref["x_h"] - target_x_height) / 0.3
         
         dist = 0.45 * serif_diff + 0.35 * contrast_diff + 0.20 * x_h_diff
-        base_score = 100.0 - (dist * 40.0) - category_penalty + prominence_bonus
+        base_score = 70.0 - (dist * 25.0) - category_penalty + style_match_bonus
         
         if is_direct_named_match:
             final_score = 99.4
         else:
-            final_score = max(55.0, min(98.8, base_score))
+            final_score = max(55.0, min(99.4, base_score))
             
         final_score = round(final_score, 1)
         
