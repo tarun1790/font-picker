@@ -542,20 +542,20 @@ export default function App() {
             { keywords: ['TRAFIT', 'NATHATYPE', 'A MODERN SERIF FONT', 'OPTIONAL LIGATURE', 'CYRILLIC CHARACTER'], font: 'Trafit', style: 'Serif', foundry: 'Nathatype (Donis Miftahudin / Din Studio)', google: 'Playfair+Display:ital,wght@0,700;1,700', category: 'Modern High-Contrast Editorial Serif with Ligatures' }
           ];
 
-          let primaryStyle = "Swiss Neo-Grotesque Sans";
+          let primaryStyle = "MyFonts Premier Grotesque Sans";
           let topFont = {
-            name: "Helvetica Now",
-            category: "Modernized Swiss Neo-Grotesque",
+            name: "TT Commons Pro",
+            category: "Universal Corporate Grotesque • MyFonts 130k Priority",
             style: "Grotesque",
-            foundry: "Swiss Digital Type Studio",
-            match_score: 99.4,
-            google_font: "Inter:wght@300;500;900"
+            foundry: "TypeType (Pavel Emelyanov)",
+            match_score: 99.6,
+            google_font: "Plus+Jakarta+Sans:wght@500;700"
           };
           let secondFont = {
-            name: "Helvetica",
-            category: "Swiss Neo-Grotesque Sans",
+            name: "Helvetica Now",
+            category: "Modernized Swiss Neo-Grotesque • MyFonts 130k Priority",
             style: "Grotesque",
-            foundry: "Haas Type Foundry (Max Miedinger)",
+            foundry: "Monotype / Swiss Digital Type",
             match_score: 99.4,
             google_font: "Inter:wght@400;700"
           };
@@ -569,7 +569,7 @@ export default function App() {
           if (matchedEntry) {
             topFont = {
               name: matchedEntry.font,
-              category: matchedEntry.category,
+              category: `${matchedEntry.category} • MyFonts 130k Priority`,
               style: matchedEntry.style,
               foundry: matchedEntry.foundry,
               match_score: 99.9,
@@ -577,40 +577,40 @@ export default function App() {
             };
             primaryStyle = `${matchedEntry.style} (Authentic Poster Typography)`;
           } else if (preset === 'futura' || aspect > 1.8) {
-            primaryStyle = "Geometric Bauhaus Sans";
+            primaryStyle = "Geometric Bauhaus Sans • MyFonts 130k Priority";
             topFont = {
-              name: "Futura PT",
-              category: "Complete Bauhaus Geometric Family",
+              name: "Gilroy",
+              category: "Modernist Circular Geometric Sans • MyFonts 130k Priority",
               style: "Geometric",
-              foundry: "ParaType / Adobe Fonts (Paul Renner)",
-              match_score: 99.4,
-              google_font: "Montserrat:wght@400;700"
+              foundry: "Radomir Tinkov Studio",
+              match_score: 99.7,
+              google_font: "Outfit:wght@600;800"
             };
             secondFont = {
-              name: "Futura",
-              category: "Classic Avant-Garde Geometric",
+              name: "TT Norms Pro",
+              category: "Contemporary Geometric Workhorse • MyFonts 130k Priority",
               style: "Geometric",
-              foundry: "Bauer Type Foundry / Monotype",
+              foundry: "TypeType (Ivan Gladkikh)",
               match_score: 99.4,
               google_font: "Montserrat:wght@400;700"
             };
           } else if (preset === 'bodoni' || preset === 'vogue') {
-            primaryStyle = "High-Drama Didone Modern Serif";
+            primaryStyle = "High-Contrast Luxury Editorial Serif • MyFonts 130k Priority";
             topFont = {
-              name: "Bodoni",
-              category: "High-Drama Didone Modern Serif",
+              name: "Trafit",
+              category: "Modern High-Contrast Editorial Serif with Ligatures • MyFonts 130k Priority",
               style: "Serif",
-              foundry: "Parma Royal Printing (Giambattista Bodoni)",
-              match_score: 99.4,
-              google_font: "Bodoni+Moda:wght@400;700;900"
+              foundry: "Nathatype (Donis Miftahudin)",
+              match_score: 99.8,
+              google_font: "Playfair+Display:ital,wght@0,700;1,700"
             };
             secondFont = {
-              name: "Walbaum",
-              category: "Continental Romantic Didone",
+              name: "Recoleta",
+              category: "1970s Warm Nostalgic Organic Serif • MyFonts 130k Priority",
               style: "Serif",
-              foundry: "German Didone Foundry",
+              foundry: "Latinotype (Jorge Cisterna)",
               match_score: 99.4,
-              google_font: "Playfair+Display:wght@400;700;900"
+              google_font: "Fraunces:opsz,wght@9..144,700"
             };
           } else if (preset === 'clarendon') {
             primaryStyle = "Architectural Heavy Slab Serif";

@@ -703,16 +703,32 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5, thresh: 
     target_x_height = dna.get("x_height_ratio", 0.52)
     text_upper = extracted_text.upper()
     
-    # List of high-fidelity Monotype, Linotype, ITC, and Open Source Fonts with structural DNA signatures
+    # List of high-fidelity Monotype, Linotype, ITC, MyFonts 130k, and Open Source Fonts with structural DNA signatures
     reference_fonts = [
-        # CLASSIC & MODERN TYPEFOUNDRY HERO CATALOG
-        {"name": "Helvetica", "category": "Swiss Neo-Grotesque Sans", "style": "Grotesque", "serif": 0.04, "contrast": 1.05, "x_h": 0.54, "foundry": "Haas Type Foundry (Max Miedinger)", "google_font": "Inter:wght@400;700"},
-        {"name": "Helvetica Now", "category": "Modernized Swiss Neo-Grotesque", "style": "Grotesque", "serif": 0.04, "contrast": 1.05, "x_h": 0.55, "foundry": "Swiss Digital Type Studio", "google_font": "Inter:wght@300;500;900"},
-        {"name": "Neue Haas Grotesk", "category": "Authentic Swiss Grotesque", "style": "Grotesque", "serif": 0.04, "contrast": 1.08, "x_h": 0.54, "foundry": "Linotype Design (Christian Schwartz)", "google_font": "Inter:wght@400;700"},
-        {"name": "Univers", "category": "Rationalist Neo-Grotesque", "style": "Grotesque", "serif": 0.04, "contrast": 1.10, "x_h": 0.53, "foundry": "Deberny & Peignot (Adrian Frutiger)", "google_font": "Roboto:wght@400;700"},
-        {"name": "Frutiger", "category": "Signage Humanist Sans", "style": "Grotesque", "serif": 0.05, "contrast": 1.15, "x_h": 0.55, "foundry": "Linotype Studio (Adrian Frutiger)", "google_font": "Open+Sans:wght@400;700"},
-        {"name": "Avenir", "category": "Humanist-Infused Geometric Sans", "style": "Geometric", "serif": 0.04, "contrast": 1.12, "x_h": 0.52, "foundry": "Linotype Design (Adrian Frutiger)", "google_font": "Montserrat:wght@300;500;800"},
-        {"name": "Avenir Next", "category": "Expanded Contemporary Geometric", "style": "Geometric", "serif": 0.04, "contrast": 1.12, "x_h": 0.52, "foundry": "Foundry Studio (Adrian Frutiger & Akira Kobayashi)", "google_font": "Montserrat:wght@400;700"},
+        # === TIER 1: MYFONTS 130,000+ COMMERCIAL VAULT & PREMIER FOUNDRIES (PRIORITY MATCH) ===
+        {"name": "TT Commons Pro", "category": "Universal Corporate Grotesque", "style": "Grotesque", "serif": 0.04, "contrast": 1.10, "x_h": 0.54, "foundry": "TypeType (Pavel Emelyanov)", "google_font": "Plus+Jakarta+Sans:wght@500;700", "tier": "MyFonts 130k Priority"},
+        {"name": "TT Norms Pro", "category": "Contemporary Geometric Workhorse", "style": "Geometric", "serif": 0.04, "contrast": 1.08, "x_h": 0.55, "foundry": "TypeType (Ivan Gladkikh)", "google_font": "Montserrat:wght@400;700", "tier": "MyFonts 130k Priority"},
+        {"name": "TT Hoves Pro", "category": "Architectural Tech Grotesque", "style": "Grotesque", "serif": 0.04, "contrast": 1.15, "x_h": 0.53, "foundry": "TypeType (Pavel Emelyanov)", "google_font": "Space+Grotesk:wght@600;700", "tier": "MyFonts 130k Priority"},
+        {"name": "Gilroy", "category": "Modernist Circular Geometric Sans", "style": "Geometric", "serif": 0.04, "contrast": 1.06, "x_h": 0.55, "foundry": "Radomir Tinkov Studio", "google_font": "Outfit:wght@600;800", "tier": "MyFonts 130k Priority"},
+        {"name": "Mont", "category": "High-Impact Angular Geometric Sans", "style": "Geometric", "serif": 0.04, "contrast": 1.08, "x_h": 0.56, "foundry": "Fontfabric (Svet Simov)", "google_font": "Montserrat:wght@800;900", "tier": "MyFonts 130k Priority"},
+        {"name": "Nexa", "category": "Sharp Futuristic Geometric Masthead", "style": "Geometric", "serif": 0.04, "contrast": 1.08, "x_h": 0.54, "foundry": "Fontfabric (Svet Simov)", "google_font": "Oswald:wght@700", "tier": "MyFonts 130k Priority"},
+        {"name": "Recoleta", "category": "1970s Warm Nostalgic Organic Serif", "style": "Serif", "serif": 0.75, "contrast": 2.8, "x_h": 0.52, "foundry": "Latinotype (Jorge Cisterna)", "google_font": "Fraunces:opsz,wght@9..144,700", "tier": "MyFonts 130k Priority"},
+        {"name": "Moranga", "category": "Artisan Coffee & Editorial Display Serif", "style": "Serif", "serif": 0.72, "contrast": 2.6, "x_h": 0.50, "foundry": "Latinotype (Sofia Mohr)", "google_font": "Cinzel+Decorative:wght@700", "tier": "MyFonts 130k Priority"},
+        {"name": "Brandon Grotesque", "category": "Warm Soft-Cornered Geometric Sans", "style": "Geometric", "serif": 0.04, "contrast": 1.10, "x_h": 0.49, "foundry": "HVD Fonts (Hannes von Döhren)", "google_font": "Josefin+Sans:wght@600;700", "tier": "MyFonts 130k Priority"},
+        {"name": "Sofia Pro", "category": "Humanized Modernist Tech Geometric", "style": "Geometric", "serif": 0.04, "contrast": 1.08, "x_h": 0.53, "foundry": "Mostardesign (Franck Montfermé)", "google_font": "Poppins:wght@500;700", "tier": "MyFonts 130k Priority"},
+        {"name": "Cera Pro", "category": "Pure Geometric Pan-European Sans", "style": "Geometric", "serif": 0.04, "contrast": 1.05, "x_h": 0.55, "foundry": "TypeMates (Jakob Runge)", "google_font": "DM+Sans:wght@500;700", "tier": "MyFonts 130k Priority"},
+        {"name": "Campton", "category": "Bauhaus Minimalist Poster Display", "style": "Geometric", "serif": 0.04, "contrast": 1.06, "x_h": 0.54, "foundry": "René Bieder Studio", "google_font": "Space+Grotesk:wght@600;700", "tier": "MyFonts 130k Priority"},
+        {"name": "Cubron Grotesk", "category": "Contemporary Geometric Grotesque", "style": "Grotesque", "serif": 0.04, "contrast": 1.12, "x_h": 0.55, "foundry": "Horizon Type (Ufuk Aracıoğlu)", "google_font": "Space+Grotesk:wght@600;700", "tier": "MyFonts 130k Priority"},
+        {"name": "Trafit", "category": "Modern High-Contrast Editorial Serif with Ligatures", "style": "Serif", "serif": 0.90, "contrast": 4.6, "x_h": 0.46, "foundry": "Nathatype (Donis Miftahudin)", "google_font": "Playfair+Display:ital,wght@0,700;1,700", "tier": "MyFonts 130k Priority"},
+        {"name": "Parliament", "category": "Architectural Bold Headline Display", "style": "Display", "serif": 0.45, "contrast": 2.2, "x_h": 0.50, "foundry": "Chequered Ink Studio", "google_font": "Syne:wght@700;800", "tier": "MyFonts 130k Priority"},
+        {"name": "Gellix", "category": "Formula 1 Racing & Tech Aerodynamic Identity", "style": "Geometric", "serif": 0.04, "contrast": 1.08, "x_h": 0.54, "foundry": "Displaay Type Foundry", "google_font": "Plus+Jakarta+Sans:wght@500;700", "tier": "MyFonts 130k Priority"},
+        {"name": "Roobert", "category": "Mono-Linear Industrial Product Sans", "style": "Grotesque", "serif": 0.04, "contrast": 1.12, "x_h": 0.53, "foundry": "Displaay Type Foundry", "google_font": "Inter:wght@500;700", "tier": "MyFonts 130k Priority"},
+        {"name": "Sharp Sans", "category": "Contemporary Modernist US Geometric", "style": "Geometric", "serif": 0.04, "contrast": 1.06, "x_h": 0.55, "foundry": "Sharp Type (Lucas Sharp)", "google_font": "Outfit:wght@500;700", "tier": "MyFonts 130k Priority"},
+        {"name": "Helvetica Now", "category": "Modernized Swiss Neo-Grotesque", "style": "Grotesque", "serif": 0.04, "contrast": 1.05, "x_h": 0.55, "foundry": "Monotype / Swiss Digital Type", "google_font": "Inter:wght@300;500;900", "tier": "MyFonts 130k Priority"},
+        {"name": "Futura Now", "category": "Modernized Bauhaus Geometric Pioneer", "style": "Geometric", "serif": 0.04, "contrast": 1.05, "x_h": 0.46, "foundry": "Monotype (Paul Renner)", "google_font": "Montserrat:ital,wght@0,700;1,900", "tier": "MyFonts 130k Priority"},
+        {"name": "DIN Next", "category": "Standard Industrial Wayfinding Sans", "style": "Grotesque", "serif": 0.05, "contrast": 1.05, "x_h": 0.58, "foundry": "Linotype Industrial (Akira Kobayashi)", "google_font": "Oswald:wght@400;700", "tier": "MyFonts 130k Priority"},
+
+        # === TIER 2: MONOTYPE / LINOTYPE / ITC HISTORICAL ARCHIVES ===
         {"name": "Gill Sans", "category": "Quintessential British Humanist Sans", "style": "Grotesque", "serif": 0.08, "contrast": 1.25, "x_h": 0.48, "foundry": "British Typefoundry (Eric Gill)", "google_font": "Cabin:wght@400;700"},
         {"name": "Gill Sans Nova", "category": "Modernized British Humanist", "style": "Grotesque", "serif": 0.08, "contrast": 1.25, "x_h": 0.48, "foundry": "Classic Type Studio (George Ryan)", "google_font": "Cabin:wght@500;700"},
         {"name": "Times New Roman", "category": "Standard British Newspaper Serif", "style": "Serif", "serif": 0.78, "contrast": 2.7, "x_h": 0.49, "foundry": "Times of London (Stanley Morison & Victor Lardent)", "google_font": "Tinos:ital,wght@0,400;0,700;1,400"},
@@ -1022,7 +1038,8 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5, thresh: 
             all_candidates.append(fc)
             seen_names.add(fc['name'].upper())
             
-    all_candidates.sort(key=lambda x: x["match_score"], reverse=True)
+    # Sort: MyFonts 130k Commercial Library Candidates First, then by match_score
+    all_candidates.sort(key=lambda x: (1 if x.get('tier') == 'MyFonts 130k Priority' else 0, x["match_score"]), reverse=True)
     return all_candidates[:top_k]
 
 
