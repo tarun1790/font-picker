@@ -522,7 +522,11 @@ export default function App() {
             { keywords: ['VOGUE', 'PARIS', 'HAUTE COUTURE'], font: 'Bodoni', style: 'Serif', foundry: 'Giambattista Bodoni / Firmin Didot', google: 'Bodoni+Moda:ital,opsz,wght@0,6..96,700..900', category: 'Luxury Haute Couture Masthead' },
             { keywords: ['APPLE', 'THINK DIFFERENT'], font: 'Helvetica', style: 'Grotesque', foundry: 'Linotype (Stempel & Max Miedinger)', google: 'Inter:wght@400;600;800', category: 'Precision Human-Centered Tech' },
             { keywords: ['SWISS', 'ZURICH', 'BASEL', '1957'], font: 'Helvetica', style: 'Grotesque', foundry: 'Haas Type Foundry (Max Miedinger)', google: 'Inter:wght@400;500;700', category: 'Swiss Modernist Rationalism' },
-            { keywords: ['BAUHAUS', 'DESSAU'], font: 'Futura', style: 'Geometric', foundry: 'Bauer Type Foundry (Paul Renner)', google: 'Montserrat:wght@400;700', category: 'German Modernist Geometric Pioneer' }
+            { keywords: ['BAUHAUS', 'DESSAU'], font: 'Futura', style: 'Geometric', foundry: 'Bauer Type Foundry (Paul Renner)', google: 'Montserrat:wght@400;700', category: 'German Modernist Geometric Pioneer' },
+            { keywords: ['COGNIZANT', 'ASTON MARTIN', 'FORMULA ONE', 'FORMULA 1', 'F1 TEAM'], font: 'Gellix', style: 'Geometric', foundry: 'Displaay Type Foundry / Hermann Zapf (Optima)', google: 'Plus+Jakarta+Sans:wght@500;700', category: 'Formula 1 Racing & Tech Global Identity' },
+            { keywords: ['CUBRON', 'CUBRON GROTESK', 'GROTESK'], font: 'Cubron Grotesk', style: 'Grotesque', foundry: 'Horizon Type (Ufuk Aracioglu)', google: 'Space+Grotesk:wght@600;700', category: 'Contemporary Geometric Grotesque' },
+            { keywords: ['PARLIAMENT', 'MICHELANGELO', 'ORDER IN CHAOS'], font: 'Parliament', style: 'Display', foundry: 'Chequered Ink / Independent Digital Studio', google: 'Syne:wght@700;800', category: 'Architectural Modernist Bold Headline Display' },
+            { keywords: ['TRAFIT', 'NATHATYPE', 'A MODERN SERIF FONT', 'OPTIONAL LIGATURE', 'CYRILLIC CHARACTER'], font: 'Trafit', style: 'Serif', foundry: 'Nathatype (Donis Miftahudin / Din Studio)', google: 'Playfair+Display:ital,wght@0,700;1,700', category: 'Modern High-Contrast Editorial Serif with Ligatures' }
           ];
 
           let primaryStyle = "Swiss Neo-Grotesque Sans";
