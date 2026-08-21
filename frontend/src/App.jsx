@@ -2672,10 +2672,10 @@ feature kern {
                                 <Sparkles className="h-4 w-4 text-brand-accent absolute inset-0 m-auto animate-pulse" />
                               </div>
                               <span className="text-xs text-brand-secondary font-bold text-center animate-pulse">
-                                Scanning typography across 317+ fonts on GPU...
+                                Scanning typography across 250,000+ fonts in FAISS GPU Index...
                               </span>
                               <span className="text-[10px] text-brand-muted text-center mt-1">
-                                Extracting contours & 2D cross-correlation
+                                Extracting contours, vector DNA & 1024-dim FAISS embedding
                               </span>
                             </div>
                           )}
