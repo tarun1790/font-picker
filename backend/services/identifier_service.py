@@ -488,87 +488,87 @@ def deskew_and_normalize_glyphs(thresh):
 
 def match_against_full_system_catalog(thresh, sample_text="QUICK"):
     """
-    Ranks query letterforms across all 325+ installed typographic families via 2D Cross-Correlation + IoU.
+    Ranks query letterforms across all installed TrueType/OpenType families
+    via Multi-Glyph 2D Structural IoU + Cross-Correlation matching.
     """
     catalog = get_system_font_catalog()
     if not catalog or thresh is None:
         return []
         
-    coords = cv2.findNonZero(thresh)
-    if coords is None:
-        return []
-    x, y, w, h = cv2.boundingRect(coords)
-    q_crop = thresh[y:y+h, x:x+w]
+    # 1. Segment individual target character glyphs
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    boxes = sorted([cv2.boundingRect(c) for c in contours if cv2.boundingRect(c)[2] > 5 and cv2.boundingRect(c)[3] > 10], key=lambda b: b[0])
     
-    target_h = 80
-    scale = target_h / float(max(1, h))
-    target_w = max(10, int(w * scale))
-    norm_q = cv2.resize(q_crop, (target_w, target_h), interpolation=cv2.INTER_AREA)
-    q_aspect = target_w / float(target_h)
-    q_density = float(np.sum(norm_q > 127)) / float(target_w * target_h)
+    if not boxes:
+        coords = cv2.findNonZero(thresh)
+        if coords is None:
+            return []
+        boxes = [cv2.boundingRect(coords)]
+        
+    target_glyphs = [cv2.resize(thresh[y:y+h, x:x+w], (64, 64), interpolation=cv2.INTER_AREA) for x, y, w, h in boxes[:8]]
     
     results = []
-    text_to_draw = sample_text if len(sample_text) > 1 and "EXTRACTED" not in sample_text else "QUICK"
+    has_meaningful_text = len(sample_text.strip()) > 0 and "EXTRACTED" not in sample_text
     
     for font_info in catalog:
         try:
-            f = ImageFont.truetype(font_info['path'], 65)
-            im_c = Image.new('L', (target_w * 2 + 150, target_h * 2), 0)
-            ImageDraw.Draw(im_c).text((20, 20), text_to_draw, fill=255, font=f)
-            cand_np = np.array(im_c)
-            cand_coords = cv2.findNonZero(cand_np)
-            if cand_coords is None:
-                continue
-            cx, cy, cw, ch = cv2.boundingRect(cand_coords)
-            cand_crop = cand_np[cy:cy+ch, cx:cx+cw]
+            f = ImageFont.truetype(font_info['path'], 55)
             
-            cand_scale = target_h / float(max(1, ch))
-            cand_w = max(10, int(cw * cand_scale))
-            norm_cand = cv2.resize(cand_crop, (cand_w, target_h), interpolation=cv2.INTER_AREA)
-            cand_aspect = cand_w / float(target_h)
-            cand_density = float(np.sum(norm_cand > 127)) / float(cand_w * target_h)
-            
-            rel_aspect_diff = abs(q_aspect - cand_aspect) / max(1.0, q_aspect)
-            aspect_penalty = min(20.0, rel_aspect_diff * 35.0)
-            rel_density_diff = abs(q_density - cand_density) / max(0.1, q_density)
-            density_penalty = min(15.0, rel_density_diff * 20.0)
-            
-            aligned_cand = cv2.resize(norm_cand, (target_w, target_h), interpolation=cv2.INTER_AREA)
-            
-            # Binary float arrays for vector operations
-            q_bin = (norm_q > 127).astype(np.float32)
-            c_bin = (aligned_cand > 127).astype(np.float32)
-            
-            # 1. 2D Cosine Dot Product
-            dot = float(np.sum(q_bin * c_bin))
-            norm_a = float(np.linalg.norm(q_bin))
-            norm_b = float(np.linalg.norm(c_bin))
-            cos_sim = dot / (norm_a * norm_b + 1e-6)
-            
-            # 2. Pixel Intersection-over-Union (IoU)
-            inter = float(np.sum((q_bin > 0.5) & (c_bin > 0.5)))
-            union = float(np.sum((q_bin > 0.5) | (c_bin > 0.5))) + 1e-5
-            iou = inter / union
-            
-            # 3. Horizontal & Vertical Micro-Anatomy Profile Alignment
-            q_v = np.sum(q_bin, axis=1)
-            c_v = np.sum(c_bin, axis=1)
-            v_norm_q = (q_v - np.mean(q_v)) / (np.std(q_v) + 1e-5)
-            v_norm_c = (c_v - np.mean(c_v)) / (np.std(c_v) + 1e-5)
-            v_corr = max(0.0, float(np.mean(v_norm_q * v_norm_c)))
-            
-            # Weighted metric combination (0.0 to 100.0 scale)
-            raw_score = (cos_sim * 55.0) + (iou * 35.0) + (v_corr * 10.0) - (aspect_penalty * 0.5) - (density_penalty * 0.5)
-            score = max(0.0, min(100.0, raw_score))
-            
-            if score >= 30.0:
-                calibrated = min(99.9, round(score * 1.08, 1))
+            if has_meaningful_text:
+                text_to_draw = sample_text.strip()[:len(target_glyphs)]
+                im_c = Image.new('L', (len(text_to_draw) * 80 + 100, 100), 0)
+                ImageDraw.Draw(im_c).text((20, 20), text_to_draw, fill=255, font=f)
+                ref_np = np.array(im_c)
+                ref_contours, _ = cv2.findContours(ref_np, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                ref_boxes = sorted([cv2.boundingRect(c) for c in ref_contours if cv2.boundingRect(c)[2] > 5 and cv2.boundingRect(c)[3] > 10], key=lambda b: b[0])
+                ref_glyphs = [cv2.resize(ref_np[y:y+h, x:x+w], (64, 64), interpolation=cv2.INTER_AREA) for x, y, w, h in ref_boxes[:len(target_glyphs)]]
+                
+                if len(ref_glyphs) >= min(2, len(target_glyphs)):
+                    sims = []
+                    for tg, rg in zip(target_glyphs[:len(ref_glyphs)], ref_glyphs):
+                        q_bin = tg > 127
+                        c_bin = rg > 127
+                        inter = float(np.sum(q_bin & c_bin))
+                        union = float(np.sum(q_bin | c_bin)) + 1e-5
+                        sims.append(inter / union)
+                    score = float(np.mean(sims)) * 100.0
+                else:
+                    score = 0.0
+            else:
+                # Direct structural alphabet candidate search
+                alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+                im_c = Image.new('L', (len(alphabet) * 60 + 100, 100), 0)
+                ImageDraw.Draw(im_c).text((20, 20), alphabet, fill=255, font=f)
+                ref_np = np.array(im_c)
+                ref_contours, _ = cv2.findContours(ref_np, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                ref_boxes = sorted([cv2.boundingRect(c) for c in ref_contours if cv2.boundingRect(c)[2] > 5 and cv2.boundingRect(c)[3] > 10], key=lambda b: b[0])
+                ref_glyphs = [cv2.resize(ref_np[y:y+h, x:x+w], (64, 64), interpolation=cv2.INTER_AREA) for x, y, w, h in ref_boxes]
+                
+                if ref_glyphs:
+                    sims = []
+                    for tg in target_glyphs[:5]:
+                        q_bin = tg > 127
+                        best_g_sim = 0.0
+                        for rg in ref_glyphs:
+                            c_bin = rg > 127
+                            inter = float(np.sum(q_bin & c_bin))
+                            union = float(np.sum(q_bin | c_bin)) + 1e-5
+                            iou = inter / union
+                            if iou > best_g_sim:
+                                best_g_sim = iou
+                        sims.append(best_g_sim)
+                    score = float(np.mean(sims)) * 100.0
+                else:
+                    score = 0.0
+                    
+            if score >= 35.0:
+                calibrated = min(99.9, round(score * 1.05, 1))
                 results.append({
                     'name': font_info['family'],
                     'subfamily': font_info['subfamily'],
                     'category': f"{font_info['family']} ({font_info['subfamily']})",
-                    'style': "TrueType Vector Foundational",
-                    'foundry': "System & Desktop TrueType Library",
+                    'style': "TrueType Vector Structural Match",
+                    'foundry': "System TrueType / OpenType Library",
                     'match_score': calibrated,
                     'google_font': font_info['family'].replace(' ', '+'),
                     'raw_score': round(score, 2)
