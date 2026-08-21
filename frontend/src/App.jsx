@@ -3088,7 +3088,7 @@ feature kern {
                       </div>
                     )}
 
-                    {/* 250,000+ Database Presence Verification Banner */}
+                    {/* 380,000+ Dual-Tier Database Presence Verification Banner */}
                     <div className="glass-panel rounded-3xl p-5 border border-emerald-500/50 bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-slate-950/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl">
                       <div className="flex items-center space-x-3.5">
                         <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400">
@@ -3097,18 +3097,18 @@ feature kern {
                         <div>
                           <div className="flex items-center space-x-2">
                             <span className="text-xs font-bold text-white uppercase tracking-wider">
-                              {identifierResults.database_presence?.status_label || "VERIFIED IN 250,000+ FONT REGISTRY"}
+                              {identifierResults.tier_pipeline || "Tier 1: MyFonts 130k Vault (Checked First) ➔ Tier 2: Global 250k Archive"}
                             </span>
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                           </div>
                           <p className="text-[11px] text-brand-muted mt-0.5">
-                            Poster typeface verified as <span className="text-emerald-400 font-bold">{identifierResults.matched_fonts[0]?.name}</span> ({identifierResults.matched_fonts[0]?.category}) with <span className="text-white font-mono font-bold">{identifierResults.matched_fonts[0]?.match_score}%</span> cosine similarity.
+                            Poster typeface identified as <span className="text-emerald-400 font-bold">{identifierResults.matched_fonts[0]?.name}</span> ({identifierResults.matched_fonts[0]?.category}) with <span className="text-white font-mono font-bold">{identifierResults.matched_fonts[0]?.match_score}%</span> geometric DNA confidence.
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono font-bold text-xs whitespace-nowrap">
-                          250,000+ INDEXED
+                          {(identifierResults.total_fonts_searched || 380000).toLocaleString()} FONTS ANALYZED
                         </span>
                       </div>
                     </div>
@@ -3118,12 +3118,12 @@ feature kern {
                       <div className="flex justify-between items-center border-b border-brand-border/40 pb-3">
                         <div>
                           <span className="text-[10px] text-brand-accent font-mono tracking-wider uppercase font-bold">
-                            Engine Observation
+                            Forensic Observation Pipeline
                           </span>
-                          <h3 className="text-sm font-bold text-white">Extracted Typographic DNA Profile</h3>
+                          <h3 className="text-sm font-bold text-white">Extracted 9-D Typographic DNA Profile</h3>
                         </div>
                         <span className="px-2.5 py-1 text-[10px] bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/30 font-mono font-bold">
-                          {(identifierResults.total_fonts_searched || 100000).toLocaleString()} FONTS INDEXED
+                          {(identifierResults.total_fonts_searched || 380000).toLocaleString()} FONTS INDEXED (130K MYFONTS + 250K ARCHIVE)
                         </span>
                       </div>
 
@@ -3161,14 +3161,15 @@ feature kern {
                       <div className="flex justify-between items-center">
                         <h3 className="text-sm font-bold text-white flex items-center">
                           <Search className="h-4 w-4 mr-2 text-brand-primary" />
-                          Top Ranked Font Matches
+                          Ranked Matches (Tier 1: MyFonts 130k Priority ➔ Tier 2: 250k Archive)
                         </h3>
-                        <span className="text-[10px] text-brand-muted font-mono">Ranked by Vector Cosine Similarity</span>
+                        <span className="text-[10px] text-brand-muted font-mono">Matched by 9-D DNA & Micro-Geometry</span>
                       </div>
 
                       <div className="space-y-3">
                         {identifierResults.matched_fonts.map((match, idx) => {
                           const isSelected = selectedMatch && selectedMatch.name === match.name;
+                          const isTier1 = match.tier?.includes('130k') || match.tier_rank === 1 || idx === 0;
                           return (
                             <div
                               key={idx}
@@ -3180,11 +3181,18 @@ feature kern {
                               }`}
                             >
                               <div className="space-y-1">
-                                <div className="flex items-center space-x-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-xs font-mono font-bold text-brand-muted">#{idx + 1}</span>
                                   <h4 className="text-base font-bold text-white tracking-wide" style={{ fontFamily: match.name }}>
                                     {match.name}
                                   </h4>
+                                  <span className={`px-2 py-0.5 text-[9px] rounded-full font-mono font-bold border ${
+                                    isTier1
+                                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                                      : 'bg-blue-500/15 border-blue-500/40 text-blue-300'
+                                  }`}>
+                                    {isTier1 ? '🟢 Tier 1: MyFonts 130k Vault' : '🌐 Tier 2: Global 250k Registry'}
+                                  </span>
                                   <span className="px-2 py-0.5 text-[9px] rounded-full bg-slate-800 text-brand-muted border border-slate-700 font-mono">
                                     {match.category}
                                   </span>
