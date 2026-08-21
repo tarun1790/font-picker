@@ -4558,9 +4558,9 @@ feature kern {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-mono border border-white/10 flex items-center gap-1.5 transition-colors"
-                      title="Download 130,000 Font Names CSV Spreadsheet (4.3 MB)"
+                      title="Download 130,000 Font Names CSV Spreadsheet (22.6 MB)"
                     >
-                      <Download className="h-3.5 w-3.5 text-emerald-400" /> Names CSV (4.3 MB)
+                      <Download className="h-3.5 w-3.5 text-emerald-400" /> Names CSV (22.6 MB)
                     </a>
                   </div>
                 </div>
