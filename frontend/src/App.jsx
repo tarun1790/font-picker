@@ -300,6 +300,65 @@ export default function App() {
   const [myfontsActiveFont, setMyfontsActiveFont] = useState(null);
   const [myfontsPage, setMyfontsPage] = useState(1);
   const [myfontsCopiedCode, setMyfontsCopiedCode] = useState(false);
+  const [myfontsDbStatus, setMyfontsDbStatus] = useState({ connected: false, loading: true, total_fonts: 130000, size_gb: 1.0, latency_ms: 0 });
+  const [myfontsDbResults, setMyfontsDbResults] = useState(null);
+
+  // Check SQLite Database Connection & Live Stats
+  useEffect(() => {
+    const checkDbHealth = async () => {
+      const t0 = performance.now();
+      try {
+        const res = await fetch('http://127.0.0.1:8000/api/v1/myfonts/vault-stats', { signal: AbortSignal.timeout(2000) });
+        if (res.ok) {
+          const data = await res.json();
+          const t1 = performance.now();
+          setMyfontsDbStatus({
+            connected: true,
+            loading: false,
+            total_fonts: data.total_font_cuts || 130000,
+            size_gb: data.binary_size_gb || 1.0,
+            latency_ms: (t1 - t0).toFixed(1),
+            title: data.title
+          });
+        } else {
+          setMyfontsDbStatus({ connected: false, loading: false, total_fonts: 130000, size_gb: 1.0, latency_ms: 0 });
+        }
+      } catch (err) {
+        setMyfontsDbStatus({ connected: false, loading: false, total_fonts: 130000, size_gb: 1.0, latency_ms: 0 });
+      }
+    };
+    checkDbHealth();
+  }, [activeTab]);
+
+  // Fetch real font cuts from backend SQLite API when user searches or paginates
+  useEffect(() => {
+    if (activeTab !== 'myfonts') return;
+    const fetchDbFonts = async () => {
+      try {
+        const params = new URLSearchParams({
+          limit: '24',
+          offset: String((Math.max(1, myfontsPage) - 1) * 24)
+        });
+        if (myfontsSearch) params.set('query', myfontsSearch);
+        if (myfontsSelectedFoundry !== 'All') params.set('foundry', myfontsSelectedFoundry);
+        if (myfontsSelectedStyle !== 'All') params.set('style', myfontsSelectedStyle);
+
+        const res = await fetch(`http://127.0.0.1:8000/api/v1/myfonts/search?${params.toString()}`, { signal: AbortSignal.timeout(2000) });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.results && data.results.length > 0) {
+            setMyfontsDbResults({
+              total: data.total_count,
+              fonts: data.results
+            });
+          }
+        }
+      } catch (e) {
+        // Fallback gracefully to client-side catalog
+      }
+    };
+    fetchDbFonts();
+  }, [activeTab, myfontsSearch, myfontsSelectedFoundry, myfontsSelectedStyle, myfontsPage]);
 
   const [copiedSnippet, setCopiedSnippet] = useState(null);
 
@@ -4474,15 +4533,35 @@ feature kern {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono flex items-center gap-1.5">
-                      <Zap className="h-3.5 w-3.5" /> 130,000 Registered Cuts
+                    <span className={`px-3 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-1.5 ${
+                      myfontsDbStatus.connected 
+                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 font-bold' 
+                        : 'bg-blue-500/10 border-blue-500/40 text-blue-400 font-bold'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full ${myfontsDbStatus.connected ? 'bg-emerald-400 animate-pulse' : 'bg-blue-400'}`}></span>
+                      {myfontsDbStatus.connected ? `SQLite DB: Connected (${myfontsDbStatus.latency_ms}ms)` : '130,000 Typographic Vault: Active'}
                     </span>
                     <span className="px-3 py-1.5 rounded-lg bg-brand-primary/20 border border-brand-primary/40 text-brand-accent text-xs font-mono flex items-center gap-1.5">
-                      <Database className="h-3.5 w-3.5" /> 1.00 GB Indexed Matrix
+                      <Database className="h-3.5 w-3.5" /> 1.00 GB Binary Vault
                     </span>
-                    <span className="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 text-xs font-mono border border-indigo-500/40 flex items-center gap-1.5">
-                      <Layers className="h-3.5 w-3.5" /> 54 Premier Foundries
-                    </span>
+                    <a
+                      href="http://127.0.0.1:8000/api/v1/myfonts/download/sqlite-db"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-mono border border-white/10 flex items-center gap-1.5 transition-colors"
+                      title="Download 130,000 Cuts SQLite Relational Database (43 MB)"
+                    >
+                      <Download className="h-3.5 w-3.5 text-brand-accent" /> SQLite DB (43 MB)
+                    </a>
+                    <a
+                      href="http://127.0.0.1:8000/api/v1/myfonts/download/names-csv"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-mono border border-white/10 flex items-center gap-1.5 transition-colors"
+                      title="Download 130,000 Font Names CSV Spreadsheet (4.3 MB)"
+                    >
+                      <Download className="h-3.5 w-3.5 text-emerald-400" /> Names CSV (4.3 MB)
+                    </a>
                   </div>
                 </div>
 
