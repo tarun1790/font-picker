@@ -276,6 +276,7 @@ export default function App() {
   const [identifierImage, setIdentifierImage] = useState(null);
   const [identifierImagePreview, setIdentifierImagePreview] = useState(null);
   const [activePosterPreset, setActivePosterPreset] = useState(null);
+  const [manualTextHint, setManualTextHint] = useState('');
   const [identifierCrop, setIdentifierCrop] = useState({ x: 0.05, y: 0.15, width: 0.9, height: 0.7 });
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [identifierResults, setIdentifierResults] = useState(null);
@@ -755,7 +756,7 @@ export default function App() {
     setIsIdentifying(true);
     setIdentifierError(null);
     const crop = cropCoords || identifierCrop;
-    const activePreset = preset !== undefined ? preset : activePosterPreset;
+    const activePreset = (manualTextHint && manualTextHint.trim()) ? manualTextHint.trim() : (preset !== undefined ? preset : activePosterPreset);
 
     try {
       const formData = new FormData();
@@ -2872,6 +2873,24 @@ feature kern {
                           className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-accent"
                         />
                       </div>
+                    </div>
+
+                    {/* Headline / Poster Text Hint */}
+                    <div className="pt-2">
+                      <label className="text-[11px] font-bold text-white mb-1.5 flex items-center justify-between">
+                        <span className="flex items-center space-x-1.5">
+                          <Type className="h-3 w-3 text-brand-accent" />
+                          <span>Poster / Headline Text Hint (Optional):</span>
+                        </span>
+                        <span className="text-[9px] text-brand-accent font-normal font-mono">Locks onto exact title</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. JUST DO IT, OPPENHEIMER, VOGUE, THE BATMAN..."
+                        value={manualTextHint}
+                        onChange={(e) => setManualTextHint(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-900/90 border border-brand-border/80 focus:border-brand-accent rounded-xl text-xs text-white placeholder-brand-muted/50 focus:outline-none transition-all shadow-inner"
+                      />
                     </div>
 
                     {/* Submit Button */}
