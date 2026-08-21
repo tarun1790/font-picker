@@ -335,21 +335,28 @@ export default function App() {
     setIdentifierImage(file);
     setActivePosterPreset(null);
     setIdentifierError(null);
+    
+    // 1. Synchronously display image immediately with zero latency!
+    try {
+      const immediateUrl = URL.createObjectURL(file);
+      setIdentifierImagePreview(immediateUrl);
+    } catch (e) {}
+    setIdentifierResults(null);
+    setSelectedMatch(null);
+
+    // 2. Asynchronously load Base64 data for deep recognition
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result;
       if (dataUrl) {
         setIdentifierImagePreview(dataUrl);
-        setIdentifierResults(null);
-        setSelectedMatch(null);
-        // Auto-trigger font scan immediately on photo selection!
         setTimeout(() => {
           executeFontScan(file, dataUrl, null, { x: 0.05, y: 0.15, width: 0.9, height: 0.7 });
         }, 50);
       }
     };
     reader.onerror = () => {
-      setIdentifierError('Failed to read the uploaded image file.');
+      executeFontScan(file, null, null, { x: 0.05, y: 0.15, width: 0.9, height: 0.7 });
     };
     reader.readAsDataURL(file);
   };
@@ -2219,21 +2226,25 @@ feature kern {
                     />
                   </div>
 
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange} 
+                    className="hidden" 
+                    accept="image/*"
+                  />
                   {/* Real Uploader */}
                   <div 
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                        fileInputRef.current.click();
+                      }
+                    }}
                     onDragOver={handleDragOver}
                     onDrop={handleDrop}
                     className="border-2 border-dashed border-brand-border rounded-xl p-6 text-center hover:border-brand-primary/50 transition-colors cursor-pointer bg-brand-bg/50 relative animate-fade-in"
                   >
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      onClick={(e) => { e.target.value = null; }}
-                      onChange={handleFileChange} 
-                      className="hidden" 
-                      accept="image/*"
-                    />
                     {previewUrl ? (
                       <div className="space-y-2">
                         <img src={previewUrl} className="max-h-24 mx-auto rounded border border-brand-border shadow-md" alt="Preview" />
@@ -2569,21 +2580,27 @@ feature kern {
                     <span className="text-[10px] text-brand-muted font-mono">PNG, JPG, WEBP</span>
                   </div>
 
+                  {/* Real Hidden File Input - Placed outside container to prevent double click bugs */}
+                  <input
+                    type="file"
+                    ref={identifierFileInputRef}
+                    accept="image/*"
+                    onChange={handleIdentifierImageUpload}
+                    className="hidden"
+                  />
+
                   {/* Dropzone */}
                   <div
-                    onClick={() => identifierFileInputRef.current?.click()}
+                    onClick={() => {
+                      if (identifierFileInputRef.current) {
+                        identifierFileInputRef.current.value = '';
+                        identifierFileInputRef.current.click();
+                      }
+                    }}
                     onDragOver={handleIdentifierDragOver}
                     onDrop={handleIdentifierDrop}
                     className="border-2 border-dashed border-brand-border hover:border-brand-primary/60 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center bg-slate-900/40 hover:bg-slate-900/70 group relative overflow-hidden"
                   >
-                    <input
-                      type="file"
-                      ref={identifierFileInputRef}
-                      accept="image/*"
-                      onClick={(e) => { e.stopPropagation(); e.target.value = null; }}
-                      onChange={handleIdentifierImageUpload}
-                      className="hidden"
-                    />
                     
                     {identifierImagePreview ? (
                       <div className="space-y-3 flex flex-col items-center w-full">
@@ -2618,9 +2635,20 @@ feature kern {
                         <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                           <Upload className="h-6 w-6 text-brand-primary" />
                         </div>
-                        <span className="text-sm font-bold text-white mb-1">Click to Browse or Drag & Drop Photo</span>
-                        <span className="text-xs text-brand-muted">Supports JPG, PNG, WEBP, Screen Captures, Posters</span>
-                        <span className="text-[10px] text-brand-secondary/80 font-mono mt-3 px-2 py-0.5 rounded bg-brand-secondary/10 border border-brand-secondary/20">
+                        <span className="text-sm font-bold text-white mb-2">Drag & Drop Image or Click Below</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            identifierFileInputRef.current?.click();
+                          }}
+                          className="px-4 py-2 bg-gradient-to-r from-brand-primary to-brand-accent text-white font-bold rounded-xl text-xs shadow-lg hover:shadow-brand-primary/30 transition-all mb-2 flex items-center space-x-2"
+                        >
+                          <Crop className="h-3.5 w-3.5" />
+                          <span>Select Photo from Computer</span>
+                        </button>
+                        <span className="text-[11px] text-brand-muted">Supports JPG, PNG, WEBP, Screen Captures, Posters</span>
+                        <span className="text-[10px] text-brand-secondary/80 font-mono mt-2 px-2 py-0.5 rounded bg-brand-secondary/10 border border-brand-secondary/20">
                           Tip: You can also paste directly with Ctrl+V
                         </span>
                       </div>
