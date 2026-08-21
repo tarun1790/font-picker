@@ -62,13 +62,45 @@ def preprocess_and_crop(image_bytes: bytes, crop_box: dict = None):
         
     np_img = np.array(image)
     gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
+    ih, iw = gray.shape
     
-    # Otsu thresholding produces clean character separation
-    if np.mean(gray) < 127:
-        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    else:
-        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    candidates = []
+    
+    # Candidate 1: Otsu Auto-Polarity
+    _, th1 = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    if np.mean(th1 == 255) > 0.5:
+        th1 = cv2.bitwise_not(th1)
+    candidates.append(th1)
+    
+    # Candidate 2: Adaptive Gaussian
+    try:
+        th2 = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 25, 10)
+        candidates.append(th2)
+    except Exception:
+        pass
         
+    # Candidate 3: Color K-Means 2-Cluster Quantization
+    try:
+        pixels = np_img.reshape((-1, 3)).astype(np.float32)
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        _, labels, _ = cv2.kmeans(pixels, 2, None, criteria, 5, cv2.KMEANS_RANDOM_CENTERS)
+        th3 = (labels.reshape((ih, iw)).astype(np.uint8)) * 255
+        if np.mean(th3 == 255) > 0.5:
+            th3 = cv2.bitwise_not(th3)
+        candidates.append(th3)
+    except Exception:
+        pass
+        
+    def evaluate_mask(mask):
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        valid_boxes = [cv2.boundingRect(c) for c in contours if 8 < cv2.boundingRect(c)[3] < ih * 0.95 and 4 < cv2.boundingRect(c)[2] < iw * 0.8]
+        if not valid_boxes:
+            return -1.0
+        y_centers = [y + bh/2.0 for bx, y, bw, bh in valid_boxes]
+        std_y = np.std(y_centers) if len(y_centers) > 1 else 10.0
+        return len(valid_boxes) * 10.0 - std_y
+        
+    thresh = max(candidates, key=evaluate_mask) if candidates else th1
     return image, gray, thresh
 
 
@@ -496,7 +528,14 @@ def match_against_full_system_catalog(thresh, sample_text="QUICK"):
             corr = float(corr_mat[0][0]) if corr_mat is not None and not np.isnan(corr_mat[0][0]) else 0.0
             corr = max(0.0, corr)
             
-            raw_score = (iou * 55.0) + (corr * 45.0) - aspect_penalty - density_penalty
+            # Horizontal & Vertical Micro-Anatomy Profile Alignment
+            q_v = np.sum(norm_q > 127, axis=1).astype(np.float32)
+            c_v = np.sum(aligned_cand > 127, axis=1).astype(np.float32)
+            v_norm_q = (q_v - np.mean(q_v)) / (np.std(q_v) + 1e-5)
+            v_norm_c = (c_v - np.mean(c_v)) / (np.std(c_v) + 1e-5)
+            v_corr = max(0.0, float(np.mean(v_norm_q * v_norm_c)))
+            
+            raw_score = (iou * 45.0) + (corr * 40.0) + (v_corr * 15.0) - aspect_penalty - density_penalty
             score = max(0.0, min(100.0, raw_score))
             
             if score >= 35.0:
