@@ -1275,6 +1275,18 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
                 extracted_text = full_text
         else:
             extracted_text = full_text
+            
+    # Also scan uncropped source bytes if available for maximum headline recall
+    try:
+        full_source_img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        source_text = transcribe_poster_text(full_source_img, None, None)
+        if "EXTRACTED" not in source_text and len(source_text.strip()) > 1:
+            if extracted_text and "EXTRACTED" not in extracted_text:
+                extracted_text = f"{source_text} {extracted_text}".strip()
+            else:
+                extracted_text = source_text
+    except Exception:
+        pass
     
     # 3. Typographic DNA Analysis with Text Hints
     dna = extract_typographic_dna(gray, thresh, extracted_text=extracted_text)
