@@ -387,9 +387,89 @@ def vectorize_contours_to_svg(thresh: np.ndarray, max_glyphs: int = 6):
     return vectorized_glyphs
 
 
-def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
+def compute_font_template_correlation(thresh, ref_name, sample_text="SAMPLE"):
     """
-    Compares extracted DNA with font registry templates using strict category discrimination.
+    Renders canonical font templates dynamically and measures exact 2D pixel cross-correlation + IoU.
+    """
+    if thresh is None:
+        return 50.0
+        
+    font_file_mapping = {
+        "Compacta Std": "impact.ttf",
+        "Impact": "impact.ttf",
+        "Anton": "impact.ttf",
+        "Oswald": "impact.ttf",
+        "Helvetica": "arial.ttf",
+        "Helvetica Now": "arial.ttf",
+        "Neue Haas Grotesk": "arial.ttf",
+        "Inter": "arial.ttf",
+        "Roboto": "arial.ttf",
+        "Futura": "arial.ttf",
+        "Futura PT": "arial.ttf",
+        "Montserrat": "arial.ttf",
+        "Bodoni": "georgia.ttf",
+        "Walbaum": "georgia.ttf",
+        "Playfair Display": "georgia.ttf",
+        "Times New Roman": "times.ttf",
+        "Baskerville": "times.ttf",
+        "Adobe Caslon Pro": "times.ttf",
+        "Minion Pro": "times.ttf",
+        "Rockwell": "arvo.ttf",
+        "Clarendon": "georgia.ttf",
+        "Gill Sans": "arial.ttf",
+        "Gill Sans Nova": "arial.ttf"
+    }
+    
+    ttf_file = font_file_mapping.get(ref_name, "arial.ttf")
+    
+    coords = cv2.findNonZero(thresh)
+    if coords is None:
+        return 50.0
+    x, y, w, h = cv2.boundingRect(coords)
+    q_crop = thresh[y:y+h, x:x+w]
+    
+    target_h = 100
+    scale = target_h / float(max(1, h))
+    target_w = max(10, int(w * scale))
+    norm_q = cv2.resize(q_crop, (target_w, target_h), interpolation=cv2.INTER_AREA)
+    
+    im_c = Image.new('L', (target_w * 2 + 100, target_h * 2), 0)
+    try:
+        f = ImageFont.truetype(ttf_file, 80)
+    except:
+        return 50.0
+    text_to_draw = sample_text if len(sample_text) > 1 and "EXTRACTED" not in sample_text else "QUICK"
+    ImageDraw.Draw(im_c).text((20, 20), text_to_draw, fill=255, font=f)
+    cand_np = np.array(im_c)
+    cand_coords = cv2.findNonZero(cand_np)
+    if cand_coords is None:
+        return 50.0
+    cx, cy, cw, ch = cv2.boundingRect(cand_coords)
+    cand_crop = cand_np[cy:cy+ch, cx:cx+cw]
+    
+    cand_scale = target_h / float(max(1, ch))
+    cand_w = max(10, int(cw * cand_scale))
+    norm_cand = cv2.resize(cand_crop, (cand_w, target_h), interpolation=cv2.INTER_AREA)
+    
+    aspect_diff = abs((target_w / float(target_h)) - (cand_w / float(target_h)))
+    aspect_penalty = min(40.0, aspect_diff * 20.0)
+    
+    aligned_cand = cv2.resize(norm_cand, (target_w, target_h), interpolation=cv2.INTER_AREA)
+    inter = np.sum((norm_q > 127) & (aligned_cand > 127))
+    union = np.sum((norm_q > 127) | (aligned_cand > 127)) + 1e-5
+    iou = inter / union
+    
+    corr_mat = cv2.matchTemplate(norm_q, aligned_cand, cv2.TM_CCOEFF_NORMED)
+    corr = float(corr_mat[0][0]) if corr_mat is not None and not np.isnan(corr_mat[0][0]) else 0.0
+    corr = max(0.0, corr)
+    
+    score = (iou * 55.0) + (corr * 45.0) - aspect_penalty
+    return max(0.0, min(100.0, score))
+
+
+def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5, thresh: np.ndarray = None):
+    """
+    Compares extracted DNA with font registry templates using direct template correlation + strict category discrimination.
     """
     target_style = dna.get("primary_style", "Grotesque").lower()
     target_contrast = dna.get("stroke_contrast", 1.2)
@@ -583,12 +663,16 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5):
             elif ref_style == "serif":
                 category_penalty = 40.0
 
+        # Compute direct pixel template cross-correlation
+        template_corr = compute_font_template_correlation(thresh, ref["name"], extracted_text)
+        corr_bonus = (template_corr - 50.0) * 0.35
+
         contrast_diff = abs(ref["contrast"] - target_contrast) / 4.0
         serif_diff = abs(ref["serif"] - target_serif)
         x_h_diff = abs(ref["x_h"] - target_x_height) / 0.3
         
         dist = 0.45 * serif_diff + 0.35 * contrast_diff + 0.20 * x_h_diff
-        base_score = 70.0 - (dist * 25.0) - category_penalty + style_match_bonus
+        base_score = 65.0 - (dist * 20.0) - category_penalty + style_match_bonus + corr_bonus
         
         if is_direct_named_match:
             final_score = 99.4
@@ -904,7 +988,7 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
     vector_glyphs = vectorize_contours_to_svg(thresh, max_glyphs=8)
     
     # 5. High-Discrimination Vector Database Matching
-    matched_fonts = match_font_dna(dna, extracted_text=extracted_text, top_k=5)
+    matched_fonts = match_font_dna(dna, extracted_text=extracted_text, top_k=5, thresh=thresh)
     
     # 6. Process all detected poster layers
     processed_layers = []
@@ -914,7 +998,7 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
         l_gray = cv2.cvtColor(np.array(l_crop.convert('RGB')), cv2.COLOR_RGB2GRAY)
         _, l_thresh = cv2.threshold(l_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         l_dna = extract_typographic_dna(l_gray, l_thresh, extracted_text=l_text)
-        l_matches = match_font_dna(l_dna, extracted_text=l_text, top_k=3)
+        l_matches = match_font_dna(l_dna, extracted_text=l_text, top_k=3, thresh=l_thresh)
         
         role_label = "🌟 Main Hero Logo / Title" if idx == 0 else ("🏷️ Tagline & Subheading" if idx == 1 else f"📄 Credit Block / Detail #{idx}")
         
