@@ -1274,6 +1274,16 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
         _, h_th = cv2.threshold(h_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         hero_thresh = h_th
 
+    # Also scan uncropped source bytes if available for maximum headline recall
+    source_text = ""
+    try:
+        full_source_img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        source_text = transcribe_poster_text(full_source_img, None, None)
+    except Exception:
+        pass
+
+    full_text = transcribe_poster_text(image, gray, thresh)
+
     if preset_name:
         p_clean = preset_name.strip().lower()
         if "helvetica" in p_clean:
@@ -1292,9 +1302,12 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
             extracted_text = preset_name.strip().upper()
     elif hero_text and len(hero_text.strip()) > 1 and "EXTRACTED" not in hero_text:
         extracted_text = hero_text
+    elif full_text and len(full_text.strip()) > 1 and "EXTRACTED" not in full_text:
+        extracted_text = full_text
+    elif source_text and len(source_text.strip()) > 1 and "EXTRACTED" not in source_text:
+        extracted_text = source_text
     else:
-        full_text = transcribe_poster_text(image, gray, thresh)
-        extracted_text = full_text if len(full_text.strip()) > 1 and "EXTRACTED" not in full_text else (hero_text or "POSTER HEADLINE")
+        extracted_text = "POSTER HEADLINE"
             
     # 3. Typographic DNA Analysis with Text Hints (Focused on the Biggest Word)
     dna = extract_typographic_dna(gray, hero_thresh, extracted_text=extracted_text)
@@ -1305,11 +1318,15 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
     # 5. High-Discrimination Vector Database Matching (Using Hero Threshold)
     matched_fonts = match_font_dna(dna, extracted_text=extracted_text, top_k=5, thresh=hero_thresh)
     
-    # 5.5. Real-World Poster & Cinema Typography Registry (Biggest Word Dominance)
+    # 5.5. Real-World Poster & Cinema Typography Registry (Multi-Source Resolution)
     try:
         from backend.services.poster_intelligence_registry import match_poster_by_content
-        # First check the biggest hero word specifically
-        poster_match = match_poster_by_content(hero_text) or match_poster_by_content(extracted_text)
+        poster_match = (
+            match_poster_by_content(hero_text) or
+            match_poster_by_content(extracted_text) or
+            match_poster_by_content(full_text) or
+            match_poster_by_content(source_text)
+        )
         if poster_match:
             authentic_entry = {
                 "name": poster_match["exact_font"],
