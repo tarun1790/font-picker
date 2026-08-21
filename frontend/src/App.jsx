@@ -4549,18 +4549,18 @@ feature kern {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-mono border border-white/10 flex items-center gap-1.5 transition-colors"
-                      title="Download 130,000 Cuts SQLite Relational Database (43 MB)"
+                      title="Download 130,000 Cuts SQLite Relational Database (32 MB)"
                     >
-                      <Download className="h-3.5 w-3.5 text-brand-accent" /> SQLite DB (43 MB)
+                      <Download className="h-3.5 w-3.5 text-brand-accent" /> SQLite DB (32 MB)
                     </a>
                     <a
                       href="http://127.0.0.1:8000/api/v1/myfonts/download/names-csv"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-mono border border-white/10 flex items-center gap-1.5 transition-colors"
-                      title="Download 130,000 Font Names CSV Spreadsheet (22.6 MB)"
+                      title="Download 130,000 Font Names CSV Spreadsheet (18 MB)"
                     >
-                      <Download className="h-3.5 w-3.5 text-emerald-400" /> Names CSV (22.6 MB)
+                      <Download className="h-3.5 w-3.5 text-emerald-400" /> Names CSV (18 MB)
                     </a>
                   </div>
                 </div>

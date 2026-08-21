@@ -31,3 +31,7 @@ Thumbs.db
 # Gemini App Data / Workspace
 .gemini/
 .agents/
+
+# Binary data vault (1.00 GB binary vault managed locally & streamed by backend)
+*.bin
+backend/data/*.bin
