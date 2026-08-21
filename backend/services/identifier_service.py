@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import glob
 import math
 import base64
@@ -430,6 +431,16 @@ def get_system_font_catalog():
     font_paths = glob.glob('C:/Windows/Fonts/*.ttf') + glob.glob('C:/Windows/Fonts/*.otf')
     catalog = []
     
+    NON_LATIN_KEYWORDS = [
+        'wingdings', 'webdings', 'symbol', 'marlett', 'holomdl2', 'javanese', 'khmer', 'lao', 'myanmar',
+        'sinhala', 'tibetan', 'kannada', 'telugu', 'tamil', 'malayalam', 'bengali', 'gujarati', 'gurmukhi',
+        'oriya', 'devanagari', 'ethiopic', 'thaana', 'hebrew', 'arabic', 'nko', 'vai', 'cherokee',
+        'canadian', 'yi', 'mongolian', 'phags', 'hangul', 'cjk', 'mingliu', 'simsun', 'ms gothic',
+        'meiryo', 'yu gothic', 'malgun', 'gadugi', 'ebrima', 'leelawadee', 'dokchamp', 'daunpenh', 'kalinga',
+        'kartika', 'latha', 'mangal', 'raavi', 'shruti', 'tunga', 'vrinda', 'estrangelo', 'sylfaen',
+        'aldhabi', 'andalus', 'arabic typesetting', 'simplified arabic', 'traditional arabic', 'urdw'
+    ]
+
     for path in font_paths:
         try:
             f = ImageFont.truetype(path, 40)
@@ -437,7 +448,8 @@ def get_system_font_catalog():
             family_name = name_tuple[0]
             subfamily = name_tuple[1]
             
-            if any(bad in family_name.lower() for bad in ['wingdings', 'webdings', 'symbol', 'marlett', 'holomdl2']):
+            f_lower = family_name.lower()
+            if any(bad in f_lower for bad in NON_LATIN_KEYWORDS):
                 continue
                 
             catalog.append({
@@ -520,32 +532,41 @@ def match_against_full_system_catalog(thresh, sample_text="QUICK"):
             density_penalty = min(15.0, rel_density_diff * 20.0)
             
             aligned_cand = cv2.resize(norm_cand, (target_w, target_h), interpolation=cv2.INTER_AREA)
-            inter = np.sum((norm_q > 127) & (aligned_cand > 127))
-            union = np.sum((norm_q > 127) | (aligned_cand > 127)) + 1e-5
+            
+            # Binary float arrays for vector operations
+            q_bin = (norm_q > 127).astype(np.float32)
+            c_bin = (aligned_cand > 127).astype(np.float32)
+            
+            # 1. 2D Cosine Dot Product
+            dot = float(np.sum(q_bin * c_bin))
+            norm_a = float(np.linalg.norm(q_bin))
+            norm_b = float(np.linalg.norm(c_bin))
+            cos_sim = dot / (norm_a * norm_b + 1e-6)
+            
+            # 2. Pixel Intersection-over-Union (IoU)
+            inter = float(np.sum((q_bin > 0.5) & (c_bin > 0.5)))
+            union = float(np.sum((q_bin > 0.5) | (c_bin > 0.5))) + 1e-5
             iou = inter / union
             
-            corr_mat = cv2.matchTemplate(norm_q, aligned_cand, cv2.TM_CCOEFF_NORMED)
-            corr = float(corr_mat[0][0]) if corr_mat is not None and not np.isnan(corr_mat[0][0]) else 0.0
-            corr = max(0.0, corr)
-            
-            # Horizontal & Vertical Micro-Anatomy Profile Alignment
-            q_v = np.sum(norm_q > 127, axis=1).astype(np.float32)
-            c_v = np.sum(aligned_cand > 127, axis=1).astype(np.float32)
+            # 3. Horizontal & Vertical Micro-Anatomy Profile Alignment
+            q_v = np.sum(q_bin, axis=1)
+            c_v = np.sum(c_bin, axis=1)
             v_norm_q = (q_v - np.mean(q_v)) / (np.std(q_v) + 1e-5)
             v_norm_c = (c_v - np.mean(c_v)) / (np.std(c_v) + 1e-5)
             v_corr = max(0.0, float(np.mean(v_norm_q * v_norm_c)))
             
-            raw_score = (iou * 45.0) + (corr * 40.0) + (v_corr * 15.0) - aspect_penalty - density_penalty
+            # Weighted metric combination (0.0 to 100.0 scale)
+            raw_score = (cos_sim * 55.0) + (iou * 35.0) + (v_corr * 10.0) - (aspect_penalty * 0.5) - (density_penalty * 0.5)
             score = max(0.0, min(100.0, raw_score))
             
-            if score >= 35.0:
-                calibrated = min(99.8, round(70.0 + (score - 50.0) * 0.65, 1)) if score >= 50.0 else round(score, 1)
+            if score >= 30.0:
+                calibrated = min(99.9, round(score * 1.08, 1))
                 results.append({
                     'name': font_info['family'],
                     'subfamily': font_info['subfamily'],
                     'category': f"{font_info['family']} ({font_info['subfamily']})",
-                    'style': "System Foundational",
-                    'foundry': "Desktop Foundry / TrueType Library",
+                    'style': "TrueType Vector Foundational",
+                    'foundry': "System & Desktop TrueType Library",
                     'match_score': calibrated,
                     'google_font': font_info['family'].replace(' ', '+'),
                     'raw_score': round(score, 2)
@@ -742,14 +763,15 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5, thresh: 
             "DESIGN", "STUDIO", "ORIGINALS", "STD", "PT", "VAR"
         }
         
+        text_words_set = set(re.findall(r'\b[A-Z0-9]+\b', text_upper))
         is_direct_named_match = False
-        # Full family match
-        if ref_name_upper in text_upper:
+        # Full family match with exact word boundary
+        if re.search(r'\b' + re.escape(ref_name_upper) + r'\b', text_upper):
             is_direct_named_match = True
         else:
-            # Word-level match ONLY for unique proper nouns
+            # Word-level match ONLY for unique proper nouns matching exact whole words
             for word in ref_name_upper.split():
-                if len(word) >= 5 and word not in EXCLUDED_COMMON_WORDS and word in text_upper:
+                if len(word) >= 5 and word not in EXCLUDED_COMMON_WORDS and word in text_words_set:
                     is_direct_named_match = True
                     
         # Determine target style classifications
@@ -1228,8 +1250,25 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
         "optical_density": min(100, int(dna.get("avg_density", 0.35) * 140)),
         "geometric_purity": min(100, int(95 - abs(dna.get("avg_aspect", 0.7) - 0.8) * 40))
     }
-    
-    return {
+
+    def sanitize_for_json(obj):
+        if isinstance(obj, dict):
+            return {str(k): sanitize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [sanitize_for_json(item) for item in obj]
+        elif isinstance(obj, (np.bool_, bool)):
+            return bool(obj)
+        elif isinstance(obj, (np.integer, int)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, float)):
+            val = float(obj)
+            return 0.0 if np.isnan(val) or np.isinf(val) else val
+        elif isinstance(obj, np.ndarray):
+            return sanitize_for_json(obj.tolist())
+        else:
+            return obj
+
+    raw_response = {
         "status": "SUCCESS",
         "dna": dna,
         "matched_fonts": matched_fonts,
@@ -1247,11 +1286,13 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
         "detected_layers": processed_layers,
         "total_fonts_searched": 250000,
         "database_presence": {
-            "is_in_database": is_verified_in_db,
-            "confidence_score": top_candidate["match_score"],
+            "is_in_database": bool(is_verified_in_db),
+            "confidence_score": float(top_candidate["match_score"]),
             "total_registry_size": 250000,
             "status_label": "VERIFIED IN 250,000+ REGISTRY" if is_verified_in_db else "NOT FOUND IN REGISTRY",
             "detected_typeface": top_candidate["name"],
             "detected_category": top_candidate.get("category", "Classic Typeface")
         }
     }
+    return sanitize_for_json(raw_response)
+
