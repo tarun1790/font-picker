@@ -4254,8 +4254,9 @@ feature kern {
 
           const TOTAL_130K_FONTS = 130000;
 
-          // Master dictionary of 200+ distinct font family root names
+          // Master dictionary of 100+ real-world premier font families across Monotype, Linotype, FontFont, TypeType, Latinotype, Fontfabric, HVD, Displaay, Dinamo, Klim, Commercial Type
           const MASTER_FONT_FAMILIES = [
+            // --- TYPETYPE FOUNDRY ---
             { name: "TT Commons Pro", foundry: "TypeType", country: "St. Petersburg, Russia", style: "Grotesque", best_for: "Corporate Branding & UI/UX", google_css: "'Plus Jakarta Sans', sans-serif", base_dna: [0.50, 0.20, 0.00, 0.15, 0.72, 0.72, 0.78, 0.50, 0.75] },
             { name: "TT Norms Pro", foundry: "TypeType", country: "St. Petersburg, Russia", style: "Geometric", best_for: "Universal Clean Signage & Apps", google_css: "'Montserrat', sans-serif", base_dna: [0.50, 0.10, 0.00, 0.10, 0.74, 0.75, 0.85, 0.55, 0.90] },
             { name: "TT Hoves Pro", foundry: "TypeType", country: "St. Petersburg, Russia", style: "Grotesque", best_for: "Architectural Tech & Interfaces", google_css: "'Space Grotesk', sans-serif", base_dna: [0.52, 0.25, 0.00, 0.20, 0.70, 0.72, 0.65, 0.48, 0.80] },
@@ -4264,7 +4265,10 @@ feature kern {
             { name: "TT Travels", foundry: "TypeType", country: "St. Petersburg, Russia", style: "Geometric", best_for: "Modern Travel & Lifestyle", google_css: "'Outfit', sans-serif", base_dna: [0.50, 0.12, 0.00, 0.10, 0.74, 0.76, 0.88, 0.54, 0.92] },
             { name: "TT Interphases", foundry: "TypeType", country: "St. Petersburg, Russia", style: "Grotesque", best_for: "Complex Software Dashboards", google_css: "'DM Sans', sans-serif", base_dna: [0.48, 0.15, 0.00, 0.15, 0.70, 0.70, 0.70, 0.48, 0.78] },
             { name: "TT Lakes", foundry: "TypeType", country: "St. Petersburg, Russia", style: "Geometric", best_for: "Nature, Eco & Minimalist Products", google_css: "'Montserrat', sans-serif", base_dna: [0.50, 0.10, 0.00, 0.10, 0.75, 0.75, 0.90, 0.55, 0.95] },
+            { name: "TT Supermolot", foundry: "TypeType", country: "St. Petersburg, Russia", style: "Display", best_for: "Esports, Gaming & Tech Logos", google_css: "'Oswald', sans-serif", base_dna: [0.70, 0.15, 0.00, 0.10, 0.76, 0.78, 0.50, 0.45, 0.88] },
+            { name: "TT Octas", foundry: "TypeType", country: "St. Petersburg, Russia", style: "Geometric", best_for: "Constructivist Graphic Posters", google_css: "'Space Grotesk', sans-serif", base_dna: [0.55, 0.12, 0.00, 0.08, 0.74, 0.76, 0.82, 0.50, 0.90] },
             
+            // --- LATINOTYPE FOUNDRY ---
             { name: "Recoleta", foundry: "Latinotype", country: "Santiago, Chile", style: "Serif", best_for: "Warm Editorial & Artisan Packaging", google_css: "'Fraunces', serif", base_dna: [0.58, 0.75, 0.65, 0.80, 0.62, 0.70, 0.75, 0.45, 0.40] },
             { name: "Moranga", foundry: "Latinotype", country: "Santiago, Chile", style: "Serif", best_for: "Cafe Branding & Organic Food", google_css: "'Cinzel Decorative', serif", base_dna: [0.52, 0.70, 0.70, 0.75, 0.60, 0.68, 0.70, 0.42, 0.35] },
             { name: "Sofia Soft", foundry: "Latinotype", country: "Santiago, Chile", style: "Geometric", best_for: "Friendly Consumer Goods & Apps", google_css: "'Nunito', sans-serif", base_dna: [0.50, 0.10, 0.00, 0.40, 0.72, 0.74, 0.92, 0.52, 0.90] },
@@ -4274,6 +4278,7 @@ feature kern {
             { name: "Branding", foundry: "Latinotype", country: "Santiago, Chile", style: "Grotesque", best_for: "Brand Collateral & Modern Advertising", google_css: "'Plus Jakarta Sans', sans-serif", base_dna: [0.52, 0.16, 0.00, 0.12, 0.72, 0.74, 0.76, 0.50, 0.82] },
             { name: "Australis", foundry: "Latinotype", country: "Santiago, Chile", style: "Serif", best_for: "Literary Books & Academic Journals", google_css: "'Merriweather', serif", base_dna: [0.48, 0.72, 0.75, 0.65, 0.55, 0.68, 0.65, 0.44, 0.30] },
             
+            // --- FONTFABRIC FOUNDRY ---
             { name: "Gilroy", foundry: "Radomir Tinkov", country: "Sofia, Bulgaria", style: "Geometric", best_for: "Global Tech Pioneers & Startups", google_css: "'Outfit', sans-serif", base_dna: [0.55, 0.10, 0.00, 0.10, 0.75, 0.76, 0.92, 0.52, 0.95] },
             { name: "Mont", foundry: "Fontfabric", country: "Sofia, Bulgaria", style: "Geometric", best_for: "High-Impact Angular Mastheads", google_css: "'Montserrat', sans-serif", base_dna: [0.60, 0.12, 0.00, 0.15, 0.76, 0.77, 0.88, 0.58, 0.92] },
             { name: "Nexa", foundry: "Fontfabric", country: "Sofia, Bulgaria", style: "Geometric", best_for: "Futuristic Headings & Modern Logos", google_css: "'Oswald', sans-serif", base_dna: [0.58, 0.15, 0.00, 0.10, 0.73, 0.74, 0.82, 0.50, 0.88] },
@@ -4283,22 +4288,26 @@ feature kern {
             { name: "Noah", foundry: "Fontfabric", country: "Sofia, Bulgaria", style: "Grotesque", best_for: "Multilingual Publishing & Media", google_css: "'Plus Jakarta Sans', sans-serif", base_dna: [0.48, 0.15, 0.00, 0.12, 0.70, 0.72, 0.74, 0.50, 0.80] },
             { name: "Zing Rust", foundry: "Fontfabric", country: "Sofia, Bulgaria", style: "Display", best_for: "Craft Breweries & Vintage Badges", google_css: "'Alfa Slab One', serif", base_dna: [0.85, 0.40, 0.50, 0.40, 0.70, 0.70, 0.50, 0.40, 0.60] },
             { name: "Code Pro", foundry: "Fontfabric", country: "Sofia, Bulgaria", style: "Geometric", best_for: "Pure Minimalist Design Systems", google_css: "'Montserrat', sans-serif", base_dna: [0.45, 0.08, 0.00, 0.05, 0.75, 0.75, 0.95, 0.58, 0.98] },
+            { name: "Uni Sans", foundry: "Fontfabric", country: "Sofia, Bulgaria", style: "Geometric", best_for: "Architectural Identity & Signage", google_css: "'Oswald', sans-serif", base_dna: [0.55, 0.12, 0.00, 0.10, 0.74, 0.75, 0.85, 0.52, 0.90] },
             
+            // --- HVD FONTS & MOSTAR DESIGN ---
             { name: "Brandon Grotesque", foundry: "HVD Fonts", country: "Berlin, Germany", style: "Geometric", best_for: "Warm Sophisticated Packaging", google_css: "'Josefin Sans', sans-serif", base_dna: [0.45, 0.15, 0.00, 0.30, 0.58, 0.65, 0.85, 0.60, 0.85] },
             { name: "Brandon Text", foundry: "HVD Fonts", country: "Berlin, Germany", style: "Geometric", best_for: "High-Legibility Longform Reading", google_css: "'Josefin Sans', sans-serif", base_dna: [0.48, 0.16, 0.00, 0.25, 0.62, 0.68, 0.82, 0.55, 0.84] },
             { name: "Pluto", foundry: "HVD Fonts", country: "Berlin, Germany", style: "Geometric", best_for: "Playful Children Branding & Toys", google_css: "'Nunito', sans-serif", base_dna: [0.55, 0.12, 0.00, 0.35, 0.70, 0.72, 0.90, 0.50, 0.88] },
             { name: "Mikado", foundry: "HVD Fonts", country: "Berlin, Germany", style: "Display", best_for: "Food Packaging & Cheerful Logos", google_css: "'Sniglet', cursive", base_dna: [0.65, 0.20, 0.00, 0.45, 0.72, 0.72, 0.85, 0.48, 0.75] },
-            
             { name: "Sofia Pro", foundry: "Mostardesign", country: "Sarlat, France", style: "Geometric", best_for: "Contemporary Tech & Luxury Fashion", google_css: "'Poppins', sans-serif", base_dna: [0.48, 0.12, 0.00, 0.12, 0.72, 0.74, 0.90, 0.52, 0.92] },
             { name: "Chronica Pro", foundry: "Mostardesign", country: "Sarlat, France", style: "Grotesque", best_for: "Editorial Clarity & Business Apps", google_css: "'Inter', sans-serif", base_dna: [0.50, 0.18, 0.00, 0.15, 0.70, 0.72, 0.72, 0.50, 0.78] },
             { name: "Filson Pro", foundry: "Mostardesign", country: "Sarlat, France", style: "Geometric", best_for: "Modernist Graphic Posters", google_css: "'Space Grotesk', sans-serif", base_dna: [0.52, 0.14, 0.00, 0.15, 0.72, 0.74, 0.85, 0.52, 0.88] },
             { name: "Archeron Pro", foundry: "Mostardesign", country: "Sarlat, France", style: "Serif", best_for: "High-End Cosmetics & Perfumery", google_css: "'Playfair Display', serif", base_dna: [0.45, 0.85, 0.80, 0.75, 0.50, 0.65, 0.65, 0.40, 0.25] },
             
+            // --- TYPEMATES & RENÉ BIEDER ---
             { name: "Cera Pro", foundry: "TypeMates", country: "Munich, Germany", style: "Geometric", best_for: "Clean Pan-European Corporate Identity", google_css: "'DM Sans', sans-serif", base_dna: [0.50, 0.08, 0.00, 0.05, 0.76, 0.78, 0.95, 0.54, 0.98] },
+            { name: "Cera Round Pro", foundry: "TypeMates", country: "Munich, Germany", style: "Geometric", best_for: "Organic Clean Branding", google_css: "'Nunito', sans-serif", base_dna: [0.52, 0.10, 0.00, 0.35, 0.76, 0.78, 0.94, 0.54, 0.95] },
             { name: "Campton", foundry: "René Bieder", country: "Berlin, Germany", style: "Geometric", best_for: "Bauhaus Minimalist Poster Art", google_css: "'Space Grotesk', sans-serif", base_dna: [0.52, 0.10, 0.00, 0.10, 0.74, 0.75, 0.90, 0.50, 0.94] },
             { name: "Galano Grotesque", foundry: "René Bieder", country: "Berlin, Germany", style: "Grotesque", best_for: "Modernist Advertising & Web Portals", google_css: "'Inter', sans-serif", base_dna: [0.52, 0.18, 0.00, 0.15, 0.72, 0.72, 0.75, 0.50, 0.80] },
             { name: "Milliard", foundry: "René Bieder", country: "Berlin, Germany", style: "Grotesque", best_for: "High-Density Data & Modern UI", google_css: "'Plus Jakarta Sans', sans-serif", base_dna: [0.50, 0.15, 0.00, 0.12, 0.70, 0.72, 0.75, 0.50, 0.82] },
             
+            // --- HORIZON, NATHATYPE & CHEQUERED INK ---
             { name: "Cubron Grotesk", foundry: "Horizon Type", country: "Istanbul, Turkey", style: "Grotesque", best_for: "Contemporary Automotive & Heavy Poster", google_css: "'Space Grotesk', sans-serif", base_dna: [0.62, 0.22, 0.00, 0.15, 0.75, 0.76, 0.80, 0.55, 0.86] },
             { name: "Acherus Grotesque", foundry: "Horizon Type", country: "Istanbul, Turkey", style: "Grotesque", best_for: "Editorial Magazine Covers & Tech", google_css: "'Inter', sans-serif", base_dna: [0.54, 0.18, 0.00, 0.12, 0.72, 0.74, 0.78, 0.52, 0.84] },
             { name: "Trafit", foundry: "Nathatype", country: "Yogyakarta, Indonesia", style: "Serif", best_for: "Haute Couture & Luxury Editorial", google_css: "'Playfair Display', serif", base_dna: [0.50, 0.92, 0.85, 0.70, 0.52, 0.68, 0.60, 0.40, 0.25] },
@@ -4306,17 +4315,45 @@ feature kern {
             { name: "Parliament", foundry: "Chequered Ink", country: "Bath, United Kingdom", style: "Display", best_for: "Monumental Architecture & Art Posters", google_css: "'Syne', sans-serif", base_dna: [0.82, 0.88, 0.45, 0.55, 0.50, 0.52, 0.68, 0.35, 0.45] },
             { name: "Order in Chaos", foundry: "Chequered Ink", country: "Bath, United Kingdom", style: "Display", best_for: "Heavy Avant-Garde Magazine Covers", google_css: "'Syne', sans-serif", base_dna: [0.85, 0.90, 0.50, 0.60, 0.52, 0.54, 0.70, 0.35, 0.40] },
             
+            // --- DISPLAAY & SHARP TYPE ---
             { name: "Gellix", foundry: "Displaay", country: "Prague, Czech Republic", style: "Geometric", best_for: "Aerodynamic F1 & Futuristic Branding", google_css: "'Plus Jakarta Sans', sans-serif", base_dna: [0.54, 0.14, 0.00, 0.12, 0.74, 0.75, 0.86, 0.52, 0.90] },
             { name: "Roobert", foundry: "Displaay", country: "Prague, Czech Republic", style: "Grotesque", best_for: "Hardware Product Design & Mobile OS", google_css: "'Inter', sans-serif", base_dna: [0.52, 0.20, 0.00, 0.20, 0.70, 0.72, 0.72, 0.50, 0.82] },
             { name: "Reckless", foundry: "Displaay", country: "Prague, Czech Republic", style: "Serif", best_for: "Literary Novels & High-End Fashion", google_css: "'Cormorant Garamond', serif", base_dna: [0.42, 0.82, 0.88, 0.75, 0.48, 0.65, 0.65, 0.38, 0.20] },
             { name: "Sharp Sans", foundry: "Sharp Type", country: "New York, USA", style: "Geometric", best_for: "Campaign Branding & Tech Identity", google_css: "'Outfit', sans-serif", base_dna: [0.52, 0.08, 0.00, 0.08, 0.75, 0.76, 0.94, 0.56, 0.96] },
+            { name: "Sharp Grotesk", foundry: "Sharp Type", country: "New York, USA", style: "Grotesque", best_for: "Dynamic Super-Family Web Architecture", google_css: "'Inter', sans-serif", base_dna: [0.55, 0.15, 0.00, 0.12, 0.74, 0.75, 0.80, 0.50, 0.85] },
             
+            // --- MONOTYPE, LINOTYPE & HISTORICAL TITANS ---
             { name: "Helvetica Now", foundry: "Monotype", country: "Switzerland / USA", style: "Grotesque", best_for: "Universal Swiss Neo-Grotesque Workhorse", google_css: "'Inter', sans-serif", base_dna: [0.50, 0.20, 0.00, 0.20, 0.70, 0.70, 0.70, 0.50, 0.70] },
             { name: "Futura Now", foundry: "Monotype", country: "Frankfurt, Germany", style: "Geometric", best_for: "Iconic Bauhaus Avant-Garde Displays", google_css: "'Montserrat', sans-serif", base_dna: [0.45, 0.10, 0.00, 0.10, 0.78, 0.80, 0.95, 0.60, 0.98] },
             { name: "DIN Next", foundry: "Linotype", country: "Bad Homburg, Germany", style: "Grotesque", best_for: "Wayfinding Signage & Industrial Design", google_css: "'Oswald', sans-serif", base_dna: [0.52, 0.15, 0.00, 0.10, 0.75, 0.76, 0.60, 0.45, 0.88] },
             { name: "Linotype Didot", foundry: "Linotype", country: "Paris, France", style: "Serif", best_for: "Haute Couture & Vogue Editorial", google_css: "'Playfair Display', serif", base_dna: [0.40, 0.98, 0.90, 0.85, 0.46, 0.64, 0.60, 0.38, 0.20] },
             { name: "Monotype Bodoni", foundry: "Monotype", country: "Parma, Italy", style: "Serif", best_for: "Classical Italian Dramatic Editorial", google_css: "'Bodoni Moda', serif", base_dna: [0.45, 0.95, 0.90, 0.80, 0.48, 0.66, 0.62, 0.40, 0.22] },
-            { name: "Rockwell", foundry: "Monotype", country: "Salfords, UK", style: "Slab", best_for: "Heavy Architectural Slab & Stadium Identity", google_css: "'Arvo', serif", base_dna: [0.78, 0.48, 0.70, 0.50, 0.65, 0.65, 0.20, 0.40, 0.70] }
+            { name: "Rockwell", foundry: "Monotype", country: "Salfords, UK", style: "Slab", best_for: "Heavy Architectural Slab & Stadium Identity", google_css: "'Arvo', serif", base_dna: [0.78, 0.48, 0.70, 0.50, 0.65, 0.65, 0.20, 0.40, 0.70] },
+            { name: "Akzidenz Grotesk", foundry: "Berthold", country: "Berlin, Germany", style: "Grotesque", best_for: "Progenitor of Modernist Sans Typography", google_css: "'Inter', sans-serif", base_dna: [0.52, 0.22, 0.00, 0.20, 0.68, 0.70, 0.68, 0.50, 0.68] },
+            { name: "Gotham", foundry: "Hoefler & Co", country: "New York, USA", style: "Geometric", best_for: "American Architectural Identity & Logos", google_css: "'Montserrat', sans-serif", base_dna: [0.50, 0.10, 0.00, 0.08, 0.74, 0.76, 0.92, 0.55, 0.96] },
+            { name: "Proxima Nova", foundry: "Mark Simonson", country: "Saint Paul, USA", style: "Geometric", best_for: "Ubiquitous Modern Web Interface Sans", google_css: "'Montserrat', sans-serif", base_dna: [0.50, 0.12, 0.00, 0.10, 0.72, 0.74, 0.88, 0.52, 0.92] },
+            { name: "Circular", foundry: "Lineto", country: "Zurich, Switzerland", style: "Geometric", best_for: "Modern Streaming & Mobile Apps", google_css: "'DM Sans', sans-serif", base_dna: [0.52, 0.08, 0.00, 0.05, 0.75, 0.76, 0.96, 0.54, 0.98] },
+            { name: "Apercu", foundry: "Colophon", country: "London, UK", style: "Grotesque", best_for: "Contemporary Global Cultural Identity", google_css: "'Space Grotesk', sans-serif", base_dna: [0.52, 0.16, 0.00, 0.15, 0.72, 0.74, 0.78, 0.50, 0.84] },
+            { name: "GT America", foundry: "Grilli Type", country: "Lucerne, Switzerland", style: "Grotesque", best_for: "Swiss Neo-Grotesque & American Gothic Hybrid", google_css: "'Inter', sans-serif", base_dna: [0.52, 0.18, 0.00, 0.15, 0.72, 0.74, 0.72, 0.50, 0.80] },
+            { name: "Neue Montreal", foundry: "Pangram Pangram", country: "Montreal, Canada", style: "Grotesque", best_for: "High-Fashion Swiss-Canadian Editorial", google_css: "'Plus Jakarta Sans', sans-serif", base_dna: [0.50, 0.15, 0.00, 0.12, 0.72, 0.74, 0.80, 0.50, 0.86] },
+            { name: "Canela", foundry: "Commercial Type", country: "New York, USA", style: "Serif", best_for: "Warm Flared Mastheads & Editorial Covers", google_css: "'Fraunces', serif", base_dna: [0.50, 0.75, 0.35, 0.60, 0.60, 0.68, 0.70, 0.45, 0.40] },
+            { name: "Editorial New", foundry: "Pangram Pangram", country: "Montreal, Canada", style: "Serif", best_for: "90s Retro Magazine & High-End Luxury", google_css: "'Playfair Display', serif", base_dna: [0.45, 0.88, 0.82, 0.75, 0.52, 0.66, 0.65, 0.40, 0.28] },
+            { name: "Ogg", foundry: "Sharp Type", country: "New York, USA", style: "Serif", best_for: "Calligraphic Roman Display & Book Jackets", google_css: "'Cinzel Decorative', serif", base_dna: [0.46, 0.90, 0.78, 0.80, 0.50, 0.65, 0.75, 0.40, 0.30] },
+            { name: "Clarendon", foundry: "Besley & Co", country: "London, UK", style: "Slab", best_for: "Iconic Wild West & Traditional Slab Headlines", google_css: "'Arvo', serif", base_dna: [0.72, 0.55, 0.75, 0.60, 0.62, 0.65, 0.35, 0.42, 0.60] },
+            { name: "Cooper Black", foundry: "Barnhart Brothers", country: "Chicago, USA", style: "Display", best_for: "Warm Nostalgic Organic Packaging & Music", google_css: "'Alfa Slab One', serif", base_dna: [0.92, 0.50, 0.60, 0.85, 0.65, 0.65, 0.80, 0.38, 0.45] },
+            { name: "Optima", foundry: "Stempel", country: "Frankfurt, Germany", style: "Grotesque", best_for: "Calligraphic Flared Humanist Masterpiece", google_css: "'Plus Jakarta Sans', sans-serif", base_dna: [0.48, 0.40, 0.00, 0.25, 0.58, 0.68, 0.65, 0.48, 0.65] },
+            { name: "Caslon", foundry: "William Caslon", country: "London, UK", style: "Serif", best_for: "Declaration of Independence & Classical Books", google_css: "'Merriweather', serif", base_dna: [0.48, 0.75, 0.75, 0.65, 0.54, 0.68, 0.62, 0.42, 0.32] },
+            { name: "Baskerville", foundry: "John Baskerville", country: "Birmingham, UK", style: "Serif", best_for: "Transitional Literary Excellence & Authority", google_css: "'Playfair Display', serif", base_dna: [0.46, 0.85, 0.82, 0.70, 0.50, 0.65, 0.64, 0.40, 0.26] },
+            { name: "Garamond", foundry: "Claude Garamont", country: "Paris, France", style: "Serif", best_for: "Renaissance Literature & Masterpiece Typography", google_css: "'Cormorant Garamond', serif", base_dna: [0.42, 0.80, 0.85, 0.70, 0.48, 0.64, 0.65, 0.40, 0.22] },
+            { name: "Palatino", foundry: "Stempel (Hermann Zapf)", country: "Frankfurt, Germany", style: "Serif", best_for: "Venetian Renaissance Calligraphic Serifs", google_css: "'Merriweather', serif", base_dna: [0.50, 0.65, 0.75, 0.60, 0.56, 0.68, 0.60, 0.45, 0.38] },
+            { name: "Frutiger", foundry: "Deberny & Peignot (Adrian Frutiger)", country: "Paris, France", style: "Grotesque", best_for: "Charles de Gaulle Airport Wayfinding & Clarity", google_css: "'Open Sans', sans-serif", base_dna: [0.50, 0.16, 0.00, 0.15, 0.72, 0.74, 0.74, 0.50, 0.82] },
+            { name: "Univers", foundry: "Deberny & Peignot (Adrian Frutiger)", country: "Paris, France", style: "Grotesque", best_for: "Systematic Mathematical Rationalist Sans", google_css: "'Roboto', sans-serif", base_dna: [0.50, 0.18, 0.00, 0.18, 0.70, 0.72, 0.70, 0.50, 0.75] },
+            { name: "Avenir", foundry: "Linotype (Adrian Frutiger)", country: "Paris, France", style: "Geometric", best_for: "Humanist-Infused Warm Geometric Perfection", google_css: "'Montserrat', sans-serif", base_dna: [0.48, 0.12, 0.00, 0.10, 0.72, 0.74, 0.88, 0.52, 0.92] },
+            { name: "Gill Sans", foundry: "Monotype (Eric Gill)", country: "London, UK", style: "Grotesque", best_for: "Quintessential British Humanist Classical Sans", google_css: "'Cabin', sans-serif", base_dna: [0.52, 0.25, 0.00, 0.22, 0.62, 0.68, 0.75, 0.50, 0.78] },
+            { name: "Eurostile", foundry: "Nebiolo (Aldo Novarese)", country: "Turin, Italy", style: "Geometric", best_for: "Futuristic Squarish Sci-Fi Displays", google_css: "'Orbitron', sans-serif", base_dna: [0.60, 0.15, 0.00, 0.10, 0.72, 0.74, 0.45, 0.55, 0.88] },
+            { name: "Bank Gothic", foundry: "American Type Founders (Morris Fuller Benton)", country: "New York, USA", style: "Geometric", best_for: "Government Agencies & Military Sci-Fi", google_css: "'Michroma', sans-serif", base_dna: [0.62, 0.12, 0.00, 0.08, 0.75, 0.75, 0.40, 0.58, 0.92] },
+            { name: "Trajan", foundry: "Adobe (Carol Twombly)", country: "San Jose, USA", style: "Serif", best_for: "Hollywood Movie Posters & Presidential Seals", google_css: "'Cinzel', serif", base_dna: [0.52, 0.85, 0.70, 0.65, 0.50, 0.70, 0.60, 0.45, 0.35] },
+            { name: "Franklin Gothic", foundry: "ATF (Morris Fuller Benton)", country: "New York, USA", style: "Grotesque", best_for: "American Newspaper Headlines & MoMA Branding", google_css: "'Libre Franklin', sans-serif", base_dna: [0.58, 0.22, 0.00, 0.20, 0.74, 0.76, 0.72, 0.48, 0.78] }
           ];
 
           // Typographic edition modifiers that produce 130,000 genuine named font variations
@@ -4342,7 +4379,7 @@ feature kern {
             const weightName = WEIGHT_NAMES[weightIdx];
             const weightVal = WEIGHT_VALUES[weightIdx];
             
-            // Clean font name: e.g. "Recoleta Heritage Bold", "Gilroy Modernist Regular", "TT Commons Pro Studio Medium"
+            // Clean font name: e.g. "Recoleta Vintage Regular", "Gilroy Modernist ExtraBold", "Gotham Architecture Medium"
             const fullName = `${base.name} ${edition} ${weightName}`;
             
             return {
@@ -4686,14 +4723,61 @@ feature kern {
                   </div>
                 </div>
 
+                {/* ALPHABETICAL A-Z DIRECTORY BAR */}
+                <div className="flex flex-wrap items-center gap-1 pt-2 border-t border-white/5">
+                  <span className="text-[11px] font-mono text-brand-muted mr-1.5 flex items-center gap-1">
+                    <Filter className="h-3 w-3" /> A-Z Directory:
+                  </span>
+                  {['All', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'].map(letter => (
+                    <button
+                      key={letter}
+                      onClick={() => {
+                        if (letter === 'All') {
+                          setMyfontsSearch('');
+                        } else {
+                          setMyfontsSearch(letter);
+                        }
+                        setMyfontsPage(1);
+                      }}
+                      className={`px-2 py-1 rounded text-[11px] font-mono font-bold transition-all ${
+                        (letter === 'All' && !myfontsSearch) || myfontsSearch.toUpperCase() === letter
+                          ? 'bg-brand-accent text-zinc-950 shadow-md shadow-brand-accent/20'
+                          : 'bg-white/5 text-brand-muted hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      {letter}
+                    </button>
+                  ))}
+                </div>
+
                 {/* PAGINATION STATUS BAR */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-brand-border/40 text-xs font-mono">
                   <div className="text-brand-muted flex items-center gap-2">
                     <span className="text-white font-bold">{totalMatching.toLocaleString()}</span> fonts found • Showing fonts <strong className="text-brand-accent">{startIdx + 1} - {Math.min(startIdx + pageSize, totalMatching)}</strong> of {totalMatching.toLocaleString()}
                   </div>
 
-                  {/* PAGINATION CONTROLS */}
-                  <div className="flex items-center space-x-1.5">
+                  {/* PAGINATION CONTROLS & DIRECT JUMP */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center space-x-1.5">
+                      <span className="text-brand-muted text-[11px]">Go to:</span>
+                      <input 
+                        type="number"
+                        min="1"
+                        max={totalPages}
+                        placeholder={currentPage.toString()}
+                        className="w-16 px-2 py-1 rounded bg-black/60 border border-white/10 text-center text-white text-xs font-mono focus:outline-none focus:border-brand-accent"
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            const val = parseInt(e.target.value, 10);
+                            if (val >= 1 && val <= totalPages) {
+                              setMyfontsPage(val);
+                              window.scrollTo({ top: 400, behavior: 'smooth' });
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+
                     <button
                       onClick={() => setMyfontsPage(1)}
                       disabled={currentPage === 1}
