@@ -67,28 +67,37 @@ def preprocess_and_crop(image_bytes: bytes, crop_box: dict = None):
     
     candidates = []
     
-    # Candidate 1: Otsu Auto-Polarity
+    # Multi-Channel Adaptive Thresholding Suite
+    # 1. Otsu (Normal & Inverted)
     _, th1 = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    if np.mean(th1 == 255) > 0.5:
-        th1 = cv2.bitwise_not(th1)
     candidates.append(th1)
+    candidates.append(cv2.bitwise_not(th1))
     
-    # Candidate 2: Adaptive Gaussian
+    # 2. Adaptive Gaussian (Normal & Inverted)
     try:
-        th2 = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 25, 10)
+        th2 = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 10)
         candidates.append(th2)
+        candidates.append(cv2.bitwise_not(th2))
     except Exception:
         pass
         
-    # Candidate 3: Color K-Means 2-Cluster Quantization
+    # 3. Morphological Text Edge Gradient
+    try:
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        grad = cv2.morphologyEx(gray, cv2.MORPH_GRADIENT, kernel)
+        _, th_grad = cv2.threshold(grad, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        candidates.append(th_grad)
+    except Exception:
+        pass
+        
+    # 4. Color K-Means Quantization
     try:
         pixels = np_img.reshape((-1, 3)).astype(np.float32)
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
         _, labels, _ = cv2.kmeans(pixels, 2, None, criteria, 5, cv2.KMEANS_RANDOM_CENTERS)
         th3 = (labels.reshape((ih, iw)).astype(np.uint8)) * 255
-        if np.mean(th3 == 255) > 0.5:
-            th3 = cv2.bitwise_not(th3)
         candidates.append(th3)
+        candidates.append(cv2.bitwise_not(th3))
     except Exception:
         pass
         
