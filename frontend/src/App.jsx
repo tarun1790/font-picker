@@ -5,7 +5,7 @@ import {
   Layers, Search, Sliders, MessageSquare, CheckCircle, AlertTriangle, 
   ArrowRight, Download, Eye, Shield, Heart, Zap, RefreshCw, Database, X, ShieldAlert,
   Crop, Compass, Scissors, Target, Maximize2, Type, SlidersHorizontal,
-  Copy, Check, Code
+  Copy, Check, Code, Filter
 } from 'lucide-react';
 
 // Intercept all API calls to localtunnel/serveo to bypass warning screen
