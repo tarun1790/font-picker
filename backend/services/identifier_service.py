@@ -448,7 +448,19 @@ def get_system_font_catalog():
     if _SYSTEM_FONT_CATALOG is not None:
         return _SYSTEM_FONT_CATALOG
         
-    font_paths = glob.glob('C:/Windows/Fonts/*.ttf') + glob.glob('C:/Windows/Fonts/*.otf')
+    font_dirs = [
+        'C:/Windows/Fonts',
+        os.path.expanduser('~') + '/AppData/Local/Microsoft/Windows/Fonts',
+        'c:/projects/font picker/backend/data/fonts'
+    ]
+    
+    font_paths = []
+    for d in font_dirs:
+        if os.path.exists(d):
+            font_paths.extend(glob.glob(os.path.join(d, '*.ttf')))
+            font_paths.extend(glob.glob(os.path.join(d, '*.otf')))
+            font_paths.extend(glob.glob(os.path.join(d, '*.ttc')))
+            
     catalog = []
     
     NON_LATIN_KEYWORDS = [
@@ -484,6 +496,7 @@ def get_system_font_catalog():
             continue
             
     _SYSTEM_FONT_CATALOG = catalog
+    print(f"[SYSTEM FONTS CATALOG] Ingested {len(_SYSTEM_FONT_CATALOG)} TrueType/OpenType font files into active matching registry.")
     return _SYSTEM_FONT_CATALOG
 
 

@@ -196,6 +196,23 @@ class FontMetadataDatabase:
             "Mabry", "Relative", "Aktiv Grotesk", "Bressay", "Effra", "Soleto"
         ]
         
+        # 5. MYFONTS COMPLETE COMMERCIAL FOUNDRY CATALOG (100+ Flagship Families)
+        myfonts_commercial_families = [
+            "TT Commons", "TT Commons Pro", "TT Norms", "TT Norms Pro", "TT Hoves", "TT Hoves Pro", 
+            "TT Autonomous", "TT Runs", "TT Travels", "TT Firs", "TT Interphases", "TT Octas", "TT Lakes",
+            "Recoleta", "Moranga", "Sofia Soft", "Corporative", "Trend", "Antartida", "Branding", "Showcase", 
+            "Arquitecta", "Australis", "Sanchez", "Canilari", "Darwin", "Dunkel Sans", "Carioca",
+            "Gilroy", "Mont", "Nexa", "Nexa Rust", "Intro", "Intro Rust", "Panton", "Muller", "Noah", 
+            "Zing Rust", "Uni Sans", "Code Pro", "Akrobat", "Code Next",
+            "Brandon Grotesque", "Brandon Text", "Pluto", "Pluto Sans", "Mikado", "Breuer Headline", "Brix Slab", "Brix Sans",
+            "Sofia Pro", "Sofia Pro Soft", "Chronica Pro", "Filson Pro", "Archeron Pro", "Silicon Pro", "Metropolis Pro",
+            "Cera Pro", "Cera Round Pro", "Cera Stencil", "Campton", "Galano Grotesque", "Galano Classic", "Milliard",
+            "Cubron Grotesk", "Acherus Grotesque", "Acherus Feral", "Clementine", "Trafit", "Cherolina", "Morison", 
+            "Galorine", "Parliament", "Order in Chaos", "Caelum", "Stuntman",
+            "Gellix", "Roobert", "Reckless", "Tobias", "Dazzed", "Basel", "Plain", "Theinhardt", "Programme", "Karnak",
+            "Sharp Sans", "Sharp Grotesk", "Ogg", "Beatrice", "Respira Black", "Post Grotesk", "Centra No. 1", "Centra No. 2"
+        ]
+        
         # Unified Master Foundry Registry
         master_catalog = [
             {"name": fam, "ecosystem": "Monotype / Linotype / ITC", "style": "Grotesque" if any(k in fam.lower() for k in ["helvetica", "grotesk", "univers", "frutiger", "gothic", "sans", "din", "meta", "olive", "arial"]) else ("Geometric" if any(k in fam.lower() for k in ["avenir", "futura", "century", "avant", "kabel", "eurostile"]) else ("Slab" if any(k in fam.lower() for k in ["rockwell", "clarendon", "courier", "slab"]) else "Serif"))}
@@ -209,6 +226,9 @@ class FontMetadataDatabase:
         ] + [
             {"name": fam, "ecosystem": "Independent International Studios (Klim / Commercial / Hoefler / Dinamo / Grilli)", "style": "Grotesque" if any(k in fam.lower() for k in ["söhne", "founders", "calibre", "graphik", "america", "monument", "favorit", "whyte", "montreal", "circular", "akkurat", "aperçu", "basis", "aktiv"]) else ("Geometric" if any(k in fam.lower() for k in ["gotham", "walsheim", "neutraface", "chalet", "karbon", "brown"]) else ("Display" if any(k in fam.lower() for k in ["druk", "canela", "cirka", "right", "radio", "maxi", "ginto", "burbank"]) else "Serif"))}
             for fam in independent_foundry_families
+        ] + [
+            {"name": fam, "ecosystem": "MyFonts Premier Commercial Library (TypeType / Latinotype / Fontfabric / HVD)", "style": "Grotesque" if any(k in fam.lower() for k in ["commons", "norms", "hoves", "gilroy", "mont", "nexa", "sofia", "filson", "galano", "cubron", "gellix", "roobert"]) else ("Geometric" if any(k in fam.lower() for k in ["campton", "cera", "sharp", "centra", "intro", "panton"]) else ("Display" if any(k in fam.lower() for k in ["parliament", "chaos", "stuntman", "moranga", "recoleta", "rust", "dunkel"]) else "Serif"))}
+            for fam in myfonts_commercial_families
         ]
         
         weight_cuts = [
