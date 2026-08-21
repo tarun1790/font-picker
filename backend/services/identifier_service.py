@@ -358,18 +358,18 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
         "estimated_stroke_px": round(median_stroke, 1)
     }
 
-
-def vectorize_contours_to_svg(thresh: np.ndarray, max_glyphs: int = 6):
+def vectorize_contours_to_svg(thresh, max_glyphs=12, sample_text=""):
     """
-    Finds character contours, fits smooth Bézier splines, and converts them to SVG path definitions.
+    Extracts individual letterform contours and converts them into SVG vector path definitions (Em-square 1000x1000).
     """
-    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_TC89_L1)
-    h, w = thresh.shape
-    
-    if not contours:
+    if thresh is None:
         return []
         
-    # Sort contours left-to-right
+    h, w = thresh.shape
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours or hierarchy is None:
+        return []
+        
     glyph_boxes = []
     for i, cnt in enumerate(contours):
         # Ignore tiny noise or full image bounding box
@@ -383,6 +383,8 @@ def vectorize_contours_to_svg(thresh: np.ndarray, max_glyphs: int = 6):
             
     glyph_boxes.sort(key=lambda item: item[0])
     selected_glyphs = glyph_boxes[:max_glyphs]
+    
+    clean_chars = [c for c in sample_text if c.isalnum()]
     
     vectorized_glyphs = []
     for rank, (gx, gy, gcw, gch, parent_cnt, parent_idx) in enumerate(selected_glyphs):
@@ -419,11 +421,20 @@ def vectorize_contours_to_svg(thresh: np.ndarray, max_glyphs: int = 6):
                         path_d += f"L {cpk[0]:.1f} {cpk[1]:.1f} "
                     path_d += "Z "
                     
+        char_label = clean_chars[rank] if rank < len(clean_chars) else chr(65 + (rank % 26))
+        
+        # Patch thumbnail
+        patch = thresh[gy:gy+gch, gx:gx+gcw]
+        thumb = cv2.resize(patch, (64, 64), interpolation=cv2.INTER_AREA)
+        _, buf = cv2.imencode('.png', thumb)
+        b64_patch = f"data:image/png;base64,{base64.b64encode(buf).decode('utf-8')}"
+        
         vectorized_glyphs.append({
             "glyph_index": rank,
-            "char_guess": chr(65 + (rank % 26)),
+            "char_guess": char_label,
             "bounding_box": {"x": int(gx), "y": int(gy), "width": int(gcw), "height": int(gch)},
             "svg_path": path_d.strip(),
+            "thumbnail": b64_patch,
             "control_points_count": len(pts),
             "em_square": 1000
         })
@@ -1289,7 +1300,7 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
     dna = extract_typographic_dna(gray, hero_thresh, extracted_text=extracted_text)
     
     # 4. Contour Bézier Spline Vectorization
-    vector_glyphs = vectorize_contours_to_svg(hero_thresh, max_glyphs=8)
+    vector_glyphs = vectorize_contours_to_svg(hero_thresh, max_glyphs=12, sample_text=extracted_text)
     
     # 5. High-Discrimination Vector Database Matching (Using Hero Threshold)
     matched_fonts = match_font_dna(dna, extracted_text=extracted_text, top_k=5, thresh=hero_thresh)
