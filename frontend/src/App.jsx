@@ -4496,7 +4496,6 @@ feature kern {
             }
 
             matchingFontIndices.push(i);
-            if (matchingFontIndices.length >= 10000) break;
           }
 
           const totalMatching = matchingFontIndices.length;
