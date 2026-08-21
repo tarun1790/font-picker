@@ -421,6 +421,25 @@ def get_system_font_catalog():
     return _SYSTEM_FONT_CATALOG
 
 
+def deskew_and_normalize_glyphs(thresh):
+    """
+    Computes text skew/slant angle and deskews via affine transformation matrix.
+    """
+    coords = cv2.findNonZero(thresh)
+    if coords is None or len(coords) < 10:
+        return thresh
+    
+    # Calculate moments to determine principal orientation
+    moments = cv2.moments(coords)
+    if abs(moments['mu02']) > 1e-4:
+        skew = moments['mu11'] / moments['mu02']
+        if abs(skew) > 0.08: # Skew detected
+            h, w = thresh.shape
+            M = np.float32([[1, -skew * 0.5, 0], [0, 1, 0]])
+            thresh = cv2.warpAffine(thresh, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    return thresh
+
+
 def match_against_full_system_catalog(thresh, sample_text="QUICK"):
     """
     Ranks query letterforms across all 325+ installed typographic families via 2D Cross-Correlation + IoU.
@@ -478,25 +497,19 @@ def match_against_full_system_catalog(thresh, sample_text="QUICK"):
             corr = max(0.0, corr)
             
             raw_score = (iou * 55.0) + (corr * 45.0) - aspect_penalty - density_penalty
-            if raw_score >= 80.0:
-                calibrated_score = min(99.8, round(88.0 + (raw_score - 80.0) * 0.58, 1))
-            elif raw_score >= 65.0:
-                calibrated_score = round(78.0 + (raw_score - 65.0) * 0.66, 1)
-            elif raw_score >= 50.0:
-                calibrated_score = round(65.0 + (raw_score - 50.0) * 0.80, 1)
-            else:
-                calibrated_score = round(max(30.0, raw_score), 1)
+            score = max(0.0, min(100.0, raw_score))
             
-            if calibrated_score >= 65.0:
+            if score >= 35.0:
+                calibrated = min(99.8, round(70.0 + (score - 50.0) * 0.65, 1)) if score >= 50.0 else round(score, 1)
                 results.append({
                     'name': font_info['family'],
                     'subfamily': font_info['subfamily'],
                     'category': f"{font_info['family']} ({font_info['subfamily']})",
                     'style': "System Foundational",
                     'foundry': "Desktop Foundry / TrueType Library",
-                    'match_score': calibrated_score,
+                    'match_score': calibrated,
                     'google_font': font_info['family'].replace(' ', '+'),
-                    'raw_score': round(raw_score, 2)
+                    'raw_score': round(score, 2)
                 })
         except Exception:
             continue
@@ -1182,6 +1195,8 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
     # 12. Generate visual thumbnail crop base64 for side-by-side comparison
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
+    crop_base64 = f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode('utf-8')}"
+    
     # 13. Advanced Typographic Radar Profile (6 forensic dimensions)
     radar_profile = {
         "stroke_contrast": min(100, int(dna.get("stroke_contrast", 1.2) * 22)),
