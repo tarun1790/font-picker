@@ -272,6 +272,7 @@ export default function App() {
   };
 
   // Font Identifier & GlyphCraft AI State
+  const identifierFileInputRef = useRef(null);
   const [identifierImage, setIdentifierImage] = useState(null);
   const [identifierImagePreview, setIdentifierImagePreview] = useState(null);
   const [identifierCrop, setIdentifierCrop] = useState({ x: 0.05, y: 0.15, width: 0.9, height: 0.7 });
@@ -310,21 +311,42 @@ export default function App() {
     }
   }, [selectedMatch]);
 
+  // Global Clipboard Image Paste Listener (Ctrl+V)
+  useEffect(() => {
+    const handleGlobalPaste = (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            handleIdentifierFile(file);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('paste', handleGlobalPaste);
+    return () => window.removeEventListener('paste', handleGlobalPaste);
+  }, []);
+
   const handleIdentifierFile = (file) => {
     if (!file) return;
     setIdentifierImage(file);
     setActivePosterPreset(null);
     setIdentifierError(null);
     const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result;
-      setIdentifierImagePreview(dataUrl);
-      setIdentifierResults(null);
-      setSelectedMatch(null);
-      // Auto-trigger font scan immediately on photo selection!
-      setTimeout(() => {
-        executeFontScan(file, dataUrl, null, { x: 0.05, y: 0.15, width: 0.9, height: 0.7 });
-      }, 50);
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result;
+      if (dataUrl) {
+        setIdentifierImagePreview(dataUrl);
+        setIdentifierResults(null);
+        setSelectedMatch(null);
+        // Auto-trigger font scan immediately on photo selection!
+        setTimeout(() => {
+          executeFontScan(file, dataUrl, null, { x: 0.05, y: 0.15, width: 0.9, height: 0.7 });
+        }, 50);
+      }
     };
     reader.onerror = () => {
       setIdentifierError('Failed to read the uploaded image file.');
@@ -2521,46 +2543,60 @@ feature kern {
 
                   {/* Dropzone */}
                   <div
+                    onClick={() => identifierFileInputRef.current?.click()}
                     onDragOver={handleIdentifierDragOver}
                     onDrop={handleIdentifierDrop}
-                    className="border-2 border-dashed border-brand-border hover:border-brand-primary/60 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center bg-slate-900/40 hover:bg-slate-900/70 group relative"
+                    className="border-2 border-dashed border-brand-border hover:border-brand-primary/60 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center bg-slate-900/40 hover:bg-slate-900/70 group relative overflow-hidden"
                   >
                     <input
                       type="file"
-                      id="identifier-file-input"
+                      ref={identifierFileInputRef}
                       accept="image/*"
-                      onClick={(e) => { e.target.value = null; }}
+                      onClick={(e) => { e.stopPropagation(); e.target.value = null; }}
                       onChange={handleIdentifierImageUpload}
                       className="hidden"
                     />
-                    <label htmlFor="identifier-file-input" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                      {isIdentifying ? (
-                        <div className="space-y-3 flex flex-col items-center py-4">
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-full border-2 border-brand-accent/30 border-t-brand-accent animate-spin" />
-                            <Sparkles className="h-5 w-5 text-brand-accent absolute inset-0 m-auto animate-pulse" />
-                          </div>
-                          <span className="text-xs text-brand-secondary font-bold block animate-pulse">
-                            Scanning typography across 317+ foundational fonts...
-                          </span>
-                          <span className="text-[10px] text-brand-muted block">
-                            Extracting Bézier contours, x-height & 2D cross-correlation
-                          </span>
+                    
+                    {identifierImagePreview ? (
+                      <div className="space-y-3 flex flex-col items-center w-full">
+                        <div className="relative rounded-xl overflow-hidden border border-brand-border/80 max-h-48 max-w-full bg-slate-950 flex items-center justify-center p-1 shadow-lg w-full">
+                          <img
+                            src={identifierImagePreview}
+                            className="max-h-44 max-w-full rounded object-contain"
+                            alt="Uploaded poster"
+                          />
+                          {isIdentifying && (
+                            <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center p-3 animate-fade-in z-10">
+                              <div className="relative mb-2">
+                                <div className="w-10 h-10 rounded-full border-2 border-brand-accent/30 border-t-brand-accent animate-spin" />
+                                <Sparkles className="h-4 w-4 text-brand-accent absolute inset-0 m-auto animate-pulse" />
+                              </div>
+                              <span className="text-xs text-brand-secondary font-bold text-center animate-pulse">
+                                Scanning typography across 317+ fonts on GPU...
+                              </span>
+                              <span className="text-[10px] text-brand-muted text-center mt-1">
+                                Extracting contours & 2D cross-correlation
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      ) : identifierImagePreview ? (
-                        <div className="space-y-2 flex flex-col items-center">
-                          <img src={identifierImagePreview} className="max-h-28 max-w-full rounded-lg border border-brand-border shadow-md object-contain" alt="Uploaded typography" />
-                          <span className="text-xs text-brand-secondary block font-bold">Image loaded! Click or drop another to replace</span>
-                          <span className="text-[10px] text-brand-muted block">Ready for 2D cross-correlation & contour analysis</span>
+                        <div className="flex items-center justify-center space-x-2 text-xs">
+                          <span className="text-brand-secondary font-bold">Photo loaded!</span>
+                          <span className="text-brand-muted">• Click box to change photo</span>
                         </div>
-                      ) : (
-                        <>
-                          <Crop className="h-8 w-8 text-brand-muted group-hover:text-brand-accent transition-colors mb-2" />
-                          <span className="text-xs font-bold text-white">Click or Drag & Drop Image with Typography</span>
-                          <span className="text-[10px] text-brand-muted mt-1">Logos, Book Covers, Signage, Posters (PNG, JPG, WEBP)</span>
-                        </>
-                      )}
-                    </label>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center py-2">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 border border-brand-primary/30 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                          <Upload className="h-6 w-6 text-brand-primary" />
+                        </div>
+                        <span className="text-sm font-bold text-white mb-1">Click to Browse or Drag & Drop Photo</span>
+                        <span className="text-xs text-brand-muted">Supports JPG, PNG, WEBP, Screen Captures, Posters</span>
+                        <span className="text-[10px] text-brand-secondary/80 font-mono mt-3 px-2 py-0.5 rounded bg-brand-secondary/10 border border-brand-secondary/20">
+                          Tip: You can also paste directly with Ctrl+V
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Sample Presets */}
