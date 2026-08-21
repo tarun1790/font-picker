@@ -310,19 +310,42 @@ export default function App() {
     }
   }, [selectedMatch]);
 
+  const handleIdentifierFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    setIdentifierImage(file);
+    setActivePosterPreset(null);
+    setIdentifierError(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setIdentifierImagePreview(reader.result);
+      setIdentifierResults(null);
+      setSelectedMatch(null);
+    };
+    reader.onerror = () => {
+      setIdentifierError('Failed to read the uploaded image file.');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleIdentifierImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      setIdentifierImage(file);
-      setActivePosterPreset(null);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setIdentifierImagePreview(reader.result);
-        setIdentifierResults(null);
-        setSelectedMatch(null);
-      };
-      reader.readAsDataURL(file);
+      handleIdentifierFile(file);
     }
+  };
+
+  const handleIdentifierDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+      handleIdentifierFile(file);
+    }
+  };
+
+  const handleIdentifierDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const generatePresetPoster = (type) => {
@@ -2134,6 +2157,7 @@ feature kern {
                     <input 
                       type="file" 
                       ref={fileInputRef} 
+                      onClick={(e) => { e.target.value = null; }}
                       onChange={handleFileChange} 
                       className="hidden" 
                       accept="image/*"
@@ -2474,17 +2498,35 @@ feature kern {
                   </div>
 
                   {/* Dropzone */}
-                  <label className="border-2 border-dashed border-brand-border hover:border-brand-primary/60 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center bg-slate-900/40 hover:bg-slate-900/70 group">
+                  <div
+                    onDragOver={handleIdentifierDragOver}
+                    onDrop={handleIdentifierDrop}
+                    className="border-2 border-dashed border-brand-border hover:border-brand-primary/60 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center bg-slate-900/40 hover:bg-slate-900/70 group relative"
+                  >
                     <input
                       type="file"
+                      id="identifier-file-input"
                       accept="image/*"
+                      onClick={(e) => { e.target.value = null; }}
                       onChange={handleIdentifierImageUpload}
                       className="hidden"
                     />
-                    <Crop className="h-8 w-8 text-brand-muted group-hover:text-brand-accent transition-colors mb-2" />
-                    <span className="text-xs font-bold text-white">Click to Upload Image with Typography</span>
-                    <span className="text-[10px] text-brand-muted mt-1">Logos, Book Covers, Signage, Posters</span>
-                  </label>
+                    <label htmlFor="identifier-file-input" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
+                      {identifierImagePreview ? (
+                        <div className="space-y-2 flex flex-col items-center">
+                          <img src={identifierImagePreview} className="max-h-28 max-w-full rounded-lg border border-brand-border shadow-md object-contain" alt="Uploaded typography" />
+                          <span className="text-xs text-brand-secondary block font-bold">Image loaded! Click or drop another to replace</span>
+                          <span className="text-[10px] text-brand-muted block">Ready for 2D cross-correlation & contour analysis</span>
+                        </div>
+                      ) : (
+                        <>
+                          <Crop className="h-8 w-8 text-brand-muted group-hover:text-brand-accent transition-colors mb-2" />
+                          <span className="text-xs font-bold text-white">Click or Drag & Drop Image with Typography</span>
+                          <span className="text-[10px] text-brand-muted mt-1">Logos, Book Covers, Signage, Posters (PNG, JPG, WEBP)</span>
+                        </>
+                      )}
+                    </label>
+                  </div>
 
                   {/* Sample Presets */}
                   <div>
