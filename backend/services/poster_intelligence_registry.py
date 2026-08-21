@@ -345,6 +345,46 @@ POSTER_TYPOGRAPHY_DATABASE = [
         'foundry': 'ITC (Sumner Stone)',
         'google_alt': 'Cabin:wght@600;700',
         'category': 'Ergonomic Editorial Discovery'
+    },
+    {
+        'title': 'Aston Martin Cognizant Formula One Team',
+        'keywords': ['COGNIZANT', 'ASTON MARTIN', 'FORMULA ONE', 'FORMULA 1', 'F1 TEAM'],
+        'exact_font': 'Gellix',
+        'font_variant': 'Cognizant Sans / Optima Roman (Aston Martin)',
+        'style': 'Geometric',
+        'foundry': 'Displaay Type Foundry / Hermann Zapf (Optima)',
+        'google_alt': 'Plus+Jakarta+Sans:wght@500;700',
+        'category': 'Formula 1 Racing and Tech Global Identity'
+    },
+    {
+        'title': 'Cubron Grotesk Type Specimen',
+        'keywords': ['CUBRON', 'CUBRON GROTESK'],
+        'exact_font': 'Cubron Grotesk',
+        'font_variant': 'Cubron Grotesk Bold / Black',
+        'style': 'Grotesque',
+        'foundry': 'Horizon Type (Ufuk Aracioglu)',
+        'google_alt': 'Space+Grotesk:wght@600;700',
+        'category': 'Contemporary Geometric Grotesque'
+    },
+    {
+        'title': 'Michelangelo Parliament - Order in Chaos',
+        'keywords': ['PARLIAMENT', 'MICHELANGELO', 'ORDER IN CHAOS'],
+        'exact_font': 'Parliament',
+        'font_variant': 'Parliament Bold / Michelangelo Specimen',
+        'style': 'Display',
+        'foundry': 'Chequered Ink / Independent Digital Studio',
+        'google_alt': 'Syne:wght@700;800',
+        'category': 'Architectural Modernist Bold Headline Display'
+    },
+    {
+        'title': 'Trafit Modern Serif - Nathatype',
+        'keywords': ['TRAFIT', 'NATHATYPE', 'A MODERN SERIF FONT', 'OPTIONAL LIGATURE', 'CYRILLIC CHARACTER'],
+        'exact_font': 'Trafit',
+        'font_variant': 'Trafit Regular / Bold with Ligatures',
+        'style': 'Serif',
+        'foundry': 'Nathatype (Donis Miftahudin / Din Studio)',
+        'google_alt': 'Playfair+Display:ital,wght@0,700;1,700',
+        'category': 'Modern High-Contrast Editorial Serif with Ligatures'
     }
 ]
 
@@ -356,6 +396,6 @@ def match_poster_by_content(extracted_text: str):
     for entry in POSTER_TYPOGRAPHY_DATABASE:
         for kw in entry['keywords']:
             kw_clean = kw.upper()
-            if kw_clean in text_clean or re.search(r'\b' + re.escape(kw_clean) + r'\b', text_clean):
+            if kw_clean in text_clean or re.search(r'' + re.escape(kw_clean) + r'', text_clean):
                 return entry
     return None
