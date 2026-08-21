@@ -438,7 +438,9 @@ def get_system_font_catalog():
         'canadian', 'yi', 'mongolian', 'phags', 'hangul', 'cjk', 'mingliu', 'simsun', 'ms gothic',
         'meiryo', 'yu gothic', 'malgun', 'gadugi', 'ebrima', 'leelawadee', 'dokchamp', 'daunpenh', 'kalinga',
         'kartika', 'latha', 'mangal', 'raavi', 'shruti', 'tunga', 'vrinda', 'estrangelo', 'sylfaen',
-        'aldhabi', 'andalus', 'arabic typesetting', 'simplified arabic', 'traditional arabic', 'urdw'
+        'aldhabi', 'andalus', 'arabic typesetting', 'simplified arabic', 'traditional arabic', 'urdw',
+        'himalaya', 'nyala', 'kaiti', 'fangsong', 'simhei', 'batang', 'dotum', 'gulim', 'gungsuh',
+        'pmingliu', 'ms mincho', 'ms pgothic', 'ms ui gothic', 'segoe ui symbol', 'segoe ui historic', 'segoe mdl2'
     ]
 
     for path in font_paths:
@@ -846,9 +848,47 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5, thresh: 
         
         dist = 0.45 * serif_diff + 0.35 * contrast_diff + 0.20 * x_h_diff
         base_score = 48.0 - (dist * 15.0) - category_penalty + (style_match_bonus * 0.35) + corr_bonus
-        
-        if is_direct_named_match:
-            final_score = 99.4
+        BRAND_KNOWLEDGE_GRAPH = {
+            "NIKE": ["Futura PT", "Futura", "Compacta Std", "Impact"],
+            "JUST DO IT": ["Futura PT", "Futura"],
+            "SUPREME": ["Futura PT", "Futura"],
+            "VOGUE": ["Bodoni", "Walbaum", "Playfair Display"],
+            "BAUHAUS": ["Futura PT", "Futura", "Kabel", "ITC Avant Garde Gothic", "Century Gothic"],
+            "SWISS": ["Helvetica", "Helvetica Now", "Neue Haas Grotesk", "Univers"],
+            "HELVETICA": ["Helvetica", "Helvetica Now", "Neue Haas Grotesk"],
+            "NEW YORK": ["Times New Roman", "Adobe Caslon Pro", "Baskerville", "ITC Franklin Gothic"],
+            "PORSCHE": ["Helvetica", "Helvetica Now", "Eurostile"],
+            "APPLE": ["Helvetica Now", "Myriad Pro", "Inter"],
+            "STAR WARS": ["ITC Franklin Gothic", "Trade Gothic"],
+            "GODFATHER": ["Didone", "Times New Roman"],
+            "PULP FICTION": ["Rockwell", "Clarendon"],
+            "STRANGER THINGS": ["ITC Benguiat"],
+            "NETFLIX": ["Bebas Neue", "Oswald", "Helvetica Now"],
+            "NASA": ["Eurostile", "Futura PT"],
+            "GUCCI": ["Optima"],
+            "CHANEL": ["Century Gothic", "ITC Avant Garde Gothic"],
+            "PRADA": ["Bodoni", "Walbaum"],
+            "ZARA": ["Bodoni", "Walbaum"],
+            "DOLCE": ["Futura PT", "Futura"],
+            "GABBANA": ["Futura PT", "Futura"],
+            "CALVIN KLEIN": ["Futura PT", "Futura"],
+            "STANLEY KUBRICK": ["Futura PT", "Futura"],
+            "2001": ["Futura PT", "Futura"],
+            "APOLLO": ["Futura PT", "Eurostile"],
+            "MONOTYPE": ["Monotype Garamond", "Helvetica Now", "Times New Roman", "Gill Sans", "Bembo", "Centaur"],
+            "LINOTYPE": ["Neue Haas Grotesk", "Univers", "Optima", "Palatino"]
+        }
+
+        # Check if text contains authentic brand tokens
+        is_brand_authentic_match = False
+        for brand_k, associated_fonts in BRAND_KNOWLEDGE_GRAPH.items():
+            if re.search(r'\b' + re.escape(brand_k) + r'\b', text_upper):
+                if any(af.upper() == ref_name_upper for af in associated_fonts):
+                    is_brand_authentic_match = True
+                    break
+
+        if is_brand_authentic_match or is_direct_named_match:
+            final_score = 99.8
         else:
             final_score = max(35.0, min(92.0, base_score))
             
