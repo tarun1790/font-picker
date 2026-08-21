@@ -4,7 +4,8 @@ import {
   Sparkles, Upload, RotateCw, Settings, BarChart2, FileText, 
   Layers, Search, Sliders, MessageSquare, CheckCircle, AlertTriangle, 
   ArrowRight, Download, Eye, Shield, Heart, Zap, RefreshCw, Database, X, ShieldAlert,
-  Crop, Compass, Scissors, Target, Maximize2, Type, SlidersHorizontal
+  Crop, Compass, Scissors, Target, Maximize2, Type, SlidersHorizontal,
+  Copy, Check, Code
 } from 'lucide-react';
 
 // Intercept all API calls to localtunnel/serveo to bypass warning screen
@@ -285,7 +286,15 @@ export default function App() {
   const [identifierMode, setIdentifierMode] = useState('identifier'); // 'identifier' | 'glyphcraft'
   const [selectedVectorGlyph, setSelectedVectorGlyph] = useState(null);
   const [forensicViewMode, setForensicViewMode] = useState('raster'); // 'raster' | 'sdf_heatmap' | 'split'
-  const [activePosterPreset, setActivePosterPreset] = useState(null);
+  const [copiedSnippet, setCopiedSnippet] = useState(null);
+
+  const handleCopyCode = (text, key) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedSnippet(key);
+      setTimeout(() => setCopiedSnippet(null), 2500);
+    }
+  };
 
   // Dynamic Google Font loader
   useEffect(() => {
@@ -3026,6 +3035,234 @@ feature kern {
                           <div className="p-3 rounded-2xl bg-slate-900/60 border border-brand-border/40 col-span-2">
                             <span className="text-[9px] text-brand-muted font-mono block">Counter & Aperture</span>
                             <span className="text-xs font-bold text-brand-accent truncate block">{identifierResults.anatomy.counter_aperture}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SUB-PIXEL GLYPH MICRO-ANATOMY & VECTOR EXTRACTION MATRIX */}
+                    {identifierResults.vector_glyphs && identifierResults.vector_glyphs.length > 0 && (
+                      <div className="glass-panel rounded-3xl p-6 border border-brand-accent/40 bg-gradient-to-br from-slate-900/90 via-slate-950/95 to-slate-900/90 space-y-4 shadow-xl">
+                        <div className="flex justify-between items-center border-b border-brand-border/40 pb-3">
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2.5 py-0.5 text-[10px] rounded-lg bg-brand-accent/20 text-brand-accent font-mono font-bold uppercase tracking-wider border border-brand-accent/30">
+                              Sub-Pixel Micro-Anatomy Grid
+                            </span>
+                            <span className="text-xs text-white font-bold">({identifierResults.vector_glyphs.length} Character Contours Traced)</span>
+                          </div>
+                          <span className="text-[10px] text-brand-muted font-mono">1000-UNIT EM-SQUARE VECTORS</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                          {identifierResults.vector_glyphs.map((glyph, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => {
+                                setSelectedVectorGlyph(glyph);
+                                setIdentifierMode('glyphcraft');
+                              }}
+                              className="p-3 rounded-2xl bg-slate-950 border border-brand-border/60 hover:border-brand-accent transition-all flex flex-col items-center justify-between group cursor-pointer hover:scale-[1.03] shadow-md"
+                            >
+                              <div className="w-full flex justify-between items-center text-[9px] text-brand-muted font-mono mb-1">
+                                <span className="font-bold text-white">#{idx + 1}</span>
+                                <span className="text-brand-accent font-bold">"{glyph.char_guess || '?'}"</span>
+                              </div>
+                              
+                              <div className="w-16 h-16 bg-slate-900/80 rounded-xl p-1 flex items-center justify-center border border-white/5 group-hover:border-brand-accent/40">
+                                <svg viewBox="0 0 1000 1000" className="w-full h-full text-brand-accent drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]">
+                                  <path d={glyph.svg_path} fill="currentColor" fillRule="evenodd" />
+                                </svg>
+                              </div>
+
+                              <div className="w-full mt-2 pt-1 border-t border-brand-border/30 text-[8px] font-mono text-brand-muted flex justify-between">
+                                <span>{glyph.control_points_count || 32} pts</span>
+                                <span className="text-emerald-400">SVG ⚡</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* FORENSIC TYPOGRAPHIC 6-AXIS RADAR ANALYZER */}
+                    {identifierResults.radar_profile && (
+                      <div className="glass-panel rounded-3xl p-6 border border-brand-border/60 space-y-4">
+                        <div className="flex justify-between items-center border-b border-brand-border/40 pb-3">
+                          <div>
+                            <span className="text-[10px] text-sky-400 font-mono tracking-wider uppercase font-bold">
+                              Forensic Geometric Metrology
+                            </span>
+                            <h3 className="text-sm font-bold text-white">6-Dimensional Typographic Radar Profile</h3>
+                          </div>
+                          <span className="text-[10px] text-sky-400 font-mono font-bold">HEPTAGONAL VECTOR FIELD</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                          {/* Left: SVG Hexagonal Radar */}
+                          <div className="flex items-center justify-center p-4 bg-slate-950/80 rounded-2xl border border-brand-border/40">
+                            <svg viewBox="-120 -120 240 240" className="w-48 h-48">
+                              {/* Background Hexagon Rings */}
+                              {[0.25, 0.5, 0.75, 1.0].map((ring, rIdx) => {
+                                const pts = [0, 60, 120, 180, 240, 300].map(deg => {
+                                  const rad = (deg - 90) * Math.PI / 180;
+                                  return `${(Math.cos(rad) * 90 * ring).toFixed(1)},${(Math.sin(rad) * 90 * ring).toFixed(1)}`;
+                                }).join(' ');
+                                return (
+                                  <polygon
+                                    key={rIdx}
+                                    points={pts}
+                                    fill="none"
+                                    stroke="rgba(255,255,255,0.08)"
+                                    strokeWidth="1"
+                                  />
+                                );
+                              })}
+
+                              {/* Axis lines */}
+                              {[0, 60, 120, 180, 240, 300].map((deg, aIdx) => {
+                                const rad = (deg - 90) * Math.PI / 180;
+                                return (
+                                  <line
+                                    key={aIdx}
+                                    x1="0"
+                                    y1="0"
+                                    x2={(Math.cos(rad) * 90).toFixed(1)}
+                                    y2={(Math.sin(rad) * 90).toFixed(1)}
+                                    stroke="rgba(255,255,255,0.12)"
+                                    strokeWidth="1"
+                                  />
+                                );
+                              })}
+
+                              {/* Data Radar Polygon */}
+                              {(() => {
+                                const rp = identifierResults.radar_profile;
+                                const vals = [
+                                  (rp.stroke_contrast || 50) / 100,
+                                  (rp.geometric_purity || 70) / 100,
+                                  (rp.aspect_ratio || 65) / 100,
+                                  (rp.x_height || 55) / 100,
+                                  (rp.optical_density || 45) / 100,
+                                  (rp.serif_bracket || 20) / 100
+                                ];
+                                const polyPts = vals.map((v, idx) => {
+                                  const deg = idx * 60;
+                                  const rad = (deg - 90) * Math.PI / 180;
+                                  const dist = Math.max(15, v * 90);
+                                  return `${(Math.cos(rad) * dist).toFixed(1)},${(Math.sin(rad) * dist).toFixed(1)}`;
+                                }).join(' ');
+                                return (
+                                  <>
+                                    <polygon
+                                      points={polyPts}
+                                      fill="rgba(56, 189, 248, 0.25)"
+                                      stroke="#38BDF8"
+                                      strokeWidth="2.5"
+                                    />
+                                    {vals.map((v, idx) => {
+                                      const deg = idx * 60;
+                                      const rad = (deg - 90) * Math.PI / 180;
+                                      const dist = Math.max(15, v * 90);
+                                      return (
+                                        <circle
+                                          key={idx}
+                                          cx={(Math.cos(rad) * dist).toFixed(1)}
+                                          cy={(Math.sin(rad) * dist).toFixed(1)}
+                                          r="3.5"
+                                          fill="#F43F5E"
+                                        />
+                                      );
+                                    })}
+                                  </>
+                                );
+                              })()}
+                            </svg>
+                          </div>
+
+                          {/* Right: Dimension Bars */}
+                          <div className="space-y-2 text-xs">
+                            {[
+                              { label: 'Stroke Contrast', val: identifierResults.radar_profile.stroke_contrast, color: 'from-sky-500 to-blue-600' },
+                              { label: 'Geometric Purity', val: identifierResults.radar_profile.geometric_purity, color: 'from-emerald-500 to-teal-600' },
+                              { label: 'Aspect Ratio Proportion', val: identifierResults.radar_profile.aspect_ratio, color: 'from-amber-500 to-orange-600' },
+                              { label: 'X-Height Dominance', val: identifierResults.radar_profile.x_height, color: 'from-purple-500 to-indigo-600' },
+                              { label: 'Optical Stem Density', val: identifierResults.radar_profile.optical_density, color: 'from-rose-500 to-pink-600' },
+                              { label: 'Serif Foot Fillet', val: identifierResults.radar_profile.serif_bracket, color: 'from-cyan-500 to-sky-600' }
+                            ].map((dim, dIdx) => (
+                              <div key={dIdx} className="space-y-1">
+                                <div className="flex justify-between text-[11px] font-mono">
+                                  <span className="text-brand-muted">{dim.label}</span>
+                                  <span className="text-white font-bold">{dim.val}%</span>
+                                </div>
+                                <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
+                                  <div
+                                    className={`h-full bg-gradient-to-r ${dim.color} rounded-full`}
+                                    style={{ width: `${dim.val}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* PRODUCTION WEBFONT CSS & DESIGN TOKEN GENERATOR */}
+                    {identifierResults.matched_fonts && identifierResults.matched_fonts.length > 0 && (
+                      <div className="glass-panel rounded-3xl p-6 border border-purple-500/40 bg-gradient-to-br from-purple-950/20 via-slate-900/80 to-slate-950/90 space-y-4 shadow-xl">
+                        <div className="flex justify-between items-center border-b border-brand-border/40 pb-3">
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2.5 py-0.5 text-[10px] rounded-lg bg-purple-500/20 text-purple-300 font-mono font-bold uppercase tracking-wider border border-purple-500/30">
+                              Developer & Design System Studio
+                            </span>
+                            <span className="text-xs text-white font-bold">1-Click CSS Integration</span>
+                          </div>
+                          <span className="text-[10px] text-brand-muted font-mono">PRODUCTION SNIPPETS</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* CSS @import Code Box */}
+                          <div className="p-4 rounded-2xl bg-slate-950 border border-brand-border/60 flex flex-col justify-between space-y-3">
+                            <div>
+                              <div className="flex justify-between items-center text-[10px] font-mono text-purple-300 font-bold mb-1.5">
+                                <span>CSS @import Rule:</span>
+                                <button
+                                  onClick={() => handleCopyCode(
+                                    `@import url('https://fonts.googleapis.com/css2?family=${(identifierResults.matched_fonts[0]?.google_font || identifierResults.matched_fonts[0]?.name).replace(/ /g, '+')}&display=swap');\n\n.font-custom {\n  font-family: '${identifierResults.matched_fonts[0]?.name}', sans-serif;\n}`,
+                                    'css_import'
+                                  )}
+                                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-purple-600 text-white transition flex items-center space-x-1"
+                                >
+                                  {copiedSnippet === 'css_import' ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
+                                  <span>{copiedSnippet === 'css_import' ? 'Copied!' : 'Copy'}</span>
+                                </button>
+                              </div>
+                              <pre className="p-2.5 rounded-xl bg-slate-900/90 text-[10px] font-mono text-sky-300 overflow-x-auto border border-white/5">
+                                {`@import url('https://fonts.googleapis.com/css2?family=${(identifierResults.matched_fonts[0]?.google_font || identifierResults.matched_fonts[0]?.name).replace(/ /g, '+')}&display=swap');\n\n.font-custom {\n  font-family: '${identifierResults.matched_fonts[0]?.name}', sans-serif;\n}`}
+                              </pre>
+                            </div>
+                          </div>
+
+                          {/* HTML <link> Tag Box */}
+                          <div className="p-4 rounded-2xl bg-slate-950 border border-brand-border/60 flex flex-col justify-between space-y-3">
+                            <div>
+                              <div className="flex justify-between items-center text-[10px] font-mono text-emerald-300 font-bold mb-1.5">
+                                <span>HTML &lt;link&gt; Header Tag:</span>
+                                <button
+                                  onClick={() => handleCopyCode(
+                                    `<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${(identifierResults.matched_fonts[0]?.google_font || identifierResults.matched_fonts[0]?.name).replace(/ /g, '+')}&display=swap">`,
+                                    'html_link'
+                                  )}
+                                  className="px-2 py-0.5 rounded bg-slate-800 hover:bg-emerald-600 text-white transition flex items-center space-x-1"
+                                >
+                                  {copiedSnippet === 'html_link' ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
+                                  <span>{copiedSnippet === 'html_link' ? 'Copied!' : 'Copy'}</span>
+                                </button>
+                              </div>
+                              <pre className="p-2.5 rounded-xl bg-slate-900/90 text-[10px] font-mono text-emerald-300 overflow-x-auto border border-white/5">
+                                {`<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${(identifierResults.matched_fonts[0]?.google_font || identifierResults.matched_fonts[0]?.name).replace(/ /g, '+')}&display=swap">`}
+                              </pre>
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -1182,7 +1182,15 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
     # 12. Generate visual thumbnail crop base64 for side-by-side comparison
     buffered = io.BytesIO()
     image.save(buffered, format="PNG")
-    crop_base64 = f"data:image/png;base64,{base64.b64encode(buffered.getvalue()).decode('utf-8')}"
+    # 13. Advanced Typographic Radar Profile (6 forensic dimensions)
+    radar_profile = {
+        "stroke_contrast": min(100, int(dna.get("stroke_contrast", 1.2) * 22)),
+        "aspect_ratio": min(100, int(dna.get("avg_aspect", 0.7) * 110)),
+        "x_height": min(100, int(dna.get("x_height_ratio", 0.52) * 180)),
+        "serif_bracket": min(100, int(dna.get("serif_index", 0.05) * 120)),
+        "optical_density": min(100, int(dna.get("avg_density", 0.35) * 140)),
+        "geometric_purity": min(100, int(95 - abs(dna.get("avg_aspect", 0.7) - 0.8) * 40))
+    }
     
     return {
         "status": "SUCCESS",
@@ -1194,6 +1202,7 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
         "font_pairings": font_pairings,
         "free_alternatives": free_alternatives,
         "anatomy": anatomy,
+        "radar_profile": radar_profile,
         "sdf_heatmap_base64": sdf_heatmap,
         "evidence_certificate": evidence_cert,
         "crop_preview_base64": crop_base64,
