@@ -482,10 +482,10 @@ def match_against_full_system_catalog(thresh, sample_text="QUICK"):
             cand_aspect = cand_w / float(target_h)
             cand_density = float(np.sum(norm_cand > 127)) / float(cand_w * target_h)
             
-            aspect_diff = abs(q_aspect - cand_aspect)
-            aspect_penalty = min(50.0, aspect_diff * 22.0)
-            density_diff = abs(q_density - cand_density)
-            density_penalty = min(30.0, density_diff * 40.0)
+            rel_aspect_diff = abs(q_aspect - cand_aspect) / max(1.0, q_aspect)
+            aspect_penalty = min(20.0, rel_aspect_diff * 35.0)
+            rel_density_diff = abs(q_density - cand_density) / max(0.1, q_density)
+            density_penalty = min(15.0, rel_density_diff * 20.0)
             
             aligned_cand = cv2.resize(norm_cand, (target_w, target_h), interpolation=cv2.INTER_AREA)
             inter = np.sum((norm_q > 127) & (aligned_cand > 127))
@@ -713,25 +713,6 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5, thresh: 
                 if len(word) >= 5 and word not in EXCLUDED_COMMON_WORDS and word in text_upper:
                     is_direct_named_match = True
                     
-        if ("SWISS" in text_upper or "MIEDINGER" in text_upper) and "HELVETICA" in ref_name_upper:
-            is_direct_named_match = True
-        if ("BAUHAUS" in text_upper or "DESSAU" in text_upper) and ref_name_upper in ["FUTURA", "FUTURA PT"]:
-            is_direct_named_match = True
-        if ("NIKE" in text_upper or "JUST DO IT" in text_upper) and ref_name_upper in ["FUTURA PT", "FUTURA", "HELVETICA NOW"]:
-            is_direct_named_match = True
-        if ("HAUTE" in text_upper or "COUTURE" in text_upper or "VOGUE" in text_upper) and ref_name_upper in ["BODONI", "PLAYFAIR DISPLAY", "WALBAUM"]:
-            is_direct_named_match = True
-        if ("BRITISH" in text_upper or "RAILWAYS" in text_upper) and "GILL SANS" in ref_name_upper:
-            is_direct_named_match = True
-        if ("WILD" in text_upper or "WEST" in text_upper or "BREWERY" in text_upper) and ref_name_upper in ["CLARENDON", "ROCKWELL", "ARVO"]:
-            is_direct_named_match = True
-        if ("STARBUCKS" in text_upper or "COFFEE" in text_upper) and ref_name_upper in ["TRADE GOTHIC", "FRANKLIN GOTHIC", "HELVETICA"]:
-            is_direct_named_match = True
-        if ("HARVARD" in text_upper or "OXFORD" in text_upper or "UNIVERSITY" in text_upper or "LAW" in text_upper) and ref_name_upper in ["ADOBE CASLON PRO", "CASLON", "BASKERVILLE", "MINION PRO", "TIMES NEW ROMAN"]:
-            is_direct_named_match = True
-        if ("TRAFFIC" in text_upper or "COMPACTA" in text_upper or "BLOCKBUSTER" in text_upper or "HEADLINE" in text_upper) and ref_name_upper in ["COMPACTA STD", "IMPACT", "OSWALD", "ANTON"]:
-            is_direct_named_match = True
-            
         # Determine target style classifications
         primary_style_raw = dna.get("primary_style", "Grotesque").lower()
         is_condensed_target = ("condensed" in primary_style_raw or "heavy" in primary_style_raw or dna.get("is_condensed_heavy", False))
@@ -833,9 +814,9 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5, thresh: 
     all_candidates = []
     seen_names = set()
     
-    # Promote high-scoring system matches
+    # Promote system template matches
     for sm in system_matches:
-        if sm['match_score'] >= 65.0 and sm['name'].upper() not in seen_names:
+        if sm['name'].upper() not in seen_names:
             all_candidates.append({
                 "name": sm["name"],
                 "category": sm["category"],
@@ -1130,17 +1111,19 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
         else:
             extracted_text = transcribe_poster_text(image, gray, thresh)
     else:
-        # Check if we have an isolated hero title layer
-        if poster_layers:
-            # Try OCR on the main hero logo layer first
+        # Prioritize high-fidelity full image OCR transcription
+        full_text = transcribe_poster_text(image, gray, thresh)
+        if len(full_text.strip()) > 1 and "EXTRACTED" not in full_text:
+            extracted_text = full_text
+        elif poster_layers:
             hero_crop = poster_layers[0]['crop_img']
             hero_text = transcribe_poster_text(hero_crop, None, None)
-            if len(hero_text.split()) > 0 and "EXTRACTED" not in hero_text:
+            if len(hero_text.strip()) > 1 and "EXTRACTED" not in hero_text:
                 extracted_text = hero_text
             else:
-                extracted_text = transcribe_poster_text(image, gray, thresh)
+                extracted_text = full_text
         else:
-            extracted_text = transcribe_poster_text(image, gray, thresh)
+            extracted_text = full_text
     
     # 3. Typographic DNA Analysis with Text Hints
     dna = extract_typographic_dna(gray, thresh, extracted_text=extracted_text)
