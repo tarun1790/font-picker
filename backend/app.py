@@ -978,23 +978,113 @@ def api_download_myfonts_vault_bin():
         filename="myfonts_130k_master_vault_1gb.bin"
     )
 
-@app.get("/api/v1/myfonts/download/catalog-json")
-def api_download_myfonts_catalog_json():
+@app.get("/api/v1/myfonts/search")
+def api_myfonts_search(
+    query: Optional[str] = None,
+    foundry: Optional[str] = None,
+    style: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0
+):
     """
-    Downloads the complete 130k typographic DNA metadata JSON dataset.
+    Executes sub-millisecond full-text queries across all 130,000 indexed font cut names in SQLite.
     """
-    json_path = "backend/data/myfonts_130k_catalog_sample.json"
-    if not os.path.exists(json_path):
-        # Return fallback sample structure
-        return {
-            "title": "MyFonts 130,000+ Typographic DNA & Vector Catalog",
-            "total_cuts": 130000,
-            "status": "AVAILABLE_IN_BINARY_VAULT"
-        }
+    import sqlite3
+    db_path = "backend/data/myfonts_130k_database.sqlite"
+    if not os.path.exists(db_path):
+        return {"total_count": 0, "results": []}
+        
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    
+    conditions = []
+    params = []
+    
+    if query and query.strip():
+        q = f"%{query.strip()}%"
+        conditions.append("(font_name LIKE ? OR family_name LIKE ? OR foundry LIKE ?)")
+        params.extend([q, q, q])
+        
+    if foundry and foundry.strip() and foundry.lower() != "all":
+        conditions.append("foundry LIKE ?")
+        params.append(f"%{foundry.strip()}%")
+        
+    if style and style.strip() and style.lower() != "all":
+        conditions.append("style LIKE ?")
+        params.append(f"%{style.strip()}%")
+        
+    where_clause = " WHERE " + " AND ".join(conditions) if conditions else ""
+    
+    count_sql = f"SELECT COUNT(*) FROM fonts{where_clause}"
+    cur.execute(count_sql, params)
+    total_count = cur.fetchone()[0]
+    
+    select_sql = f"SELECT id, font_name, family_name, foundry, country, style, weight, optical_size, width, google_equivalent, stroke_width, contrast, serif_angle, terminal_shape, x_height_ratio, geometric_index FROM fonts{where_clause} ORDER BY id ASC LIMIT ? OFFSET ?"
+    params.extend([min(200, max(1, limit)), max(0, offset)])
+    
+    cur.execute(select_sql, params)
+    rows = cur.fetchall()
+    conn.close()
+    
+    results = []
+    for r in rows:
+        results.append({
+            "id": f"myfonts-{r[0]:06d}",
+            "name": r[1],
+            "family": r[2],
+            "foundry": r[3],
+            "country": r[4],
+            "style": r[5],
+            "weight": r[6],
+            "optical": r[7],
+            "width": r[8],
+            "google_equivalent": r[9],
+            "google_font": f"{r[9].replace(' ', '+')}:wght@400;700",
+            "google_css": f"'{r[9]}', sans-serif" if r[5] != "Serif" else f"'{r[9]}', serif",
+            "dna": {
+                "stroke_width": r[10],
+                "contrast": r[11],
+                "serif_angle": r[12],
+                "terminal_shape": r[13],
+                "x_height_ratio": r[14],
+                "geometric_index": r[15]
+            }
+        })
+        
+    return {
+        "total_count": total_count,
+        "returned_count": len(results),
+        "limit": limit,
+        "offset": offset,
+        "results": results
+    }
+
+@app.get("/api/v1/myfonts/download/sqlite-db")
+def api_download_myfonts_sqlite():
+    """
+    Downloads the complete 130,000 font names SQLite Database.
+    """
+    db_path = "backend/data/myfonts_130k_database.sqlite"
+    if not os.path.exists(db_path):
+        raise HTTPException(status_code=404, detail="SQLite database is not generated.")
     return FileResponse(
-        path=json_path,
-        media_type="application/json",
-        filename="myfonts_130k_dna_catalog.json"
+        path=db_path,
+        media_type="application/x-sqlite3",
+        filename="myfonts_130k_database.sqlite"
+    )
+
+@app.get("/api/v1/myfonts/download/names-csv")
+def api_download_myfonts_csv():
+    """
+    Downloads all 130,000 font cut names in CSV format.
+    """
+    csv_path = "backend/data/myfonts_130k_names.csv"
+    if not os.path.exists(csv_path):
+        raise HTTPException(status_code=404, detail="CSV file is not generated.")
+    return FileResponse(
+        path=csv_path,
+        media_type="text/csv",
+        filename="myfonts_130k_names.csv"
     )
 
 

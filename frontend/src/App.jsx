@@ -4289,24 +4289,31 @@ feature kern {
 
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono flex items-center gap-1.5">
-                      <Zap className="h-3.5 w-3.5" /> 130,000+ Ingested Cuts
+                      <Zap className="h-3.5 w-3.5" /> 130,000+ Indexed Names
                     </span>
                     <span className="px-3 py-1.5 rounded-lg bg-brand-primary/20 border border-brand-primary/40 text-brand-accent text-xs font-mono flex items-center gap-1.5">
-                      <Database className="h-3.5 w-3.5" /> 1.00 GB Binary Matrix
+                      <Database className="h-3.5 w-3.5" /> 1.00 GB Binary Vault
                     </span>
                     <a
                       href={`${API_BASE}/api/v1/myfonts/download/vault-bin`}
                       download="myfonts_130k_master_vault_1gb.bin"
                       className="px-3 py-1.5 rounded-lg bg-brand-accent text-zinc-950 text-xs font-bold hover:bg-white transition-all flex items-center gap-1.5 shadow-md shadow-brand-accent/20"
                     >
-                      <Download className="h-3.5 w-3.5" /> Download 1.0 GB Vault (.bin)
+                      <Download className="h-3.5 w-3.5" /> 1.0 GB Vault (.bin)
                     </a>
                     <a
-                      href={`${API_BASE}/api/v1/myfonts/download/catalog-json`}
-                      download="myfonts_130k_dna_catalog.json"
+                      href={`${API_BASE}/api/v1/myfonts/download/sqlite-db`}
+                      download="myfonts_130k_database.sqlite"
+                      className="px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 text-xs font-bold hover:bg-indigo-500/30 transition-all flex items-center gap-1.5 border border-indigo-500/40"
+                    >
+                      <Database className="h-3.5 w-3.5" /> 130k SQLite DB (43 MB)
+                    </a>
+                    <a
+                      href={`${API_BASE}/api/v1/myfonts/download/names-csv`}
+                      download="myfonts_130k_names.csv"
                       className="px-3 py-1.5 rounded-lg bg-white/10 text-white text-xs font-bold hover:bg-white/20 transition-all flex items-center gap-1.5 border border-white/10"
                     >
-                      <FileText className="h-3.5 w-3.5" /> Download 130k JSON
+                      <FileText className="h-3.5 w-3.5" /> 130k Names CSV
                     </a>
                   </div>
                 </div>
