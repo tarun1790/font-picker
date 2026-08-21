@@ -311,15 +311,20 @@ export default function App() {
   }, [selectedMatch]);
 
   const handleIdentifierFile = (file) => {
-    if (!file || !file.type.startsWith('image/')) return;
+    if (!file) return;
     setIdentifierImage(file);
     setActivePosterPreset(null);
     setIdentifierError(null);
     const reader = new FileReader();
     reader.onload = () => {
-      setIdentifierImagePreview(reader.result);
+      const dataUrl = reader.result;
+      setIdentifierImagePreview(dataUrl);
       setIdentifierResults(null);
       setSelectedMatch(null);
+      // Auto-trigger font scan immediately on photo selection!
+      setTimeout(() => {
+        executeFontScan(file, dataUrl, null, { x: 0.05, y: 0.15, width: 0.9, height: 0.7 });
+      }, 50);
     };
     reader.onerror = () => {
       setIdentifierError('Failed to read the uploaded image file.');
@@ -409,10 +414,18 @@ export default function App() {
     }
     
     const dataUrl = canvas.toDataURL('image/png');
+    return dataUrl;
+  };
+
+  const loadSampleIdentifierImage = (type) => {
+    const dataUrl = generatePresetPoster(type);
     setIdentifierImagePreview(dataUrl);
     setIdentifierImage(null);
     setIdentifierResults(null);
     setSelectedMatch(null);
+    setTimeout(() => {
+      executeFontScan(null, dataUrl, type, { x: 0.05, y: 0.15, width: 0.9, height: 0.7 });
+    }, 100);
   };
 
   const analyzeTypographyInBrowser = (imageSrc, crop, preset) => {
@@ -612,25 +625,30 @@ export default function App() {
     });
   };
 
-  const handleRunFontIdentification = async () => {
-    if (!identifierImage && !identifierImagePreview) return;
+  const executeFontScan = async (fileObj, previewDataUrl, preset, cropCoords) => {
+    const imgFile = fileObj !== undefined ? fileObj : identifierImage;
+    const imgPreview = previewDataUrl !== undefined ? previewDataUrl : identifierImagePreview;
+    if (!imgFile && !imgPreview) return;
+    
     setIsIdentifying(true);
     setIdentifierError(null);
+    const crop = cropCoords || identifierCrop;
+    const activePreset = preset !== undefined ? preset : activePosterPreset;
 
     try {
       const formData = new FormData();
-      if (identifierImage) {
-        formData.append('file', identifierImage);
-      } else if (identifierImagePreview) {
-        formData.append('image_base64', identifierImagePreview);
+      if (imgFile) {
+        formData.append('file', imgFile);
+      } else if (imgPreview) {
+        formData.append('image_base64', imgPreview);
       }
-      if (activePosterPreset) {
-        formData.append('preset_name', activePosterPreset);
+      if (activePreset) {
+        formData.append('preset_name', activePreset);
       }
-      formData.append('crop_x', identifierCrop.x);
-      formData.append('crop_y', identifierCrop.y);
-      formData.append('crop_width', identifierCrop.width);
-      formData.append('crop_height', identifierCrop.height);
+      formData.append('crop_x', crop.x);
+      formData.append('crop_y', crop.y);
+      formData.append('crop_width', crop.width);
+      formData.append('crop_height', crop.height);
 
       let res = null;
       const targetEndpoints = [
@@ -655,9 +673,9 @@ export default function App() {
         data = await res.json();
       } else {
         // Fallback: In-Browser HTML5 Canvas Typographic Vision Analyzer
-        const previewUrl = identifierImagePreview || (identifierImage ? URL.createObjectURL(identifierImage) : null);
+        const previewUrl = imgPreview || (imgFile ? URL.createObjectURL(imgFile) : null);
         if (previewUrl) {
-          data = await analyzeTypographyInBrowser(previewUrl, identifierCrop, activePosterPreset);
+          data = await analyzeTypographyInBrowser(previewUrl, crop, activePreset);
         }
       }
 
@@ -681,6 +699,10 @@ export default function App() {
     } finally {
       setIsIdentifying(false);
     }
+  };
+
+  const handleRunFontIdentification = () => {
+    executeFontScan(identifierImage, identifierImagePreview, activePosterPreset, identifierCrop);
   };
   
   // Brand Configuration State
@@ -2512,7 +2534,20 @@ feature kern {
                       className="hidden"
                     />
                     <label htmlFor="identifier-file-input" className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
-                      {identifierImagePreview ? (
+                      {isIdentifying ? (
+                        <div className="space-y-3 flex flex-col items-center py-4">
+                          <div className="relative">
+                            <div className="w-12 h-12 rounded-full border-2 border-brand-accent/30 border-t-brand-accent animate-spin" />
+                            <Sparkles className="h-5 w-5 text-brand-accent absolute inset-0 m-auto animate-pulse" />
+                          </div>
+                          <span className="text-xs text-brand-secondary font-bold block animate-pulse">
+                            Scanning typography across 317+ foundational fonts...
+                          </span>
+                          <span className="text-[10px] text-brand-muted block">
+                            Extracting Bézier contours, x-height & 2D cross-correlation
+                          </span>
+                        </div>
+                      ) : identifierImagePreview ? (
                         <div className="space-y-2 flex flex-col items-center">
                           <img src={identifierImagePreview} className="max-h-28 max-w-full rounded-lg border border-brand-border shadow-md object-contain" alt="Uploaded typography" />
                           <span className="text-xs text-brand-secondary block font-bold">Image loaded! Click or drop another to replace</span>
