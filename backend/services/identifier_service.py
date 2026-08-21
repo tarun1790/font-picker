@@ -1253,7 +1253,16 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
     # 1. Decompose Poster into Multi-Layer Typographic Regions
     poster_layers = extract_poster_layers(image)
     
-    # 2. OCR Headline Text Transcription
+    # 2. Extract and Prioritize the BIGGEST WORD / HERO HEADLINE (Largest Height & Area)
+    hero_text = ""
+    hero_thresh = thresh
+    if poster_layers:
+        hero_crop = poster_layers[0]['crop_img']
+        hero_text = transcribe_poster_text(hero_crop, None, None)
+        h_gray = cv2.cvtColor(np.array(hero_crop.convert('RGB')), cv2.COLOR_RGB2GRAY)
+        _, h_th = cv2.threshold(h_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        hero_thresh = h_th
+
     if preset_name:
         p_clean = preset_name.strip().lower()
         if "helvetica" in p_clean:
@@ -1269,47 +1278,27 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
         elif "vogue" in p_clean:
             extracted_text = "VOGUE EDITORIAL"
         else:
-            extracted_text = transcribe_poster_text(image, gray, thresh)
+            extracted_text = preset_name.strip().upper()
+    elif hero_text and len(hero_text.strip()) > 1 and "EXTRACTED" not in hero_text:
+        extracted_text = hero_text
     else:
-        # Prioritize high-fidelity full image OCR transcription
         full_text = transcribe_poster_text(image, gray, thresh)
-        if len(full_text.strip()) > 1 and "EXTRACTED" not in full_text:
-            extracted_text = full_text
-        elif poster_layers:
-            hero_crop = poster_layers[0]['crop_img']
-            hero_text = transcribe_poster_text(hero_crop, None, None)
-            if len(hero_text.strip()) > 1 and "EXTRACTED" not in hero_text:
-                extracted_text = hero_text
-            else:
-                extracted_text = full_text
-        else:
-            extracted_text = full_text
+        extracted_text = full_text if len(full_text.strip()) > 1 and "EXTRACTED" not in full_text else (hero_text or "POSTER HEADLINE")
             
-    # Also scan uncropped source bytes if available for maximum headline recall
-    try:
-        full_source_img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-        source_text = transcribe_poster_text(full_source_img, None, None)
-        if "EXTRACTED" not in source_text and len(source_text.strip()) > 1:
-            if extracted_text and "EXTRACTED" not in extracted_text:
-                extracted_text = f"{source_text} {extracted_text}".strip()
-            else:
-                extracted_text = source_text
-    except Exception:
-        pass
-    
-    # 3. Typographic DNA Analysis with Text Hints
-    dna = extract_typographic_dna(gray, thresh, extracted_text=extracted_text)
+    # 3. Typographic DNA Analysis with Text Hints (Focused on the Biggest Word)
+    dna = extract_typographic_dna(gray, hero_thresh, extracted_text=extracted_text)
     
     # 4. Contour Bézier Spline Vectorization
-    vector_glyphs = vectorize_contours_to_svg(thresh, max_glyphs=8)
+    vector_glyphs = vectorize_contours_to_svg(hero_thresh, max_glyphs=8)
     
-    # 5. High-Discrimination Vector Database Matching
-    matched_fonts = match_font_dna(dna, extracted_text=extracted_text, top_k=5, thresh=thresh)
+    # 5. High-Discrimination Vector Database Matching (Using Hero Threshold)
+    matched_fonts = match_font_dna(dna, extracted_text=extracted_text, top_k=5, thresh=hero_thresh)
     
-    # 5.5. Consult Real-World Poster & Cinema Typography Registry
+    # 5.5. Real-World Poster & Cinema Typography Registry (Biggest Word Dominance)
     try:
         from backend.services.poster_intelligence_registry import match_poster_by_content
-        poster_match = match_poster_by_content(extracted_text)
+        # First check the biggest hero word specifically
+        poster_match = match_poster_by_content(hero_text) or match_poster_by_content(extracted_text)
         if poster_match:
             authentic_entry = {
                 "name": poster_match["exact_font"],
