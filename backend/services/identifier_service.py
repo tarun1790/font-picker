@@ -875,26 +875,23 @@ def match_font_dna(dna: dict, extracted_text: str = "", top_k: int = 5, thresh: 
     # 2. Execute Deep Vector FAISS Search across 250,000+ fonts in the registry
     faiss_candidates = []
     try:
-        from backend.services.fonts_db import FontMetadataDatabase
+        from backend.services.fonts_db import FontMetadataDatabase, project_dna_to_1024
         global _GLOBAL_FONTS_DB
         if '_GLOBAL_FONTS_DB' not in globals() or _GLOBAL_FONTS_DB is None:
             _GLOBAL_FONTS_DB = FontMetadataDatabase()
             
-        q_vec = np.zeros(1024, dtype=np.float32)
-        q_vec[0] = dna.get("stroke_width", 0.5)
-        q_vec[1] = min(1.0, dna.get("stroke_contrast", 1.2) / 4.0)
-        q_vec[2] = dna.get("serif_index", 0.05)
-        q_vec[3] = 0.4
-        q_vec[4] = dna.get("x_height_ratio", 0.52)
-        q_vec[5] = 0.7
-        q_vec[6] = 0.5
-        q_vec[7] = 0.4
-        q_vec[8] = 0.5
-        
-        v_norm = np.linalg.norm(q_vec)
-        if v_norm > 0:
-            q_vec = q_vec / v_norm
-            
+        dna_vals = [
+            dna.get("stroke_width", 0.5),
+            min(1.0, dna.get("stroke_contrast", 1.2) / 4.0),
+            dna.get("serif_index", 0.05),
+            0.4,
+            dna.get("x_height_ratio", 0.52),
+            0.7,
+            0.5,
+            0.4,
+            0.5
+        ]
+        q_vec = project_dna_to_1024(dna_vals)
         f_results = _GLOBAL_FONTS_DB.search_similarity(q_vec, top_k=25)
         for fr in f_results:
             fam = fr.get("family", fr["font_name"].split()[0])

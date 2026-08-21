@@ -54,6 +54,39 @@ FONT_TEMPLATES = [
     {"name": "Georgia", "family": "Georgia", "style": "Serif", "categories": ["News", "Publishing", "Financial", "Luxury Watch"], "personality": ["Traditional", "Elegant", "Premium"], "target_age": "20-80", "luxury_score": 0.80, "readability": 0.96, "shelf_visibility": 0.78, "multilingual": ["English"]}
 ]
 
+def project_dna_to_1024(dna_vals, dim=1024):
+    dna_arr = np.array(dna_vals[:9], dtype=np.float32)
+    freqs = np.exp(np.linspace(0, np.log(100.0), dim // 18))
+    feats = []
+    for val in dna_arr:
+        sin_f = np.sin(val * freqs * np.pi)
+        cos_f = np.cos(val * freqs * np.pi)
+        feats.extend(sin_f)
+        feats.extend(cos_f)
+    emb = np.array(feats, dtype=np.float32)
+    if len(emb) < dim:
+        emb = np.pad(emb, (0, dim - len(emb)))
+    else:
+        emb = emb[:dim]
+    return emb / (np.linalg.norm(emb) + 1e-8)
+
+def batch_project_dna_to_1024(dna_matrix, dim=1024):
+    dna_9 = dna_matrix[:, :9]
+    N = dna_9.shape[0]
+    num_freqs = dim // 18
+    freqs = np.exp(np.linspace(0, np.log(100.0), num_freqs)).astype(np.float32)
+    angles = dna_9[:, :, None] * freqs[None, None, :] * np.pi
+    sin_feats = np.sin(angles)
+    cos_feats = np.cos(angles)
+    stacked = np.concatenate([sin_feats, cos_feats], axis=2)
+    emb = stacked.reshape(N, -1)
+    if emb.shape[1] < dim:
+        emb = np.pad(emb, ((0, 0), (0, dim - emb.shape[1])))
+    else:
+        emb = emb[:, :dim]
+    norms = np.linalg.norm(emb, axis=1, keepdims=True) + 1e-8
+    return (emb / norms).astype(np.float32)
+
 class FontMetadataDatabase:
     """
     Rich database of 200,000+ fonts and typographic families spanning Monotype, Adobe Fonts, and Google Fonts.
@@ -194,8 +227,7 @@ class FontMetadataDatabase:
         total_fonts = 250000
         print(f"[FONTS DATABASE] Ingesting {total_fonts:,} typography entries across Monotype, Adobe, Google Fonts, and Global Independent Studios into FAISS index...")
         
-        # Bulk generate embeddings matrix for extreme speed
-        embeddings_matrix = np.random.normal(0.0, 0.1, (total_fonts, 1024)).astype(np.float32)
+        embeddings_matrix = np.zeros((total_fonts, 1024), dtype=np.float32)
         
         for i in range(total_fonts):
             entry = master_catalog[i % len(master_catalog)]
@@ -236,8 +268,8 @@ class FontMetadataDatabase:
             else:
                 dna_vals = [0.4, 0.4, 0.2, 0.6, 0.5, 0.5, 0.8, 0.3, 0.1]
                 
-            # Perturb DNA
-            dna_vals = [min(1.0, max(0.0, val + (((i + k) % 19) - 9) * 0.01)) for k, val in enumerate(dna_vals)]
+            # Perturb DNA slightly
+            dna_vals = [min(1.0, max(0.0, val + (((i + k) % 19) - 9) * 0.005)) for k, val in enumerate(dna_vals)]
             embeddings_matrix[i, :9] = dna_vals
             
             dna = {
@@ -277,9 +309,8 @@ class FontMetadataDatabase:
                 "style": style
             })
             
-        # Normalize embeddings matrix
-        norms = np.linalg.norm(embeddings_matrix, axis=1, keepdims=True)
-        embeddings_matrix = embeddings_matrix / (norms + 1e-8)
+        # Generate high-dimensional harmonic feature embeddings for entire database in one pass
+        embeddings_matrix = batch_project_dna_to_1024(embeddings_matrix)
         
         # Add to FAISS index in bulk
         self.registry.index.add(embeddings_matrix)
