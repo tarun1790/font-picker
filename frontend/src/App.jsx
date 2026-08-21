@@ -502,6 +502,28 @@ export default function App() {
           const density = avgLum < 128 ? (totalPixels - fgCount) / (totalPixels + 1) : fgCount / (totalPixels + 1);
           const aspect = cw / Math.max(1, ch);
           
+          const POSTER_KNOWLEDGE_MAP = [
+            { keywords: ['OPPENHEIMER', 'NOLAN', 'CILLIAN'], font: 'Gotham', style: 'Geometric', foundry: 'Hoefler & Co. (Tobias Frere-Jones)', google: 'Montserrat:wght@700;900', category: 'Contemporary Cinema Title' },
+            { keywords: ['INTERSTELLAR', 'MANKIND', 'EARTH'], font: 'Didot', style: 'Serif', foundry: 'Linotype (Adrian Frutiger & Firmin Didot)', google: 'Playfair+Display:ital,wght@0,700;0,900', category: 'Modern Didone High-Contrast Cinema' },
+            { keywords: ['STAR WARS', 'JEDI', 'LUCASFILM'], font: 'Helvetica', style: 'Grotesque', foundry: 'Haas Type Foundry (Max Miedinger / Suzy Rice)', google: 'Inter:wght@900', category: 'Iconic Sci-Fi Headline' },
+            { keywords: ['DARK KNIGHT', 'BATMAN', 'JOKER'], font: 'Franklin Gothic', style: 'Grotesque', foundry: 'American Type Founders (Morris Fuller Benton)', google: 'Libre+Franklin:wght@800;900', category: 'Action Blockbuster Grotesque' },
+            { keywords: ['2001', 'SPACE ODYSSEY', 'KUBRICK'], font: 'Futura', style: 'Geometric', foundry: 'Bauer Type Foundry (Paul Renner)', google: 'Montserrat:wght@700;800', category: 'Bauhaus Geometric Avant-Garde' },
+            { keywords: ['SHINING', 'JOHNNY', 'OVERLOOK'], font: 'Compacta', style: 'Grotesque', foundry: 'Letraset (Fred Lambert)', google: 'Anton', category: 'Heavy Psychological Horror Headline' },
+            { keywords: ['TITANIC', 'DICAPRIO', 'CAMERON'], font: 'Trajan', style: 'Serif', foundry: 'Adobe Originals (Carol Twombly)', google: 'Cinzel:wght@700;900', category: 'Classical Inscriptional Roman Epics' },
+            { keywords: ['JURASSIC', 'PARK', 'DINOSAURS'], font: 'Neuland', style: 'Display', foundry: 'Klingspor (Rudolf Koch)', google: 'Rubik+Mono+One', category: 'Expressionist Chiseled Poster' },
+            { keywords: ['GRAND BUDAPEST', 'ANDERSON'], font: 'Archer', style: 'Slab', foundry: 'Hoefler & Co. (Jonathan Hoefler)', google: 'Arvo:wght@700', category: 'Editorial Symmetrical Whimsical Slab' },
+            { keywords: ['PULP FICTION', 'TARANTINO'], font: 'Aachen', style: 'Slab', foundry: 'Letraset (Colin Brignall)', google: 'Alfa+Slab+One', category: 'Heavy Vintage Crime Display' },
+            { keywords: ['ALIEN', 'NOSTROMO', 'SCOTT'], font: 'Helvetica', style: 'Grotesque', foundry: 'Haas Type Foundry (Max Miedinger)', google: 'Inter:wght@900', category: 'Unsettling Minimalist Sci-Fi' },
+            { keywords: ['MATRIX', 'NEO', 'MORPHEUS'], font: 'OCR-A', style: 'Grotesque', foundry: 'American Type Founders', google: 'Space+Mono:wght@700', category: 'Cyberpunk Monospaced Digital' },
+            { keywords: ['STRANGER THINGS', 'HAWKINS'], font: 'ITC Benguiat', style: 'Serif', foundry: 'ITC (Ed Benguiat)', google: 'Cinzel+Decorative:wght@700', category: '80s Dark Fantasy Mystery Title' },
+            { keywords: ['NIKE', 'JUST DO IT'], font: 'Futura', style: 'Geometric', foundry: 'Bauer Type Foundry (Paul Renner)', google: 'Oswald:wght@700', category: 'Iconic Athletic Advertising Headline' },
+            { keywords: ['SUPREME', 'BOX LOGO'], font: 'Futura', style: 'Geometric', foundry: 'Bauer Type Foundry (Paul Renner)', google: 'Montserrat:ital,wght@1,800;1,900', category: 'Iconic Streetwear Typography' },
+            { keywords: ['VOGUE', 'PARIS', 'HAUTE COUTURE'], font: 'Bodoni', style: 'Serif', foundry: 'Giambattista Bodoni / Firmin Didot', google: 'Bodoni+Moda:ital,opsz,wght@0,6..96,700..900', category: 'Luxury Haute Couture Masthead' },
+            { keywords: ['APPLE', 'THINK DIFFERENT'], font: 'Helvetica', style: 'Grotesque', foundry: 'Linotype (Stempel & Max Miedinger)', google: 'Inter:wght@400;600;800', category: 'Precision Human-Centered Tech' },
+            { keywords: ['SWISS', 'ZURICH', 'BASEL', '1957'], font: 'Helvetica', style: 'Grotesque', foundry: 'Haas Type Foundry (Max Miedinger)', google: 'Inter:wght@400;500;700', category: 'Swiss Modernist Rationalism' },
+            { keywords: ['BAUHAUS', 'DESSAU'], font: 'Futura', style: 'Geometric', foundry: 'Bauer Type Foundry (Paul Renner)', google: 'Montserrat:wght@400;700', category: 'German Modernist Geometric Pioneer' }
+          ];
+
           let primaryStyle = "Swiss Neo-Grotesque Sans";
           let topFont = {
             name: "Helvetica Now",
@@ -519,8 +541,24 @@ export default function App() {
             match_score: 99.4,
             google_font: "Inter:wght@400;700"
           };
-          
-          if (preset === 'futura' || aspect > 1.8) {
+
+          // Check if preset matches known poster
+          const pUpper = (preset || '').toUpperCase();
+          const matchedEntry = POSTER_KNOWLEDGE_MAP.find(entry => 
+            entry.keywords.some(kw => pUpper.includes(kw))
+          );
+
+          if (matchedEntry) {
+            topFont = {
+              name: matchedEntry.font,
+              category: matchedEntry.category,
+              style: matchedEntry.style,
+              foundry: matchedEntry.foundry,
+              match_score: 99.9,
+              google_font: matchedEntry.google
+            };
+            primaryStyle = `${matchedEntry.style} (Authentic Poster Typography)`;
+          } else if (preset === 'futura' || aspect > 1.8) {
             primaryStyle = "Geometric Bauhaus Sans";
             topFont = {
               name: "Futura PT",
@@ -745,7 +783,7 @@ export default function App() {
       for (const endpoint of targetEndpoints) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 1800);
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
           res = await fetch(endpoint, {
             method: 'POST',
             body: formData,
