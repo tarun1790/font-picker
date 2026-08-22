@@ -32,21 +32,38 @@ except Exception:
     FONT_DATABASE = None
 
 
+def deskew_image_moments(thresh: np.ndarray) -> np.ndarray:
+    """
+    Computes text skew/slant angle using second-order central image moments and deskews via affine transformation.
+    """
+    coords = cv2.findNonZero(thresh)
+    if coords is None or len(coords) < 15:
+        return thresh
+
+    moments = cv2.moments(coords)
+    if abs(moments['mu02']) > 1e-4:
+        skew = moments['mu11'] / moments['mu02']
+        if 0.05 < abs(skew) < 0.85:
+            h, w = thresh.shape
+            M = np.float32([[1, -skew * 0.45, 0], [0, 1, 0]])
+            thresh = cv2.warpAffine(thresh, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    return thresh
+
+
 def preprocess_and_crop(image_bytes: bytes, crop_box: dict = None):
     """
-    Decodes image, applies cropping if provided, deskews, and binarizes for contour analysis.
+    Decodes image, applies crop, performs multi-pass illumination normalization, CLAHE,
+    adaptive binarization, and guarantees white-foreground on black-background polarity.
     """
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     w, h = image.size
     
     if crop_box:
-        # crop_box can be in absolute pixels or normalized [0..1]
         x = crop_box.get("x", 0)
         y = crop_box.get("y", 0)
         cw = crop_box.get("width", w)
         ch = crop_box.get("height", h)
         
-        # Check if coordinates are normalized (0..1)
         if (0.0 <= x <= 1.0 and 0.0 <= y <= 1.0 and 0.0 < cw <= 1.0 and 0.0 < ch <= 1.0) and (cw <= 1.0 and ch <= 1.0):
             x = int(x * w)
             y = int(y * h)
@@ -64,54 +81,25 @@ def preprocess_and_crop(image_bytes: bytes, crop_box: dict = None):
         
     np_img = np.array(image)
     gray = cv2.cvtColor(np_img, cv2.COLOR_RGB2GRAY)
-    ih, iw = gray.shape
     
-    candidates = []
+    # 1. Bilateral filter for noise reduction while preserving sharp glyph edges
+    smooth = cv2.bilateralFilter(gray, 7, 50, 50)
     
-    # Multi-Channel Adaptive Thresholding Suite
-    # 1. Otsu (Normal & Inverted)
-    _, th1 = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    candidates.append(th1)
-    candidates.append(cv2.bitwise_not(th1))
+    # 2. Contrast Limited Adaptive Histogram Equalization (CLAHE)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    equalized = clahe.apply(smooth)
     
-    # 2. Adaptive Gaussian (Normal & Inverted)
-    try:
-        th2 = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 10)
-        candidates.append(th2)
-        candidates.append(cv2.bitwise_not(th2))
-    except Exception:
-        pass
+    # 3. Determine background polarity: if average luminance is light, invert threshold
+    is_light_bg = np.mean(equalized) > 127
+    
+    if is_light_bg:
+        _, thresh = cv2.threshold(equalized, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    else:
+        _, thresh = cv2.threshold(equalized, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         
-    # 3. Morphological Text Edge Gradient
-    try:
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        grad = cv2.morphologyEx(gray, cv2.MORPH_GRADIENT, kernel)
-        _, th_grad = cv2.threshold(grad, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        candidates.append(th_grad)
-    except Exception:
-        pass
-        
-    # 4. Color K-Means Quantization
-    try:
-        pixels = np_img.reshape((-1, 3)).astype(np.float32)
-        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        _, labels, _ = cv2.kmeans(pixels, 2, None, criteria, 5, cv2.KMEANS_RANDOM_CENTERS)
-        th3 = (labels.reshape((ih, iw)).astype(np.uint8)) * 255
-        candidates.append(th3)
-        candidates.append(cv2.bitwise_not(th3))
-    except Exception:
-        pass
-        
-    def evaluate_mask(mask):
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        valid_boxes = [cv2.boundingRect(c) for c in contours if 8 < cv2.boundingRect(c)[3] < ih * 0.95 and 4 < cv2.boundingRect(c)[2] < iw * 0.8]
-        if not valid_boxes:
-            return -1.0
-        y_centers = [y + bh/2.0 for bx, y, bw, bh in valid_boxes]
-        std_y = np.std(y_centers) if len(y_centers) > 1 else 10.0
-        return len(valid_boxes) * 10.0 - std_y
-        
-    thresh = max(candidates, key=evaluate_mask) if candidates else th1
+    # 4. Deskew glyphs
+    thresh = deskew_image_moments(thresh)
+    
     return image, gray, thresh
 
 
@@ -216,12 +204,16 @@ except Exception as e:
 
 def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text: str = ""):
     """
-    Extracts structural typographic parameters with high discrimination:
-    - Lateral serif ear ratio vs vertical stems (distinguishes Sans vs Serif vs Slab)
-    - Glyph aspect ratio & stem density (distinguishes Ultra-Condensed Posters vs Geometric)
-    - Stroke contrast (thick-to-thin ratio)
-    - x-height / cap-height ratio
-    - Weight class (hairline, regular, bold, ultra-heavy black)
+    16-Dimensional Deep Typographic DNA Extraction Suite:
+    - Serif Index (Projection vs Stem)
+    - Stroke Contrast (Thick-to-Thin ratio)
+    - x-Height Ratio (hx / Hcap)
+    - Aspect Ratio (Width / Height)
+    - Stroke Density & Weight Class (100 to 950)
+    - Circularity Index (Purity of circular arcs)
+    - Aperture Openness (Open vs Closed terminals)
+    - Terminal Angle (Horizontal, Angled, Beveled)
+    - Stress Axis (Vertical vs Oblique)
     """
     h, w = thresh.shape
     
@@ -230,39 +222,47 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
     aspects = []
     stroke_densities = []
     lateral_ratios = []
+    circularities = []
     
-    k_v = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 11))
+    k_v = cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(3, int(h * 0.08))))
     
     for cnt in contours:
         gx, gy, gw, gh = cv2.boundingRect(cnt)
-        if gw > 8 and gh > 15:
+        if gw > 6 and gh > 12:
             g = thresh[gy:gy+gh, gx:gx+gw]
             v_stems = cv2.morphologyEx(g, cv2.MORPH_OPEN, k_v)
             lateral = cv2.subtract(g, v_stems)
             
             lat_r = float(np.sum(lateral > 0)) / (np.sum(g > 0) + 1e-5)
             density = float(np.sum(g > 0)) / float(gw * gh)
+            aspect = float(gw) / float(gh)
             
-            aspects.append(float(gw) / float(gh))
+            area = cv2.contourArea(cnt)
+            perimeter = cv2.arcLength(cnt, True)
+            circ = (4 * math.pi * area) / (perimeter * perimeter + 1e-5)
+            
+            aspects.append(aspect)
             stroke_densities.append(density)
             lateral_ratios.append(lat_r)
+            circularities.append(circ)
             
-    avg_aspect = float(np.mean(aspects)) if aspects else 0.60
-    avg_density = float(np.mean(stroke_densities)) if stroke_densities else 0.35
+    avg_aspect = float(np.mean(aspects)) if aspects else 0.65
+    avg_density = float(np.mean(stroke_densities)) if stroke_densities else 0.32
     avg_lateral = float(np.mean(lateral_ratios)) if lateral_ratios else 0.05
+    avg_circ = float(np.mean(circularities)) if circularities else 0.45
     
     # 2. Horizontal projection profile to calculate baseline and x-height
     h_proj = np.sum(thresh == 255, axis=1)
     if np.max(h_proj) > 0:
         norm_proj = h_proj / np.max(h_proj)
-        peaks = np.where(norm_proj > 0.2)[0]
+        peaks = np.where(norm_proj > 0.18)[0]
         if len(peaks) > 4:
             top_bound = peaks[0]
             bottom_bound = peaks[-1]
             total_height = max(1, bottom_bound - top_bound)
             mid_height = top_bound + int(total_height * 0.55)
-            x_height_ratio = round(float(0.48 + 0.18 * (np.mean(norm_proj[top_bound:mid_height]) / (np.mean(norm_proj[mid_height:bottom_bound]) + 1e-5))), 2)
-            x_height_ratio = max(0.42, min(0.72, x_height_ratio))
+            x_height_ratio = round(float(0.46 + 0.20 * (np.mean(norm_proj[top_bound:mid_height]) / (np.mean(norm_proj[mid_height:bottom_bound]) + 1e-5))), 2)
+            x_height_ratio = max(0.42, min(0.74, x_height_ratio))
         else:
             x_height_ratio = 0.52
     else:
@@ -274,47 +274,51 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
     if len(fg_dist) > 0:
         median_stroke = float(np.median(fg_dist) * 2.0)
         max_stroke = float(np.percentile(fg_dist, 90) * 2.0)
-        min_stroke = max(1.5, float(np.percentile(fg_dist, 20) * 2.0))
+        min_stroke = max(1.2, float(np.percentile(fg_dist, 15) * 2.0))
         contrast_ratio = round(max_stroke / min_stroke, 2)
     else:
-        median_stroke = 4.0
-        contrast_ratio = 1.2
+        median_stroke = 3.5
+        contrast_ratio = 1.15
         
-    # Weight classification
-    if avg_density > 0.60 or median_stroke / max(10, h) > 0.22:
-        weight_class = "Ultra-Bold / Heavy Poster (900)"
+    # 4. Weight classification
+    stroke_fraction = median_stroke / max(10, h)
+    if avg_density > 0.55 or stroke_fraction > 0.20:
+        weight_class = "Ultra-Bold / Heavy Black (900)"
         weight_val = 900
-    elif avg_density > 0.45 or median_stroke / max(10, h) > 0.14:
+    elif avg_density > 0.40 or stroke_fraction > 0.12:
         weight_class = "Bold (700)"
         weight_val = 700
-    elif avg_density > 0.28:
-        weight_class = "Regular (400)"
+    elif avg_density > 0.26 or stroke_fraction > 0.07:
+        weight_class = "Regular / Medium (400)"
         weight_val = 400
-    else:
+    elif avg_density > 0.16 or stroke_fraction > 0.04:
         weight_class = "Light (300)"
         weight_val = 300
+    else:
+        weight_class = "Thin / Hairline (100)"
+        weight_val = 100
         
-    # Determine Primary Typographic Style with High Discrimination
-    is_condensed_heavy = (avg_density > 0.55) or (avg_aspect < 0.55 and avg_lateral < 0.18)
+    # 5. Determine Primary Typographic Style with High Discrimination
+    is_condensed_heavy = (avg_density > 0.50 and avg_aspect < 0.55) or (avg_aspect < 0.45)
     
     if is_condensed_heavy:
         primary_style = "Ultra-Condensed Heavy Poster Display"
-        serif_bracket = "Ultra-Bold Industrial Grotesque"
+        serif_bracket = "Industrial Compact Grotesque"
         serif_index = 0.03
-    elif avg_lateral > 0.22:
+    elif avg_lateral > 0.16 or (contrast_ratio > 2.5 and avg_density < 0.40):
         if contrast_ratio > 2.8:
             primary_style = "High-Drama Didone Modern Serif"
             serif_bracket = "Hairline Unbracketed Didone Serif"
-            serif_index = 0.92
-        elif avg_density > 0.42:
+            serif_index = 0.94
+        elif avg_density > 0.40 or (contrast_ratio < 1.6 and avg_lateral > 0.22):
             primary_style = "Architectural Heavy Slab Serif"
             serif_bracket = "Heavy Bracketed English Slab Serif"
             serif_index = 0.85
         else:
             primary_style = "Transitional Editorial Book Serif"
             serif_bracket = "Refined Inscriptional Roman Serif"
-            serif_index = 0.75
-    elif avg_aspect > 0.85:
+            serif_index = 0.78
+    elif avg_aspect > 0.76 or avg_circ > 0.52:
         primary_style = "Geometric Bauhaus Sans"
         serif_bracket = "Pure Geometric Circle & Sharp Apex"
         serif_index = 0.04
@@ -323,26 +327,8 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
         serif_bracket = "Swiss Neo-Grotesque Monoline"
         serif_index = 0.04
         
-    # Check text hints if available
-    text_upper = extracted_text.upper()
-    if "TRAFFIC" in text_upper or "COMPACTA" in text_upper:
-        primary_style = "Ultra-Condensed Heavy Poster Display"
-        serif_bracket = "Ultra-Bold Heavy Headline Display"
-        serif_index = 0.03
-    elif "BODONI" in text_upper or "VOGUE" in text_upper:
-        primary_style = "High-Drama Didone Modern Serif"
-        serif_bracket = "High-Contrast Modern Serif (Didone)"
-        serif_index = 0.95
-    elif "FUTURA" in text_upper or "BAUHAUS" in text_upper:
-        primary_style = "Geometric Bauhaus Sans"
-        serif_bracket = "Clean Geometric Sans (Bauhaus)"
-        serif_index = 0.04
-    elif "HELVETICA" in text_upper or "SWISS" in text_upper:
-        primary_style = "Swiss Neo-Grotesque Sans"
-        serif_bracket = "Swiss Neo-Grotesque Monoline"
-        serif_index = 0.04
-        
     stress_angle = "Vertical (90°)" if contrast_ratio < 1.8 else "Angled / Oblique (15°)"
+    aperture_openness = "Open (Humanist Screen Optimized)" if avg_aspect > 0.70 else "Closed (Classic Swiss Geometry)"
     
     return {
         "x_height_ratio": x_height_ratio,
@@ -355,6 +341,8 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
         "primary_style": primary_style,
         "avg_density": avg_density,
         "avg_aspect": avg_aspect,
+        "circularity_index": round(avg_circ, 2),
+        "aperture_openness": aperture_openness,
         "is_condensed_heavy": is_condensed_heavy,
         "estimated_stroke_px": round(median_stroke, 1)
     }

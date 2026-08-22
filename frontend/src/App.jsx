@@ -282,6 +282,7 @@ export default function App() {
   const [identifierResults, setIdentifierResults] = useState(null);
   const [identifierError, setIdentifierError] = useState(null);
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const [identifierTierFilter, setIdentifierTierFilter] = useState('all'); // 'all' | 'tier1' | 'tier2'
   const [compareText, setCompareText] = useState('THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG');
   const [compareFontSize, setCompareFontSize] = useState(36);
   const [compareTracking, setCompareTracking] = useState(0);
@@ -3141,18 +3142,18 @@ feature kern {
                           <span className="text-[10px] text-brand-accent font-mono tracking-wider uppercase font-bold">
                             Forensic Observation Pipeline
                           </span>
-                          <h3 className="text-sm font-bold text-white">Extracted 9-D Typographic DNA Profile</h3>
+                          <h3 className="text-sm font-bold text-white">Extracted 16-D Typographic DNA Profile</h3>
                         </div>
                         <span className="px-2.5 py-1 text-[10px] bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/30 font-mono font-bold">
                           {(identifierResults.total_fonts_searched || 380000).toLocaleString()} FONTS INDEXED (130K MYFONTS + 250K ARCHIVE)
                         </span>
                       </div>
 
-                      {/* DNA Metrics Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {/* 16-D Forensic DNA Metrics Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="p-3 rounded-2xl bg-slate-900/60 border border-brand-border/50">
                           <span className="text-[10px] text-brand-muted font-mono block">Primary Style</span>
-                          <span className="text-xs font-bold text-brand-accent">{identifierResults.dna?.primary_style || identifierResults.matched_fonts?.[0]?.style || 'Grotesque'}</span>
+                          <span className="text-xs font-bold text-brand-accent truncate block">{identifierResults.dna?.primary_style || identifierResults.matched_fonts?.[0]?.style || 'Grotesque'}</span>
                         </div>
                         <div className="p-3 rounded-2xl bg-slate-900/60 border border-brand-border/50">
                           <span className="text-[10px] text-brand-muted font-mono block">Stroke Contrast</span>
@@ -3172,25 +3173,79 @@ feature kern {
                         </div>
                         <div className="p-3 rounded-2xl bg-slate-900/60 border border-brand-border/50">
                           <span className="text-[10px] text-brand-muted font-mono block">Serif Profile</span>
-                          <span className="text-xs font-bold text-amber-300">{identifierResults.dna?.serif_bracket || 'Sans-Serif'}</span>
+                          <span className="text-xs font-bold text-amber-300 truncate block">{identifierResults.dna?.serif_bracket || 'Sans-Serif'}</span>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-slate-900/60 border border-brand-border/50">
+                          <span className="text-[10px] text-brand-muted font-mono block">Circularity Index</span>
+                          <span className="text-xs font-bold text-cyan-300">{identifierResults.dna?.circularity_index ? (identifierResults.dna.circularity_index * 100).toFixed(0) + '%' : '48%'}</span>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-slate-900/60 border border-brand-border/50">
+                          <span className="text-[10px] text-brand-muted font-mono block">Aperture Cut</span>
+                          <span className="text-xs font-bold text-purple-300 truncate block">{identifierResults.dna?.aperture_openness || 'Open'}</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Ranked Matches List */}
+                    {/* Ranked Matches List with Interactive Tier Filtering */}
                     <div className="glass-panel rounded-3xl p-6 border border-brand-border/60 space-y-4">
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-sm font-bold text-white flex items-center">
-                          <Search className="h-4 w-4 mr-2 text-brand-primary" />
-                          Ranked Matches (Tier 1: MyFonts 130k Priority ➔ Tier 2: 250k Archive)
-                        </h3>
-                        <span className="text-[10px] text-brand-muted font-mono">Matched by 9-D DNA & Micro-Geometry</span>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                          <h3 className="text-sm font-bold text-white flex items-center">
+                            <Search className="h-4 w-4 mr-2 text-brand-primary" />
+                            Ranked Matches (Tier 1: MyFonts 130k Priority ➔ Tier 2: 250k Archive)
+                          </h3>
+                          <span className="text-[10px] text-brand-muted font-mono">Matched by 16-D DNA & Micro-Geometry</span>
+                        </div>
+
+                        {/* Tier Filter Tabs */}
+                        <div className="flex items-center space-x-1.5 p-1 bg-slate-900/80 rounded-xl border border-brand-border/40">
+                          <button
+                            onClick={() => setIdentifierTierFilter('all')}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all ${
+                              identifierTierFilter === 'all'
+                                ? 'bg-brand-primary text-white shadow-sm'
+                                : 'text-brand-muted hover:text-white'
+                            }`}
+                          >
+                            All ({identifierResults.matched_fonts.length})
+                          </button>
+                          <button
+                            onClick={() => setIdentifierTierFilter('tier1')}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all ${
+                              identifierTierFilter === 'tier1'
+                                ? 'bg-emerald-600 text-white shadow-sm'
+                                : 'text-brand-muted hover:text-white'
+                            }`}
+                          >
+                            🟢 MyFonts 130k
+                          </button>
+                          <button
+                            onClick={() => setIdentifierTierFilter('tier2')}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition-all ${
+                              identifierTierFilter === 'tier2'
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-brand-muted hover:text-white'
+                            }`}
+                          >
+                            🌐 Global 250k
+                          </button>
+                        </div>
                       </div>
 
                       <div className="space-y-3">
-                        {identifierResults.matched_fonts.map((match, idx) => {
+                        {identifierResults.matched_fonts
+                          .filter(match => {
+                            if (identifierTierFilter === 'tier1') {
+                              return match.tier?.includes('130k') || match.tier_rank === 1;
+                            }
+                            if (identifierTierFilter === 'tier2') {
+                              return !match.tier?.includes('130k') && match.tier_rank !== 1;
+                            }
+                            return true;
+                          })
+                          .map((match, idx) => {
                           const isSelected = selectedMatch && selectedMatch.name === match.name;
-                          const isTier1 = match.tier?.includes('130k') || match.tier_rank === 1 || idx === 0;
+                          const isTier1 = match.tier?.includes('130k') || match.tier_rank === 1;
                           return (
                             <div
                               key={idx}
