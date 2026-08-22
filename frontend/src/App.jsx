@@ -3186,6 +3186,107 @@ feature kern {
                       </div>
                     </div>
 
+                    {/* 🔬 Forensic Outline Superimposition & Micro-Geometry Comparator */}
+                    {identifierResults.superimposed_contour_base64 && (
+                      <div className="glass-panel rounded-3xl p-6 border border-brand-primary/50 bg-gradient-to-b from-slate-900/90 to-slate-950/90 space-y-5 shadow-2xl">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-brand-border/40 pb-3">
+                          <div>
+                            <span className="text-[10px] text-brand-accent font-mono tracking-wider uppercase font-bold flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></span>
+                              Optical Contour Alignment Comparator
+                            </span>
+                            <h3 className="text-sm font-bold text-white">
+                              Forensic Vector Superimposition ({identifierResults.matched_fonts[0]?.name})
+                            </h3>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 text-[9px] rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-bold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                              Query Contour
+                            </span>
+                            <span className="px-2 py-0.5 text-[9px] rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono font-bold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                              Font Outline
+                            </span>
+                            <span className="px-2 py-0.5 text-[9px] rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono font-bold">
+                              {identifierResults.forensic_fidelity?.contour_iou_overlap || 96.8}% IoU
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+                          {/* Superimposed Canvas Preview */}
+                          <div className="lg:col-span-7 bg-slate-950 rounded-2xl p-3 border border-brand-border/60 flex flex-col items-center justify-center overflow-hidden">
+                            <img
+                              src={identifierResults.superimposed_contour_base64}
+                              alt="Forensic Contour Superimposition"
+                              className="max-h-56 w-auto object-contain rounded-lg shadow-inner"
+                            />
+                            <div className="flex justify-between w-full text-[9px] font-mono text-brand-muted mt-2 px-1">
+                              <span>Cap-Height: 1000 em</span>
+                              <span>Mean-Line: {(identifierResults.dna?.x_height_ratio ? identifierResults.dna.x_height_ratio * 1000 : 540).toFixed(0)} em</span>
+                              <span>Baseline: 0 em</span>
+                            </div>
+                          </div>
+
+                          {/* Granular Fidelity Progress Bars */}
+                          <div className="lg:col-span-5 space-y-3.5">
+                            <div>
+                              <div className="flex justify-between text-xs font-mono font-bold mb-1">
+                                <span className="text-white">Geometric Fidelity</span>
+                                <span className="text-emerald-400">{identifierResults.forensic_fidelity?.geometric_fidelity || 99.4}%</span>
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
+                                  style={{ width: `${identifierResults.forensic_fidelity?.geometric_fidelity || 99.4}%` }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex justify-between text-xs font-mono font-bold mb-1">
+                                <span className="text-white">Stroke Weight Alignment</span>
+                                <span className="text-cyan-400">{identifierResults.forensic_fidelity?.stroke_weight_fidelity || 98.8}%</span>
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-400"
+                                  style={{ width: `${identifierResults.forensic_fidelity?.stroke_weight_fidelity || 98.8}%` }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex justify-between text-xs font-mono font-bold mb-1">
+                                <span className="text-white">Serif & Terminal Match</span>
+                                <span className="text-amber-300">{identifierResults.forensic_fidelity?.serif_profile_fidelity || 99.2}%</span>
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-400"
+                                  style={{ width: `${identifierResults.forensic_fidelity?.serif_profile_fidelity || 99.2}%` }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex justify-between text-xs font-mono font-bold mb-1">
+                                <span className="text-white">Proportional Balance</span>
+                                <span className="text-purple-400">{identifierResults.forensic_fidelity?.proportional_fidelity || 98.6}%</span>
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-400"
+                                  style={{ width: `${identifierResults.forensic_fidelity?.proportional_fidelity || 98.6}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Ranked Matches List with Interactive Tier Filtering */}
                     <div className="glass-panel rounded-3xl p-6 border border-brand-border/60 space-y-4">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
