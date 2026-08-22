@@ -392,10 +392,17 @@ def match_poster_by_content(extracted_text: str):
     if not extracted_text:
         return None
     import re
-    text_clean = extracted_text.upper()
+    text_clean = extracted_text.upper().strip()
     for entry in POSTER_TYPOGRAPHY_DATABASE:
-        for kw in entry['keywords']:
-            kw_clean = kw.upper()
-            if kw_clean in text_clean or re.search(r'' + re.escape(kw_clean) + r'', text_clean):
-                return entry
+        for kw in entry.get('keywords', []):
+            kw_clean = kw.upper().strip()
+            if not kw_clean:
+                continue
+            if len(kw_clean) <= 3:
+                # Require word boundary for short acronyms/words (e.g. "F1", "NYC")
+                if re.search(r'\b' + re.escape(kw_clean) + r'\b', text_clean):
+                    return entry
+            else:
+                if kw_clean in text_clean or re.search(r'\b' + re.escape(kw_clean) + r'\b', text_clean):
+                    return entry
     return None

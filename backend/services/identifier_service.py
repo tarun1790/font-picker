@@ -697,17 +697,49 @@ def compute_font_template_correlation(thresh, ref_name, sample_text="SAMPLE"):
 def match_against_myfonts_130k_vault(dna: dict, extracted_text: str = "", top_k: int = 5):
     """
     TIER 1 (PRIORITY MATCH): Searches against the official MyFonts 130,000+ Typographic Vault Database.
-    Evaluates micro-anatomical 9-D DNA metrics and keyword text correlation.
+    Evaluates micro-anatomical 9-D DNA metrics, style categories, weight classes, and authentic family names.
     """
     db_path = "backend/data/myfonts_130k_database.sqlite"
     if not os.path.exists(db_path):
         return []
 
-    target_style = dna.get("primary_style", "Grotesque").capitalize()
-    target_contrast = min(1.0, dna.get("stroke_contrast", 1.2) / 4.0)
-    target_serif = min(1.0, dna.get("serif_index", 0.05))
-    target_x_height = min(1.0, dna.get("x_height_ratio", 0.52))
-    target_stroke = min(1.0, dna.get("stroke_width", 0.50))
+    # Normalize style to exact SQLite DB categories: 'Serif', 'Grotesque', 'Geometric', 'Slab', 'Display', 'Script'
+    raw_style = dna.get("primary_style", "Swiss Neo-Grotesque Sans").lower()
+    serif_idx = float(dna.get("serif_index", 0.05))
+    contrast_val = float(dna.get("stroke_contrast", 1.2))
+    aspect_val = float(dna.get("avg_aspect", 0.60))
+    density_val = float(dna.get("avg_density", 0.35))
+    weight_val = int(dna.get("weight_val", 400))
+
+    if "script" in raw_style or "hand" in raw_style:
+        db_style = "Script"
+    elif "slab" in raw_style or (serif_idx > 0.50 and contrast_val < 1.6):
+        db_style = "Slab"
+    elif "serif" in raw_style or "didone" in raw_style or serif_idx > 0.30:
+        db_style = "Serif"
+    elif "display" in raw_style or aspect_val < 0.52 or density_val > 0.55:
+        db_style = "Display"
+    elif "geometric" in raw_style or (serif_idx < 0.15 and aspect_val > 0.78):
+        db_style = "Geometric"
+    else:
+        db_style = "Grotesque"
+
+    # Weight string search pattern
+    if weight_val >= 800:
+        target_weight_str = "%Black%"
+    elif weight_val >= 600:
+        target_weight_str = "%Bold%"
+    elif weight_val <= 250:
+        target_weight_str = "%Thin%"
+    elif weight_val <= 350:
+        target_weight_str = "%Light%"
+    else:
+        target_weight_str = "%Regular%"
+
+    target_contrast = min(1.0, contrast_val / 4.0)
+    target_serif = min(1.0, serif_idx)
+    target_x_height = min(1.0, float(dna.get("x_height_ratio", 0.52)))
+    target_stroke = min(1.0, float(dna.get("estimated_stroke_px", 4.0)) / 10.0)
     text_upper = extracted_text.upper().strip()
 
     myfonts_matches = []
@@ -717,29 +749,39 @@ def match_against_myfonts_130k_vault(dna: dict, extracted_text: str = "", top_k:
         conn = sqlite3.connect(db_path)
         cur = conn.cursor()
 
-        # Step A: Check for direct Family / Name mentions in extracted OCR text
-        EXCLUDED_WORDS = {"THE", "AND", "FOR", "WITH", "VINTAGE", "CLASSIC", "MODERN", "POSTER", "HEADLINE", "LOGO", "DESIGN", "STUDIO", "TYPE"}
-        text_tokens = [w for w in re.findall(r'\b[A-Z0-9]{3,}\b', text_upper) if w not in EXCLUDED_WORDS]
+        # Step A: Check for authentic Master Family Name mentions in extracted OCR text
+        cur.execute("SELECT DISTINCT family_name FROM fonts")
+        all_db_families = [row[0] for row in cur.fetchall()]
 
-        for token in text_tokens:
-            cur.execute("""
-                SELECT id, font_name, family_name, foundry, country, style, weight, optical_size, width, google_equivalent,
-                       serif_angle, contrast, x_height_ratio, stroke_width, geometric_index
-                FROM fonts 
-                WHERE family_name LIKE ? OR font_name LIKE ?
-                LIMIT 5
-            """, (f"%{token}%", f"%{token}%"))
-            rows = cur.fetchall()
-            for r in rows:
-                fam = r[2]
-                if fam.upper() not in seen_families:
+        for fam_name in all_db_families:
+            # Word-boundary or clean token check for the authentic family name
+            fam_clean = fam_name.upper()
+            # Tokenize multi-word families
+            tokens = [t for t in fam_clean.split() if len(t) >= 4 and t not in {"PRO", "STD", "TEXT", "NOW", "NEXT"}]
+            is_match = False
+            if fam_clean in text_upper or re.search(r'\b' + re.escape(fam_clean) + r'\b', text_upper):
+                is_match = True
+            elif any(re.search(r'\b' + re.escape(t) + r'\b', text_upper) for t in tokens):
+                is_match = True
+
+            if is_match and fam_clean not in seen_families:
+                cur.execute("""
+                    SELECT id, font_name, family_name, foundry, country, style, weight, optical_size, width, google_equivalent,
+                           serif_angle, contrast, x_height_ratio, stroke_width, geometric_index
+                    FROM fonts 
+                    WHERE family_name = ?
+                    ORDER BY (weight LIKE ?) DESC, id ASC
+                    LIMIT 1
+                """, (fam_name, target_weight_str))
+                r = cur.fetchone()
+                if r:
                     myfonts_matches.append({
                         "name": r[1],
                         "family": r[2],
                         "category": f"{r[5]} • Tier 1: MyFonts 130k Vault ({r[6]}, {r[7]})",
                         "style": r[5],
                         "foundry": f"{r[3]} ({r[4]})",
-                        "match_score": 99.8,
+                        "match_score": 99.9,
                         "google_font": f"{r[9].replace(' ', '+')}:wght@400;700",
                         "google_font_css_family": f"'{r[9]}', sans-serif" if r[5] != "Serif" else f"'{r[9]}', serif",
                         "tier": "Tier 1: MyFonts 130k Commercial Vault",
@@ -751,39 +793,26 @@ def match_against_myfonts_130k_vault(dna: dict, extracted_text: str = "", top_k:
                             "x_height_alignment": f"x-Height: {round(r[12], 2)}"
                         }
                     })
-                    seen_families.add(fam.upper())
+                    seen_families.add(fam_clean)
 
-        # Step B: 9-D DNA Micro-Anatomical Euclidean Distance Matching across 130k vault
+        # Step B: 9-D DNA Micro-Anatomical Euclidean Distance Matching within the DETECTED STYLE & WEIGHT
         query = """
             SELECT id, font_name, family_name, foundry, country, style, weight, optical_size, width, google_equivalent,
                    serif_angle, contrast, x_height_ratio, stroke_width, geometric_index,
-                   (abs(serif_angle - ?) * 0.35 + abs(contrast - ?) * 0.25 + abs(x_height_ratio - ?) * 0.25 + abs(stroke_width - ?) * 0.15) AS distance
+                   (abs(serif_angle - ?) * 0.40 + abs(contrast - ?) * 0.25 + abs(x_height_ratio - ?) * 0.20 + abs(stroke_width - ?) * 0.15) AS distance
             FROM fonts
             WHERE style = ?
-            ORDER BY distance ASC
-            LIMIT 15
+            ORDER BY (weight LIKE ?) DESC, distance ASC
+            LIMIT 40
         """
-        cur.execute(query, (target_serif, target_contrast, target_x_height, target_stroke, target_style))
+        cur.execute(query, (target_serif, target_contrast, target_x_height, target_stroke, db_style, target_weight_str))
         rows = cur.fetchall()
-        
-        # If style filter yielded few, query globally across all 130k cuts
-        if len(rows) < 5:
-            global_query = """
-                SELECT id, font_name, family_name, foundry, country, style, weight, optical_size, width, google_equivalent,
-                       serif_angle, contrast, x_height_ratio, stroke_width, geometric_index,
-                       (abs(serif_angle - ?) * 0.35 + abs(contrast - ?) * 0.25 + abs(x_height_ratio - ?) * 0.25 + abs(stroke_width - ?) * 0.15) AS distance
-                FROM fonts
-                ORDER BY distance ASC
-                LIMIT 15
-            """
-            cur.execute(global_query, (target_serif, target_contrast, target_x_height, target_stroke))
-            rows = cur.fetchall()
 
         for r in rows:
             fam = r[2]
             dist = r[15]
-            score = round(max(75.0, min(97.8, 98.0 - (dist * 30.0))), 1)
-            
+            score = round(max(75.0, min(97.5, 98.0 - (dist * 35.0))), 1)
+
             if fam.upper() not in seen_families and len(myfonts_matches) < top_k:
                 myfonts_matches.append({
                     "name": r[1],
@@ -1182,7 +1211,10 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
         hero_crop = poster_layers[0]['crop_img']
         hero_text = transcribe_poster_text(hero_crop, None, None)
         h_gray = cv2.cvtColor(np.array(hero_crop.convert('RGB')), cv2.COLOR_RGB2GRAY)
-        _, h_th = cv2.threshold(h_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        if np.mean(h_gray) > 127:
+            _, h_th = cv2.threshold(h_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        else:
+            _, h_th = cv2.threshold(h_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         hero_thresh = h_th
 
     # Also scan uncropped source bytes if available for maximum headline recall
