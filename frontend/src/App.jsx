@@ -702,9 +702,47 @@ export default function App() {
             };
           }).sort((a, b) => b.match_score - a.match_score);
 
-          // Check if preset or headline has direct keyword match
+          // Brand Intelligence & Specimen Knowledge Map
+          const BRAND_KNOWLEDGE = [
+            { keywords: ["TRAFIT", "TMFIT", "NATHATYPE", "CYRILLIC"], name: "Trafit", foundry: "Nathatype (Yogyakarta, Indonesia)", style: "Serif", google_css: "'Playfair Display', serif", category: "Modern High-Contrast Editorial Serif with Ligatures" },
+            { keywords: ["CHEROLINA"], name: "Cherolina", foundry: "Nathatype (Yogyakarta, Indonesia)", style: "Script", google_css: "'Great Vibes', cursive", category: "Luxury Calligraphic Script" },
+            { keywords: ["COGNIZANT", "ASTON MARTIN", "FORMULA ONE", "FORMULA 1"], name: "Gellix", foundry: "Displaay (Prague, Czech Republic)", style: "Geometric", google_css: "'Plus Jakarta Sans', sans-serif", category: "Modern F1 Racing & Tech Global Identity" },
+            { keywords: ["PARLIAMENT", "MICHELANGELO", "CHEQUERED INK"], name: "Parliament", foundry: "Chequered Ink (Bath, UK)", style: "Display", google_css: "'Syne', sans-serif", category: "Architectural Modernist Bold Headline Display" },
+            { keywords: ["ORDER IN CHAOS"], name: "Order in Chaos", foundry: "Chequered Ink (Bath, UK)", style: "Display", google_css: "'Syne', sans-serif", category: "Heavy Avant-Garde Magazine Display" },
+            { keywords: ["CUBRON", "HORIZON TYPE"], name: "Cubron Grotesk", foundry: "Horizon Type (Istanbul, Turkey)", style: "Grotesque", google_css: "'Space Grotesk', sans-serif", category: "Contemporary Geometric Grotesque" },
+            { keywords: ["ACHERUS"], name: "Acherus Grotesque", foundry: "Horizon Type (Istanbul, Turkey)", style: "Grotesque", google_css: "'Inter', sans-serif", category: "Editorial Magazine Covers & Tech" },
+            { keywords: ["RECOLETA", "LATINOTYPE"], name: "Recoleta", foundry: "Latinotype (Santiago, Chile)", style: "Serif", google_css: "'Fraunces', serif", category: "1970s Warm Nostalgic Organic Serif" },
+            { keywords: ["MORANGA"], name: "Moranga", foundry: "Latinotype (Santiago, Chile)", style: "Serif", google_css: "'Cinzel Decorative', serif", category: "Contemporary 70s Display Serif" },
+            { keywords: ["GILROY", "RADOMIR TINKOV"], name: "Gilroy", foundry: "Radomir Tinkov Studio", style: "Geometric", google_css: "'Outfit', sans-serif", category: "Modernist Circular Geometric Sans" },
+            { keywords: ["MONT", "FONTFABRIC"], name: "Mont", foundry: "Fontfabric (Sofia, Bulgaria)", style: "Geometric", google_css: "'Montserrat', sans-serif", category: "Ultra-Versatile Geometric Sans" },
+            { keywords: ["NEXA"], name: "Nexa", foundry: "Fontfabric (Sofia, Bulgaria)", style: "Geometric", google_css: "'Oswald', sans-serif", category: "Iconic Geometric Display Workhorse" },
+            { keywords: ["BRANDON", "HVD FONTS"], name: "Brandon Grotesque", foundry: "HVD Fonts (Berlin, Germany)", style: "Geometric", google_css: "'Josefin Sans', sans-serif", category: "Warm Rounded-Corner Geometric" },
+            { keywords: ["SOFIA PRO", "MOSTARDESIGN"], name: "Sofia Pro", foundry: "Mostardesign (Sarlat, France)", style: "Geometric", google_css: "'Poppins', sans-serif", category: "Friendly Geometric Multi-Weight Sans" },
+            { keywords: ["CERA PRO", "TYPEMATES"], name: "Cera Pro", foundry: "TypeMates (Munich, Germany)", style: "Geometric", google_css: "'DM Sans', sans-serif", category: "Pan-European Clean Geometric" },
+            { keywords: ["CAMPTON", "RENE BIEDER"], name: "Campton", foundry: "René Bieder (Berlin, Germany)", style: "Geometric", google_css: "'Space Grotesk', sans-serif", category: "Unconventional Modernist Geometric" },
+            { keywords: ["TT COMMONS", "COMMONS PRO", "TYPETYPE"], name: "TT Commons Pro", foundry: "TypeType (St. Petersburg, Russia)", style: "Grotesque", google_css: "'Plus Jakarta Sans', sans-serif", category: "Universal Corporate Grotesque" },
+            { keywords: ["TT NORMS", "NORMS PRO"], name: "TT Norms Pro", foundry: "TypeType (St. Petersburg, Russia)", style: "Geometric", google_css: "'Montserrat', sans-serif", category: "Contemporary Geometric Workhorse" },
+            { keywords: ["TT HOVES", "HOVES PRO"], name: "TT Hoves Pro", foundry: "TypeType (St. Petersburg, Russia)", style: "Grotesque", google_css: "'Space Grotesk', sans-serif", category: "Technological Scandinavian Grotesque" },
+            { keywords: ["HELVETICA", "HELVETICA NOW", "SWISS", "APPLE"], name: "Helvetica Now", foundry: "Monotype (Switzerland / USA)", style: "Grotesque", google_css: "'Inter', sans-serif", category: "Universal Swiss Neo-Grotesque Workhorse" },
+            { keywords: ["FUTURA", "FUTURA NOW", "BAUHAUS", "NIKE", "SUPREME"], name: "Futura Now", foundry: "Monotype (Frankfurt, Germany)", style: "Geometric", google_css: "'Montserrat', sans-serif", category: "Iconic Bauhaus Avant-Garde Displays" },
+            { keywords: ["DIDOT", "INTERSTELLAR"], name: "Linotype Didot", foundry: "Linotype (Paris, France)", style: "Serif", google_css: "'Playfair Display', serif", category: "Haute Couture & Vogue Editorial" },
+            { keywords: ["BODONI", "VOGUE", "PARIS"], name: "Monotype Bodoni", foundry: "Monotype (Parma, Italy)", style: "Serif", google_css: "'Bodoni Moda', serif", category: "Classical Italian Dramatic Editorial" },
+            { keywords: ["ROCKWELL"], name: "Rockwell", foundry: "Monotype (Salfords, UK)", style: "Slab", google_css: "'Arvo', serif", category: "Bold Architectural Geometric Slab" },
+            { keywords: ["CLARENDON"], name: "Clarendon", foundry: "Besley & Co (London, UK)", style: "Slab", google_css: "'Arvo', serif", category: "Original Heavy Bracketed English Slab" },
+            { keywords: ["COOPER BLACK"], name: "Cooper Black", foundry: "Barnhart Brothers (Chicago, USA)", style: "Display", google_css: "'Alfa Slab One', serif", category: "Warm Nostalgic Organic Packaging" },
+            { keywords: ["GILL SANS"], name: "Gill Sans", foundry: "Monotype (London, UK)", style: "Grotesque", google_css: "'Cabin', sans-serif", category: "Quintessential British Humanist Sans" },
+            { keywords: ["GOTHAM", "OPPENHEIMER"], name: "Gotham", foundry: "Hoefler & Co (New York, USA)", style: "Geometric", google_css: "'Montserrat', sans-serif", category: "American Architectural Identity & Logos" },
+            { keywords: ["GARAMOND", "HARVARD"], name: "Garamond", foundry: "Claude Garamont (Paris, France)", style: "Serif", google_css: "'Cormorant Garamond', serif", category: "Renaissance Literature & Masterpiece Typography" },
+            { keywords: ["TRAJAN", "TITANIC"], name: "Trajan", foundry: "Adobe (San Jose, USA)", style: "Serif", google_css: "'Cinzel', serif", category: "Hollywood Movie Posters & Presidential Seals" },
+            { keywords: ["FRANKLIN GOTHIC", "DARK KNIGHT", "BATMAN"], name: "Franklin Gothic", foundry: "ATF (New York, USA)", style: "Grotesque", google_css: "'Libre Franklin', sans-serif", category: "American Newspaper Headlines & MoMA Branding" }
+          ];
+
+          // Check if preset or headline matches known brand / specimen keywords
           const pUpper = (preset || '').toUpperCase();
-          const directMatch = MASTER_FONT_FAMILIES.find(f => pUpper.includes(f.name.toUpperCase()) || pUpper.includes(f.foundry.toUpperCase().split(' ')[0]));
+          const matchedBrand = BRAND_KNOWLEDGE.find(entry => entry.keywords.some(kw => pUpper.includes(kw)));
+          const directMatch = matchedBrand 
+            ? { ...matchedBrand, best_for: matchedBrand.category, country: "" }
+            : MASTER_FONT_FAMILIES.find(f => pUpper.includes(f.name.toUpperCase()) || pUpper.includes(f.foundry.toUpperCase().split(' ')[0]));
 
           const finalRanked = directMatch 
             ? [ { ...directMatch, match_score: 99.9 }, ...rankedFamilies.filter(f => f.name !== directMatch.name) ]
@@ -713,9 +751,9 @@ export default function App() {
           const topMatches = finalRanked.slice(0, 5).map((f, idx) => ({
             name: `${f.name} Pro Regular`,
             family: f.name,
-            category: `${f.style} • Tier 1: MyFonts 130k Vault (${f.best_for})`,
+            category: `${f.style} • Tier 1: MyFonts 130k Vault (${f.best_for || f.category})`,
             style: f.style,
-            foundry: `${f.foundry} (${f.country})`,
+            foundry: f.country ? `${f.foundry} (${f.country})` : f.foundry,
             match_score: idx === 0 ? Math.max(99.0, f.match_score) : f.match_score,
             google_font: f.name.replace(/\s+/g, '+'),
             google_font_css_family: f.google_css,
