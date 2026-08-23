@@ -283,6 +283,7 @@ export default function App() {
   const [identifierError, setIdentifierError] = useState(null);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [identifierTierFilter, setIdentifierTierFilter] = useState('all'); // 'all' | 'tier1' | 'tier2'
+  const [customHeadlineOverride, setCustomHeadlineOverride] = useState('');
   const [compareText, setCompareText] = useState('THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG');
   const [compareFontSize, setCompareFontSize] = useState(36);
   const [compareTracking, setCompareTracking] = useState(0);
@@ -911,6 +912,7 @@ export default function App() {
       setIdentifierResults(data);
       if (data.extracted_sample_text) {
         setCompareText(data.extracted_sample_text);
+        setCustomHeadlineOverride(data.extracted_sample_text);
       }
       if (data.matched_fonts && data.matched_fonts.length > 0) {
         setSelectedMatch(data.matched_fonts[0]);
@@ -3132,6 +3134,43 @@ feature kern {
                         <span className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-mono font-bold text-xs whitespace-nowrap">
                           {(identifierResults.total_fonts_searched || 380000).toLocaleString()} FONTS ANALYZED
                         </span>
+                      </div>
+                    </div>
+
+                    {/* 📝 Extracted Headline Text Inspector & Correction Bar */}
+                    <div className="glass-panel rounded-3xl p-5 border border-brand-border/60 bg-slate-900/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <div className="space-y-1 w-full md:w-auto">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-brand-muted font-mono uppercase font-bold tracking-wider">
+                            Transcribed Poster Text (8-Pass Vision OCR)
+                          </span>
+                          <span className="px-2 py-0.5 text-[9px] rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-mono font-bold">
+                            Live Editable
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 w-full">
+                          <input
+                            type="text"
+                            value={customHeadlineOverride}
+                            onChange={(e) => {
+                              setCustomHeadlineOverride(e.target.value);
+                              setCompareText(e.target.value);
+                            }}
+                            placeholder="Type or correct the extracted text..."
+                            className="bg-slate-950/80 border border-brand-border/80 rounded-xl px-3.5 py-2 text-sm font-bold text-white font-mono w-full md:w-96 focus:outline-none focus:border-brand-primary"
+                          />
+                          <button
+                            onClick={() => {
+                              executeFontScan(identifierImage, identifierImagePreview, customHeadlineOverride, identifierCrop);
+                            }}
+                            className="px-4 py-2 rounded-xl bg-brand-primary hover:bg-brand-primary/80 text-white text-xs font-bold font-mono whitespace-nowrap transition-all shadow-md"
+                          >
+                            ⚡ Re-Match Text
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-brand-muted font-mono">
+                        <span>Characters: <span className="text-white font-bold">{customHeadlineOverride.length}</span></span> • <span>Words: <span className="text-white font-bold">{customHeadlineOverride.trim().split(/\s+/).filter(Boolean).length}</span></span>
                       </div>
                     </div>
 
