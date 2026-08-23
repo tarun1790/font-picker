@@ -155,7 +155,7 @@ def transcribe_poster_text(image, gray=None, thresh=None):
             passes.append(ImageOps.expand(Image.fromarray(cv2.bitwise_not(tophat)).convert('RGB'), border=35, fill='white'))
             
             # Pass 8: 2x Super-Resolution Lanczos scaling (for small or compressed text)
-            upscaled = image.resize((max(50, w * 2), max(50, h * 2), Image.Resampling.LANCZOS) if w > 0 and h > 0 else image)
+            upscaled = image.resize((max(50, w * 2), max(50, h * 2)), Image.Resampling.LANCZOS)
             passes.append(ImageOps.expand(upscaled, border=50, fill='white'))
             
             def _ocr_multi_worker():
@@ -619,7 +619,10 @@ def match_against_full_system_catalog(thresh, sample_text="QUICK"):
 
 def compute_font_template_correlation(thresh, ref_name, sample_text="SAMPLE"):
     """
-    Renders canonical font templates dynamically and measures exact 2D pixel cross-correlation + IoU.
+    State-of-the-Art Multi-Glyph Forensic Template Correlation Engine:
+    1. Segments query glyphs into canonical 64x64 bounding boxes.
+    2. Dynamically rasterizes candidate typeface with identical letters.
+    3. Computes 2D Spatial IoU, Normalized Pearson Cross-Correlation, and Hu Invariant Shape Moments.
     """
     if thresh is None:
         return 50.0
@@ -631,6 +634,8 @@ def compute_font_template_correlation(thresh, ref_name, sample_text="SAMPLE"):
         "Oswald": "impact.ttf",
         "Helvetica": "arial.ttf",
         "Helvetica Now": "arial.ttf",
+        "Helvetica Now Pro Regular": "arial.ttf",
+        "Helvetica Now Pro Bold": "arialbd.ttf",
         "Neue Haas Grotesk": "arial.ttf",
         "Inter": "arial.ttf",
         "Roboto": "arial.ttf",
@@ -647,54 +652,65 @@ def compute_font_template_correlation(thresh, ref_name, sample_text="SAMPLE"):
         "Rockwell": "arvo.ttf",
         "Clarendon": "georgia.ttf",
         "Gill Sans": "arial.ttf",
-        "Gill Sans Nova": "arial.ttf"
+        "Gill Sans Nova": "arial.ttf",
+        "Eurostile": "arial.ttf",
+        "Palatino": "pala.ttf",
+        "Palatino Pro Regular": "pala.ttf",
+        "Garamond": "gara.ttf"
     }
     
     ttf_file = font_file_mapping.get(ref_name, "arial.ttf")
     
-    coords = cv2.findNonZero(thresh)
-    if coords is None:
+    # 1. Segment Query Glyphs
+    h, w = thresh.shape
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    boxes = sorted([cv2.boundingRect(c) for c in contours if cv2.boundingRect(c)[2] > 6 and cv2.boundingRect(c)[3] > 12], key=lambda b: b[0])
+    
+    if not boxes:
         return 50.0
-    x, y, w, h = cv2.boundingRect(coords)
-    q_crop = thresh[y:y+h, x:x+w]
+        
+    query_glyphs = [cv2.resize(thresh[y:y+h_, x:x+w_], (64, 64), interpolation=cv2.INTER_AREA) for x, y, w_, h_ in boxes[:8]]
     
-    target_h = 100
-    scale = target_h / float(max(1, h))
-    target_w = max(10, int(w * scale))
-    norm_q = cv2.resize(q_crop, (target_w, target_h), interpolation=cv2.INTER_AREA)
-    
-    im_c = Image.new('L', (target_w * 2 + 100, target_h * 2), 0)
+    # 2. Render Candidate Font Glyphs with Identical Sample Text
     try:
-        f = ImageFont.truetype(ttf_file, 80)
-    except:
-        return 50.0
-    text_to_draw = sample_text if len(sample_text) > 1 and "EXTRACTED" not in sample_text else "QUICK"
+        f = ImageFont.truetype(ttf_file, 64)
+    except Exception:
+        f = ImageFont.load_default()
+        
+    text_to_draw = sample_text[:len(query_glyphs)] if len(sample_text) > 1 and "EXTRACTED" not in sample_text and "POSTER" not in sample_text else "A B C D E"[:len(query_glyphs)]
+    im_c = Image.new('L', (len(text_to_draw) * 90 + 100, 140), 0)
     ImageDraw.Draw(im_c).text((20, 20), text_to_draw, fill=255, font=f)
     cand_np = np.array(im_c)
-    cand_coords = cv2.findNonZero(cand_np)
-    if cand_coords is None:
+    
+    c_contours, _ = cv2.findContours(cand_np, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    c_boxes = sorted([cv2.boundingRect(c) for c in c_contours if cv2.boundingRect(c)[2] > 6 and cv2.boundingRect(c)[3] > 12], key=lambda b: b[0])
+    cand_glyphs = [cv2.resize(cand_np[y:y+h_, x:x+w_], (64, 64), interpolation=cv2.INTER_AREA) for x, y, w_, h_ in c_boxes[:len(query_glyphs)]]
+    
+    if not cand_glyphs:
         return 50.0
-    cx, cy, cw, ch = cv2.boundingRect(cand_coords)
-    cand_crop = cand_np[cy:cy+ch, cx:cx+cw]
-    
-    cand_scale = target_h / float(max(1, ch))
-    cand_w = max(10, int(cw * cand_scale))
-    norm_cand = cv2.resize(cand_crop, (cand_w, target_h), interpolation=cv2.INTER_AREA)
-    
-    aspect_diff = abs((target_w / float(target_h)) - (cand_w / float(target_h)))
-    aspect_penalty = min(40.0, aspect_diff * 20.0)
-    
-    aligned_cand = cv2.resize(norm_cand, (target_w, target_h), interpolation=cv2.INTER_AREA)
-    inter = np.sum((norm_q > 127) & (aligned_cand > 127))
-    union = np.sum((norm_q > 127) | (aligned_cand > 127)) + 1e-5
-    iou = inter / union
-    
-    corr_mat = cv2.matchTemplate(norm_q, aligned_cand, cv2.TM_CCOEFF_NORMED)
-    corr = float(corr_mat[0][0]) if corr_mat is not None and not np.isnan(corr_mat[0][0]) else 0.0
-    corr = max(0.0, corr)
-    
-    score = (iou * 55.0) + (corr * 45.0) - aspect_penalty
-    return max(0.0, min(100.0, score))
+        
+    sims = []
+    for qg, cg in zip(query_glyphs, cand_glyphs):
+        q_bin = qg > 127
+        c_bin = cg > 127
+        inter = float(np.sum(q_bin & c_bin))
+        union = float(np.sum(q_bin | c_bin)) + 1e-5
+        iou = inter / union
+        
+        corr_mat = cv2.matchTemplate(qg, cg, cv2.TM_CCOEFF_NORMED)
+        corr = float(corr_mat[0][0]) if corr_mat is not None and not np.isnan(corr_mat[0][0]) else 0.0
+        
+        # Hu Shape Invariant Moments
+        m_q = cv2.HuMoments(cv2.moments(qg)).flatten()
+        m_c = cv2.HuMoments(cv2.moments(cg)).flatten()
+        hu_dist = np.sum(np.abs(np.sign(m_q) * np.log10(np.abs(m_q) + 1e-10) - np.sign(m_c) * np.log10(np.abs(m_c) + 1e-10)))
+        hu_sim = max(0.0, 1.0 - min(1.0, hu_dist / 15.0))
+        
+        glyph_score = (0.50 * iou) + (0.35 * max(0.0, corr)) + (0.15 * hu_sim)
+        sims.append(glyph_score)
+        
+    avg_score = float(np.mean(sims)) * 100.0 if sims else 50.0
+    return max(0.0, min(100.0, avg_score))
 
 
 def match_against_myfonts_130k_vault(dna: dict, extracted_text: str = "", top_k: int = 5):

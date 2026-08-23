@@ -288,6 +288,7 @@ export default function App() {
   const [compareFontSize, setCompareFontSize] = useState(36);
   const [compareTracking, setCompareTracking] = useState(0);
   const [compareSplitPos, setCompareSplitPos] = useState(50);
+  const [overlayOpacity, setOverlayOpacity] = useState(85);
   const [identifierMode, setIdentifierMode] = useState('identifier'); // 'identifier' | 'glyphcraft'
   const [selectedVectorGlyph, setSelectedVectorGlyph] = useState(null);
   const [forensicViewMode, setForensicViewMode] = useState('raster'); // 'raster' | 'sdf_heatmap' | 'split'
@@ -3256,11 +3257,28 @@ feature kern {
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
                           {/* Superimposed Canvas Preview */}
                           <div className="lg:col-span-7 bg-slate-950 rounded-2xl p-3 border border-brand-border/60 flex flex-col items-center justify-center overflow-hidden">
-                            <img
-                              src={identifierResults.superimposed_contour_base64}
-                              alt="Forensic Contour Superimposition"
-                              className="max-h-56 w-auto object-contain rounded-lg shadow-inner"
-                            />
+                            <div className="relative flex items-center justify-center w-full">
+                              <img
+                                src={identifierResults.superimposed_contour_base64}
+                                alt="Forensic Contour Superimposition"
+                                style={{ opacity: overlayOpacity / 100 }}
+                                className="max-h-56 w-auto object-contain rounded-lg shadow-inner transition-opacity duration-150"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between w-full mt-3 px-2 py-1.5 rounded-xl bg-slate-900/60 border border-brand-border/40">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-brand-muted font-mono font-bold uppercase">Overlay Opacity:</span>
+                                <span className="text-xs font-mono font-bold text-brand-accent">{overlayOpacity}%</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="20"
+                                max="100"
+                                value={overlayOpacity}
+                                onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+                                className="w-32 accent-brand-accent h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                              />
+                            </div>
                             <div className="flex justify-between w-full text-[9px] font-mono text-brand-muted mt-2 px-1">
                               <span>Cap-Height: 1000 em</span>
                               <span>Mean-Line: {(identifierResults.dna?.x_height_ratio ? identifierResults.dna.x_height_ratio * 1000 : 540).toFixed(0)} em</span>
