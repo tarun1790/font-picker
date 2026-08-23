@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import Tesseract from 'tesseract.js';
 import { 
   Sparkles, Upload, RotateCw, Settings, BarChart2, FileText, 
   Layers, Search, Sliders, MessageSquare, CheckCircle, AlertTriangle, 
@@ -636,13 +637,13 @@ export default function App() {
     { name: "Franklin Gothic", foundry: "ATF (Morris Fuller Benton)", country: "New York, USA", style: "Grotesque", best_for: "American Newspaper Headlines & MoMA Branding", google_css: "'Libre Franklin', sans-serif", base_dna: [0.58, 0.22, 0.00, 0.20, 0.74, 0.76, 0.72, 0.48, 0.78] }
   ];
 
-  const analyzeTypographyInBrowser = (imageSrc, crop, preset) => {
+  const analyzeTypographyInBrowser = async (imageSrc, crop, preset) => {
     return new Promise((resolve) => {
       const img = new Image();
       if (imageSrc.startsWith('http://') || imageSrc.startsWith('https://')) {
         img.crossOrigin = "anonymous";
       }
-      img.onload = () => {
+      img.onload = async () => {
         try {
           const canvas = document.createElement('canvas');
           const w = img.width;
@@ -680,8 +681,37 @@ export default function App() {
           const density = avgLum < 128 ? (totalPixels - fgCount) / (totalPixels + 1) : fgCount / (totalPixels + 1);
           const aspect = cw / Math.max(1, ch);
 
+          // 1. In-Browser Multi-Region Tesseract OCR Extraction
+          let recognizedText = (preset || '').trim();
+          
+          if (!recognizedText || recognizedText.length < 2) {
+            try {
+              // Main crop OCR
+              const mainOcr = await Tesseract.recognize(canvas, 'eng');
+              if (mainOcr && mainOcr.data && mainOcr.data.text) {
+                recognizedText = `${recognizedText} ${mainOcr.data.text}`.trim();
+              }
+            } catch (ocrErr) {}
+
+            try {
+              // Top-left foundry / metadata crop
+              const topCanvas = document.createElement('canvas');
+              topCanvas.width = Math.floor(w * 0.65);
+              topCanvas.height = Math.floor(h * 0.45);
+              const tctx = topCanvas.getContext('2d');
+              tctx.drawImage(img, 0, 0, topCanvas.width, topCanvas.height, 0, 0, topCanvas.width, topCanvas.height);
+              const topOcr = await Tesseract.recognize(topCanvas, 'eng');
+              if (topOcr && topOcr.data && topOcr.data.text) {
+                recognizedText = `${recognizedText} ${topOcr.data.text}`.trim();
+              }
+            } catch (topErr) {}
+          }
+
+          const cleanOcrText = recognizedText.toUpperCase().replace(/[^A-Z0-9\s]/g, ' ');
+          const ocrTokens = new Set(cleanOcrText.split(/\s+/).filter(t => t.length >= 2));
+
           // Compute canvas 9-D DNA metrics
-          const isSerifCandidate = (preset && (preset.includes('bodoni') || preset.includes('serif') || preset.includes('vogue') || preset.includes('didot') || preset.includes('recoleta') || preset.includes('garamond') || preset.includes('trajan'))) || density < 0.28;
+          const isSerifCandidate = cleanOcrText.includes('SERIF') || cleanOcrText.includes('DIDOT') || cleanOcrText.includes('BODONI') || cleanOcrText.includes('TRAFIT') || cleanOcrText.includes('RECOLETA') || cleanOcrText.includes('GARAMOND') || density < 0.28;
           const target_stroke = Math.max(0.2, Math.min(0.9, density * 1.8));
           const target_contrast = isSerifCandidate ? 0.85 : 0.15;
           const target_serif = isSerifCandidate ? 0.75 : 0.00;
@@ -737,12 +767,11 @@ export default function App() {
             { keywords: ["FRANKLIN GOTHIC", "DARK KNIGHT", "BATMAN"], name: "Franklin Gothic", foundry: "ATF (New York, USA)", style: "Grotesque", google_css: "'Libre Franklin', sans-serif", category: "American Newspaper Headlines & MoMA Branding" }
           ];
 
-          // Check if preset or headline matches known brand / specimen keywords
-          const pUpper = (preset || '').toUpperCase();
-          const matchedBrand = BRAND_KNOWLEDGE.find(entry => entry.keywords.some(kw => pUpper.includes(kw)));
+          // Check if preset or extracted OCR tokens match known brand / specimen keywords
+          const matchedBrand = BRAND_KNOWLEDGE.find(entry => entry.keywords.some(kw => cleanOcrText.includes(kw) || ocrTokens.has(kw)));
           const directMatch = matchedBrand 
             ? { ...matchedBrand, best_for: matchedBrand.category, country: "" }
-            : MASTER_FONT_FAMILIES.find(f => pUpper.includes(f.name.toUpperCase()) || pUpper.includes(f.foundry.toUpperCase().split(' ')[0]));
+            : MASTER_FONT_FAMILIES.find(f => cleanOcrText.includes(f.name.toUpperCase()) || ocrTokens.has(f.name.toUpperCase()) || ocrTokens.has(f.foundry.toUpperCase().split(' ')[0]));
 
           const finalRanked = directMatch 
             ? [ { ...directMatch, match_score: 99.9 }, ...rankedFamilies.filter(f => f.name !== directMatch.name) ]
@@ -801,7 +830,7 @@ export default function App() {
 
           resolve({
             matched_fonts: topMatches,
-            extracted_sample_text: (preset || topOne.family).toUpperCase(),
+            extracted_sample_text: (cleanOcrText.slice(0, 35) || topOne.family).toUpperCase(),
             tier_pipeline: "🟢 Tier 1: MyFonts 130k Vault (Checked First) ➔ Tier 2: Global 250k Archive",
             total_fonts_searched: 380000,
             superimposed_contour_base64: overlayDataUrl,
