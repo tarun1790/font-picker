@@ -3792,123 +3792,108 @@ feature kern {
                       </div>
                     </div>
 
-                    {/* 🔬 Forensic Outline Superimposition & Micro-Geometry Comparator */}
-                    {identifierResults.superimposed_contour_base64 && (
-                      <div className="glass-panel rounded-3xl p-6 border border-brand-primary/50 bg-gradient-to-b from-slate-900/90 to-slate-950/90 space-y-5 shadow-2xl">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-brand-border/40 pb-3">
-                          <div>
-                            <span className="text-[10px] text-brand-accent font-mono tracking-wider uppercase font-bold flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse"></span>
-                              Optical Contour Alignment Comparator
+                    {/* 🔤 Interactive Live Typographic Specimen Sandbox (Type Tester) */}
+                    <div className="glass-panel rounded-3xl p-6 border border-brand-primary/40 bg-gradient-to-b from-slate-900/90 via-slate-950/90 to-slate-950/90 space-y-5 shadow-2xl">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-brand-border/40 pb-3">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-[10px] text-cyan-400 font-mono tracking-wider uppercase font-bold flex items-center gap-1.5">
+                              <Sparkles className="h-3 w-3 text-cyan-400" />
+                              Live Typographic Specimen Sandbox
                             </span>
-                            <h3 className="text-sm font-bold text-white">
-                              Forensic Vector Superimposition ({identifierResults.matched_fonts[0]?.name})
-                            </h3>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 text-[9px] rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-bold flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                              Query Contour
-                            </span>
-                            <span className="px-2 py-0.5 text-[9px] rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono font-bold flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-                              Font Outline
-                            </span>
-                            <span className="px-2 py-0.5 text-[9px] rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono font-bold">
-                              {identifierResults.forensic_fidelity?.contour_iou_overlap || 96.8}% IoU
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold">
+                              REAL-TIME WEB TESTER
                             </span>
                           </div>
+                          <h3 className="text-sm font-bold text-white">
+                            Interactive Type Tester: {identifierResults.matched_fonts[0]?.name}
+                          </h3>
                         </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
-                          {/* Superimposed Canvas Preview */}
-                          <div className="lg:col-span-7 bg-slate-950 rounded-2xl p-3 border border-brand-border/60 flex flex-col items-center justify-center overflow-hidden">
-                            <div className="relative flex items-center justify-center w-full">
-                              <img
-                                src={identifierResults.superimposed_contour_base64}
-                                alt="Forensic Contour Superimposition"
-                                style={{ opacity: overlayOpacity / 100 }}
-                                className="max-h-56 w-auto object-contain rounded-lg shadow-inner transition-opacity duration-150"
-                              />
-                            </div>
-                            <div className="flex items-center justify-between w-full mt-3 px-2 py-1.5 rounded-xl bg-slate-900/60 border border-brand-border/40">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-brand-muted font-mono font-bold uppercase">Overlay Opacity:</span>
-                                <span className="text-xs font-mono font-bold text-brand-accent">{overlayOpacity}%</span>
-                              </div>
-                              <input
-                                type="range"
-                                min="20"
-                                max="100"
-                                value={overlayOpacity}
-                                onChange={(e) => setOverlayOpacity(Number(e.target.value))}
-                                className="w-32 accent-brand-accent h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                              />
-                            </div>
-                            <div className="flex justify-between w-full text-[9px] font-mono text-brand-muted mt-2 px-1">
-                              <span>Cap-Height: 1000 em</span>
-                              <span>Mean-Line: {(identifierResults.dna?.x_height_ratio ? identifierResults.dna.x_height_ratio * 1000 : 540).toFixed(0)} em</span>
-                              <span>Baseline: 0 em</span>
-                            </div>
-                          </div>
-
-                          {/* Granular Fidelity Progress Bars */}
-                          <div className="lg:col-span-5 space-y-3.5">
-                            <div>
-                              <div className="flex justify-between text-xs font-mono font-bold mb-1">
-                                <span className="text-white">Geometric Fidelity</span>
-                                <span className="text-emerald-400">{identifierResults.forensic_fidelity?.geometric_fidelity || 99.4}%</span>
-                              </div>
-                              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
-                                  style={{ width: `${identifierResults.forensic_fidelity?.geometric_fidelity || 99.4}%` }}
-                                ></div>
-                              </div>
-                            </div>
-
-                            <div>
-                              <div className="flex justify-between text-xs font-mono font-bold mb-1">
-                                <span className="text-white">Stroke Weight Alignment</span>
-                                <span className="text-cyan-400">{identifierResults.forensic_fidelity?.stroke_weight_fidelity || 98.8}%</span>
-                              </div>
-                              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-400"
-                                  style={{ width: `${identifierResults.forensic_fidelity?.stroke_weight_fidelity || 98.8}%` }}
-                                ></div>
-                              </div>
-                            </div>
-
-                            <div>
-                              <div className="flex justify-between text-xs font-mono font-bold mb-1">
-                                <span className="text-white">Serif & Terminal Match</span>
-                                <span className="text-amber-300">{identifierResults.forensic_fidelity?.serif_profile_fidelity || 99.2}%</span>
-                              </div>
-                              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-400"
-                                  style={{ width: `${identifierResults.forensic_fidelity?.serif_profile_fidelity || 99.2}%` }}
-                                ></div>
-                              </div>
-                            </div>
-
-                            <div>
-                              <div className="flex justify-between text-xs font-mono font-bold mb-1">
-                                <span className="text-white">Proportional Balance</span>
-                                <span className="text-purple-400">{identifierResults.forensic_fidelity?.proportional_fidelity || 98.6}%</span>
-                              </div>
-                              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                                <div
-                                  className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-400"
-                                  style={{ width: `${identifierResults.forensic_fidelity?.proportional_fidelity || 98.6}%` }}
-                                ></div>
-                              </div>
-                            </div>
-                          </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setCompareText(identifierResults.extracted_sample_text || 'Cubron Grotesk')}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10px] text-cyan-300 font-mono transition"
+                          >
+                            Reset to Detected Text
+                          </button>
                         </div>
                       </div>
-                    )}
+
+                      {/* Live Editable Textarea Specimen */}
+                      <div className="p-4 rounded-2xl bg-slate-950 border border-brand-border/60 shadow-inner flex flex-col space-y-2">
+                        <textarea
+                          rows={2}
+                          value={compareText}
+                          onChange={(e) => setCompareText(e.target.value)}
+                          placeholder="Type any custom specimen text to preview this font live..."
+                          style={{
+                            fontFamily: identifierResults.matched_fonts[0]?.google_font_css_family || 'sans-serif',
+                            fontSize: `${fontSize}px`,
+                            letterSpacing: `${letterSpacing}px`,
+                            lineHeight: 1.2
+                          }}
+                          className="w-full bg-transparent text-white focus:outline-none resize-none placeholder-slate-600 transition-all"
+                        />
+                        <div className="flex justify-between items-center text-[10px] font-mono text-brand-muted pt-2 border-t border-slate-900">
+                          <span>Rendering in: <strong className="text-cyan-300">{identifierResults.matched_fonts[0]?.name}</strong></span>
+                          <span>1:1 Open-Source Google CSS: <strong className="text-emerald-400">{identifierResults.matched_fonts[0]?.google_font_css_family}</strong></span>
+                        </div>
+                      </div>
+
+                      {/* Typographic Sliders */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3.5 rounded-2xl bg-slate-900/60 border border-brand-border/40">
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[11px] font-mono">
+                            <span className="text-brand-muted">Font Size:</span>
+                            <span className="text-cyan-300 font-bold">{fontSize}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="20"
+                            max="84"
+                            value={fontSize}
+                            onChange={(e) => setFontSize(Number(e.target.value))}
+                            className="w-full accent-cyan-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between text-[11px] font-mono">
+                            <span className="text-brand-muted">Letter-Spacing (Tracking):</span>
+                            <span className="text-emerald-400 font-bold">{letterSpacing}px</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-3"
+                            max="12"
+                            value={letterSpacing}
+                            onChange={(e) => setLetterSpacing(Number(e.target.value))}
+                            className="w-full accent-emerald-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 🏛️ Distinctive Forensic Glyphs Matrix */}
+                      <div className="space-y-2.5">
+                        <span className="text-[10px] font-mono uppercase text-brand-muted font-bold block">
+                          Forensic Letterform Anatomy (Key Characteristic Glyphs):
+                        </span>
+                        <div className="grid grid-cols-5 gap-2">
+                          {['A', 'g', 'R', 'Q', '&'].map((glyph, gIdx) => (
+                            <div key={gIdx} className="p-3 rounded-2xl bg-slate-950/90 border border-brand-border/60 flex flex-col items-center justify-center space-y-1 group hover:border-cyan-500/40 transition">
+                              <span 
+                                style={{ fontFamily: identifierResults.matched_fonts[0]?.google_font_css_family || 'sans-serif' }}
+                                className="text-3xl font-bold text-white group-hover:scale-110 group-hover:text-cyan-300 transition-transform"
+                              >
+                                {glyph}
+                              </span>
+                              <span className="text-[9px] font-mono text-brand-muted">Glyph '{glyph}'</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Ranked Matches List with Interactive Tier Filtering */}
                     <div className="glass-panel rounded-3xl p-6 border border-brand-border/60 space-y-4">
