@@ -891,15 +891,14 @@ def match_against_myfonts_130k_vault(dna: dict, extracted_text: str = "", top_k:
                     })
                     seen_families.add(fam_clean)
 
-        # Step C: 9-D DNA Micro-Anatomical Euclidean Distance Matching within the DETECTED STYLE & WEIGHT
+        # Step C: 9-D DNA Micro-Anatomical Euclidean Distance Matching across the entire 130,000 vault
         query = """
             SELECT id, font_name, family_name, foundry, country, style, weight, optical_size, width, google_equivalent,
                    serif_angle, contrast, x_height_ratio, stroke_width, geometric_index,
-                   (abs(serif_angle - ?) * 0.40 + abs(contrast - ?) * 0.25 + abs(x_height_ratio - ?) * 0.20 + abs(stroke_width - ?) * 0.15) AS distance
+                   (abs(serif_angle - ?) * 0.40 + abs(contrast - ?) * 0.25 + abs(x_height_ratio - ?) * 0.20 + abs(stroke_width - ?) * 0.15 + (CASE WHEN style = ? THEN 0.0 ELSE 0.12 END)) AS distance
             FROM fonts
-            WHERE style = ?
             ORDER BY (weight LIKE ?) DESC, distance ASC
-            LIMIT 40
+            LIMIT 50
         """
         cur.execute(query, (target_serif, target_contrast, target_x_height, target_stroke, db_style, target_weight_str))
         rows = cur.fetchall()
