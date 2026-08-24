@@ -681,23 +681,42 @@ export default function App() {
           const density = avgLum < 128 ? (totalPixels - fgCount) / (totalPixels + 1) : fgCount / (totalPixels + 1);
           const aspect = cw / Math.max(1, ch);
 
-          // 1. In-Browser Multi-Region Tesseract OCR Extraction
+          // 1. In-Browser Multi-Region High-Contrast Tesseract OCR Extraction
           let recognizedText = (preset || '').trim();
           
           if (!recognizedText || recognizedText.length < 2) {
             try {
-              // Main crop OCR
-              const mainOcr = await Tesseract.recognize(canvas, 'eng');
+              // Preprocess: Invert if dark background and apply 2x Lanczos contrast boost
+              const ocrCanvas = document.createElement('canvas');
+              ocrCanvas.width = Math.floor(cw * 2);
+              ocrCanvas.height = Math.floor(ch * 2);
+              const octx = ocrCanvas.getContext('2d');
+              octx.imageSmoothingEnabled = true;
+              octx.imageSmoothingQuality = 'high';
+              octx.drawImage(img, cx, cy, cw, ch, 0, 0, ocrCanvas.width, ocrCanvas.height);
+              
+              const ocrImgData = octx.getImageData(0, 0, ocrCanvas.width, ocrCanvas.height);
+              const ocrD = ocrImgData.data;
+              const needInvert = avgLum < 140;
+              for (let i = 0; i < ocrD.length; i += 4) {
+                let lum = 0.299 * ocrD[i] + 0.587 * ocrD[i + 1] + 0.114 * ocrD[i + 2];
+                if (needInvert) lum = 255 - lum;
+                const b = lum > 135 ? 255 : (lum < 95 ? 0 : lum);
+                ocrD[i] = b; ocrD[i + 1] = b; ocrD[i + 2] = b;
+              }
+              octx.putImageData(ocrImgData, 0, 0);
+
+              const mainOcr = await Tesseract.recognize(ocrCanvas, 'eng');
               if (mainOcr && mainOcr.data && mainOcr.data.text) {
                 recognizedText = `${recognizedText} ${mainOcr.data.text}`.trim();
               }
             } catch (ocrErr) {}
 
             try {
-              // Top-left foundry / metadata crop
+              // Top-left foundry / metadata crop with 2x resolution
               const topCanvas = document.createElement('canvas');
-              topCanvas.width = Math.floor(w * 0.65);
-              topCanvas.height = Math.floor(h * 0.45);
+              topCanvas.width = Math.floor(w * 0.75);
+              topCanvas.height = Math.floor(h * 0.50);
               const tctx = topCanvas.getContext('2d');
               tctx.drawImage(img, 0, 0, topCanvas.width, topCanvas.height, 0, 0, topCanvas.width, topCanvas.height);
               const topOcr = await Tesseract.recognize(topCanvas, 'eng');
@@ -900,17 +919,21 @@ export default function App() {
       formData.append('crop_height', crop.height);
 
       let res = null;
-      const targetEndpoints = [
-        `${API_BASE}/api/v1/font/identify`,
-        'http://localhost:8000/api/v1/font/identify',
-        'http://127.0.0.1:8000/api/v1/font/identify',
-        '/api/v1/font/identify'
-      ];
+      const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+      const targetEndpoints = isHttps 
+        ? [`${API_BASE}/api/v1/font/identify`]
+        : [
+            `${API_BASE}/api/v1/font/identify`,
+            'http://127.0.0.1:8000/api/v1/font/identify',
+            'http://localhost:8000/api/v1/font/identify',
+            '/api/v1/font/identify'
+          ];
 
       for (const endpoint of targetEndpoints) {
+        if (!endpoint || (isHttps && endpoint.startsWith('http://'))) continue;
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
           res = await fetch(endpoint, {
             method: 'POST',
             body: formData,
