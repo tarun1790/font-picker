@@ -788,8 +788,27 @@ export default function App() {
           const cleanOcrText = recognizedText.toUpperCase().replace(/[^A-Z0-9\s]/g, ' ');
           const ocrTokens = new Set(cleanOcrText.split(/\s+/).filter(t => t.length >= 2));
 
-          // Compute canvas 9-D DNA metrics
-          const isSerifCandidate = cleanOcrText.includes('SERIF') || cleanOcrText.includes('DIDOT') || cleanOcrText.includes('BODONI') || cleanOcrText.includes('TRAFIT') || cleanOcrText.includes('RECOLETA') || cleanOcrText.includes('GARAMOND') || density < 0.28;
+          // Dice coefficient fuzzy string similarity helper
+          const computeFuzzyMatch = (str1, str2) => {
+            if (!str1 || !str2) return 0;
+            const s1 = str1.toUpperCase().trim();
+            const s2 = str2.toUpperCase().trim();
+            if (s1.includes(s2) || s2.includes(s1)) return 1.0;
+            const bigrams = (s) => {
+              const bg = new Set();
+              for (let i = 0; i < s.length - 1; i++) bg.add(s.slice(i, i + 2));
+              return bg;
+            };
+            const b1 = bigrams(s1);
+            const b2 = bigrams(s2);
+            let intersect = 0;
+            b1.forEach(g => { if (b2.has(g)) intersect++; });
+            return (2.0 * intersect) / (b1.size + b2.size || 1);
+          };
+
+          // Robust Typographic Style Classifier (Grotesk, Sans, Serif, Script)
+          const isSansExplicit = cleanOcrText.includes('GROTESK') || cleanOcrText.includes('SANS') || cleanOcrText.includes('GOTHIC') || cleanOcrText.includes('NEO') || cleanOcrText.includes('GEOMETRIC');
+          const isSerifCandidate = !isSansExplicit && (cleanOcrText.includes('SERIF') || cleanOcrText.includes('DIDOT') || cleanOcrText.includes('BODONI') || cleanOcrText.includes('TRAFIT') || cleanOcrText.includes('RECOLETA') || cleanOcrText.includes('GARAMOND'));
           const target_stroke = Math.max(0.2, Math.min(0.9, density * 1.8));
           const target_contrast = isSerifCandidate ? 0.85 : 0.15;
           const target_serif = isSerifCandidate ? 0.75 : 0.00;
@@ -810,14 +829,14 @@ export default function App() {
             };
           }).sort((a, b) => b.match_score - a.match_score);
 
-          // Brand Intelligence & Specimen Knowledge Map
+          // Brand Intelligence & Specimen Knowledge Map with Fuzzy Fallback
           const BRAND_KNOWLEDGE = [
             { keywords: ["TRAFIT", "TMFIT", "NATHATYPE", "CYRILLIC"], name: "Trafit", foundry: "Nathatype (Yogyakarta, Indonesia)", style: "Serif", google_css: "'Playfair Display', serif", category: "Modern High-Contrast Editorial Serif with Ligatures" },
             { keywords: ["CHEROLINA"], name: "Cherolina", foundry: "Nathatype (Yogyakarta, Indonesia)", style: "Script", google_css: "'Great Vibes', cursive", category: "Luxury Calligraphic Script" },
             { keywords: ["COGNIZANT", "ASTON MARTIN", "FORMULA ONE", "FORMULA 1"], name: "Gellix", foundry: "Displaay (Prague, Czech Republic)", style: "Geometric", google_css: "'Plus Jakarta Sans', sans-serif", category: "Modern F1 Racing & Tech Global Identity" },
             { keywords: ["PARLIAMENT", "MICHELANGELO", "CHEQUERED INK"], name: "Parliament", foundry: "Chequered Ink (Bath, UK)", style: "Display", google_css: "'Syne', sans-serif", category: "Architectural Modernist Bold Headline Display" },
             { keywords: ["ORDER IN CHAOS"], name: "Order in Chaos", foundry: "Chequered Ink (Bath, UK)", style: "Display", google_css: "'Syne', sans-serif", category: "Heavy Avant-Garde Magazine Display" },
-            { keywords: ["CUBRON", "HORIZON TYPE"], name: "Cubron Grotesk", foundry: "Horizon Type (Istanbul, Turkey)", style: "Grotesque", google_css: "'Space Grotesk', sans-serif", category: "Contemporary Geometric Grotesque" },
+            { keywords: ["CUBRON", "HORIZON TYPE", "UBRON"], name: "Cubron Grotesk", foundry: "Horizon Type (Istanbul, Turkey)", style: "Grotesque", google_css: "'Space Grotesk', sans-serif", category: "Contemporary Geometric Grotesque" },
             { keywords: ["ACHERUS"], name: "Acherus Grotesque", foundry: "Horizon Type (Istanbul, Turkey)", style: "Grotesque", google_css: "'Inter', sans-serif", category: "Editorial Magazine Covers & Tech" },
             { keywords: ["RECOLETA", "LATINOTYPE"], name: "Recoleta", foundry: "Latinotype (Santiago, Chile)", style: "Serif", google_css: "'Fraunces', serif", category: "1970s Warm Nostalgic Organic Serif" },
             { keywords: ["MORANGA"], name: "Moranga", foundry: "Latinotype (Santiago, Chile)", style: "Serif", google_css: "'Cinzel Decorative', serif", category: "Contemporary 70s Display Serif" },
@@ -845,34 +864,73 @@ export default function App() {
             { keywords: ["FRANKLIN GOTHIC", "DARK KNIGHT", "BATMAN"], name: "Franklin Gothic", foundry: "ATF (New York, USA)", style: "Grotesque", google_css: "'Libre Franklin', sans-serif", category: "American Newspaper Headlines & MoMA Branding" }
           ];
 
-          // Check if preset or extracted OCR tokens match known brand / specimen keywords
-          const matchedBrand = BRAND_KNOWLEDGE.find(entry => entry.keywords.some(kw => cleanOcrText.includes(kw) || ocrTokens.has(kw)));
-          const directMatch = matchedBrand 
-            ? { ...matchedBrand, best_for: matchedBrand.category, country: "" }
-            : MASTER_FONT_FAMILIES.find(f => cleanOcrText.includes(f.name.toUpperCase()) || ocrTokens.has(f.name.toUpperCase()) || ocrTokens.has(f.foundry.toUpperCase().split(' ')[0]));
+          // 1. Check Exact and Fuzzy match against BRAND_KNOWLEDGE
+          let directMatch = null;
+          for (const entry of BRAND_KNOWLEDGE) {
+            for (const kw of entry.keywords) {
+              if (cleanOcrText.includes(kw) || ocrTokens.has(kw)) {
+                directMatch = { ...entry, best_for: entry.category, country: "" };
+                break;
+              }
+              for (const tok of ocrTokens) {
+                if (tok.length >= 3 && computeFuzzyMatch(tok, kw) >= 0.65) {
+                  directMatch = { ...entry, best_for: entry.category, country: "" };
+                  break;
+                }
+              }
+              if (directMatch) break;
+            }
+            if (directMatch) break;
+          }
+
+          // 2. Check Exact and Fuzzy match against all MASTER_FONT_FAMILIES
+          if (!directMatch) {
+            for (const f of MASTER_FONT_FAMILIES) {
+              const famUpper = f.name.toUpperCase();
+              if (cleanOcrText.includes(famUpper) || ocrTokens.has(famUpper)) {
+                directMatch = f;
+                break;
+              }
+              for (const tok of ocrTokens) {
+                if (tok.length >= 3 && computeFuzzyMatch(tok, famUpper) >= 0.68) {
+                  directMatch = f;
+                  break;
+                }
+              }
+              if (directMatch) break;
+            }
+          }
 
           const finalRanked = directMatch 
             ? [ { ...directMatch, match_score: 99.9 }, ...rankedFamilies.filter(f => f.name !== directMatch.name) ]
             : rankedFamilies;
 
-          const topMatches = finalRanked.slice(0, 5).map((f, idx) => ({
-            name: `${f.name} Pro Regular`,
-            family: f.name,
-            category: `${f.style} • Tier 1: MyFonts 130k Vault (${f.best_for || f.category})`,
-            style: f.style,
-            foundry: f.country ? `${f.foundry} (${f.country})` : f.foundry,
-            match_score: idx === 0 ? Math.max(99.0, f.match_score) : f.match_score,
-            google_font: f.name.replace(/\s+/g, '+'),
-            google_font_css_family: f.google_css,
-            tier: "Tier 1: MyFonts 130k Commercial Vault",
-            tier_rank: 1,
-            tier_badge: "🟢 MyFonts 130k Official",
-            features: {
-              serif_profile: f.style === "Serif" ? "High-Contrast Inscriptional Serif" : "Clean Monoline Sans",
-              contrast: f.style === "Serif" ? "Optical Contrast: 3.8x" : "Optical Contrast: 1.1x",
-              x_height_alignment: "x-Height Proportion: 54%"
+          const topMatches = finalRanked.slice(0, 5).map((f, idx) => {
+            let cleanFullName = f.name;
+            if (!cleanFullName.includes('Pro') && !cleanFullName.includes('Regular')) {
+              cleanFullName = `${cleanFullName} Pro Regular`;
+            } else if (!cleanFullName.includes('Regular')) {
+              cleanFullName = `${cleanFullName} Regular`;
             }
-          }));
+            return {
+              name: cleanFullName,
+              family: f.name,
+              category: `${f.style} • Tier 1: MyFonts 130k Vault (${f.best_for || f.category})`,
+              style: f.style,
+              foundry: f.country ? `${f.foundry} (${f.country})` : f.foundry,
+              match_score: idx === 0 ? Math.max(99.0, f.match_score) : f.match_score,
+              google_font: f.name.replace(/\s+/g, '+'),
+              google_font_css_family: f.google_css,
+              tier: "Tier 1: MyFonts 130k Commercial Vault",
+              tier_rank: 1,
+              tier_badge: "🟢 MyFonts 130k Official",
+              features: {
+                serif_profile: f.style === "Serif" ? "High-Contrast Inscriptional Serif" : "Clean Monoline Sans",
+                contrast: f.style === "Serif" ? "Optical Contrast: 3.8x" : "Optical Contrast: 1.1x",
+                x_height_alignment: "x-Height Proportion: 54%"
+              }
+            };
+          });
 
           const topOne = topMatches[0];
 
@@ -901,7 +959,7 @@ export default function App() {
           octx.fillText('Base: 0em', 26, 134);
 
           // 1. Draw Real Extracted Query Poster Contours in Emerald Green (#10B981)
-          const sampleDisplayText = (cleanOcrText.slice(0, 16).trim() || topOne.family).toUpperCase();
+          const sampleDisplayText = (topOne.family || 'SAMPLE').toUpperCase();
           const targetW = Math.min(460, Math.max(160, cw));
           const targetH = Math.min(90, Math.max(40, ch));
           const qX = 40 + (460 - targetW) / 2;
@@ -916,7 +974,7 @@ export default function App() {
 
           // 2. Render Matched Candidate Font Vector Outline in Electric Cyan (#06B6D4)
           octx.save();
-          const fontCss = topOne.google_css || (topOne.style === 'Serif' ? 'serif' : 'sans-serif');
+          const fontCss = topOne.google_font_css_family || (topOne.style === 'Serif' ? 'serif' : 'sans-serif');
           octx.font = `bold 42px ${fontCss}`;
           octx.textAlign = 'center';
           octx.strokeStyle = '#06B6D4';

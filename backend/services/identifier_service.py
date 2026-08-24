@@ -772,7 +772,7 @@ def match_against_myfonts_130k_vault(dna: dict, extracted_text: str = "", top_k:
             (["COGNIZANT", "ASTON MARTIN", "FORMULA ONE", "FORMULA 1"], "Gellix", "Displaay"),
             (["PARLIAMENT", "MICHELANGELO", "CHEQUERED INK"], "Parliament", "Chequered Ink"),
             (["ORDER IN CHAOS"], "Order in Chaos", "Chequered Ink"),
-            (["CUBRON", "HORIZON TYPE"], "Cubron Grotesk", "Horizon Type"),
+            (["CUBRON", "UBRON", "HORIZON TYPE"], "Cubron Grotesk", "Horizon Type"),
             (["ACHERUS"], "Acherus Grotesque", "Horizon Type"),
             (["RECOLETA", "LATINOTYPE"], "Recoleta", "Latinotype"),
             (["MORANGA"], "Moranga", "Latinotype"),
@@ -852,11 +852,11 @@ def match_against_myfonts_130k_vault(dna: dict, extracted_text: str = "", top_k:
                 is_match = True
             else:
                 for tok in ocr_tokens:
-                    if len(tok) >= 4:
-                        if difflib.SequenceMatcher(None, tok, fam_clean).ratio() >= 0.72:
+                    if len(tok) >= 3:
+                        if difflib.SequenceMatcher(None, tok, fam_clean).ratio() >= 0.65:
                             is_match = True
                             break
-                        if difflib.SequenceMatcher(None, tok, foundry_clean).ratio() >= 0.75:
+                        if difflib.SequenceMatcher(None, tok, foundry_clean).ratio() >= 0.70:
                             is_match = True
                             break
 
