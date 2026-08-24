@@ -34,7 +34,7 @@ const getApiBase = () => {
 
     const host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || window.location.port === '5173') {
-      return 'http://localhost:8000';
+      return 'http://localhost:8008';
     }
   }
 
@@ -312,7 +312,7 @@ export default function App() {
     const checkDbHealth = async () => {
       const t0 = performance.now();
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/v1/myfonts/vault-stats', { signal: AbortSignal.timeout(2000) });
+        const res = await fetch(`${API_BASE}/api/v1/myfonts/vault-stats`, { signal: AbortSignal.timeout(2000) });
         if (res.ok) {
           const data = await res.json();
           const t1 = performance.now();
@@ -347,7 +347,7 @@ export default function App() {
         if (myfontsSelectedFoundry !== 'All') params.set('foundry', myfontsSelectedFoundry);
         if (myfontsSelectedStyle !== 'All') params.set('style', myfontsSelectedStyle);
 
-        const res = await fetch(`http://127.0.0.1:8000/api/v1/myfonts/search?${params.toString()}`, { signal: AbortSignal.timeout(2000) });
+        const res = await fetch(`${API_BASE}/api/v1/myfonts/search?${params.toString()}`, { signal: AbortSignal.timeout(2000) });
         if (res.ok) {
           const data = await res.json();
           if (data && data.results && data.results.length > 0) {
@@ -924,8 +924,8 @@ export default function App() {
         ? [`${API_BASE}/api/v1/font/identify`]
         : [
             `${API_BASE}/api/v1/font/identify`,
-            'http://127.0.0.1:8000/api/v1/font/identify',
-            'http://localhost:8000/api/v1/font/identify',
+            'http://127.0.0.1:8008/api/v1/font/identify',
+            'http://localhost:8008/api/v1/font/identify',
             '/api/v1/font/identify'
           ];
 
@@ -4835,7 +4835,7 @@ feature kern {
                       <Database className="h-3.5 w-3.5" /> 1.00 GB Binary Vault
                     </span>
                     <a
-                      href="http://127.0.0.1:8000/api/v1/myfonts/download/sqlite-db"
+                      href={`${API_BASE}/api/v1/myfonts/download/sqlite-db`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-mono border border-white/10 flex items-center gap-1.5 transition-colors"
@@ -4844,7 +4844,7 @@ feature kern {
                       <Download className="h-3.5 w-3.5 text-brand-accent" /> SQLite DB (32 MB)
                     </a>
                     <a
-                      href="http://127.0.0.1:8000/api/v1/myfonts/download/names-csv"
+                      href={`${API_BASE}/api/v1/myfonts/download/names-csv`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-mono border border-white/10 flex items-center gap-1.5 transition-colors"
