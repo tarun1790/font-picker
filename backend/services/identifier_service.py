@@ -1296,47 +1296,80 @@ def generate_forensic_superimposition_overlay(query_thresh: np.ndarray, top_cand
     Renders an optical forensic superimposition:
     - Query character outline: Emerald Green (#10B981)
     - Matched font candidate outline: Electric Cyan (#06B6D4)
-    - Precision grid & alignment guides for Cap-Height and Baseline.
+    - Precision grid & alignment guides for Cap-Height, Mean-Line, and Baseline.
     """
-    if query_thresh is None:
+    if query_thresh is None or query_thresh.size == 0:
         return ""
         
     qh, qw = query_thresh.shape
-    pad = 24
+    pad = 28
     vh = qh + pad * 2
-    vw = qw + pad * 2
+    vw = max(qw + pad * 2, 480)
     
     # 1. Dark navy background canvas
     canvas = np.zeros((vh, vw, 3), dtype=np.uint8)
     canvas[:, :] = [15, 23, 42] # slate-900
     
     # 2. Draw typographic alignment grid lines
-    cap_y = pad + int(qh * 0.15)
-    mean_y = pad + int(qh * 0.45)
-    base_y = pad + int(qh * 0.85)
+    cap_y = pad + int(qh * 0.12)
+    mean_y = pad + int(qh * 0.44)
+    base_y = pad + int(qh * 0.86)
     
     cv2.line(canvas, (pad, cap_y), (vw - pad, cap_y), (51, 65, 85), 1, cv2.LINE_AA)
     cv2.line(canvas, (pad, mean_y), (vw - pad, mean_y), (71, 85, 105), 1, cv2.LINE_AA)
     cv2.line(canvas, (pad, base_y), (vw - pad, base_y), (51, 65, 85), 1, cv2.LINE_AA)
     
-    # 3. Query contour in Emerald Green (16, 185, 129)
-    q_contours, _ = cv2.findContours(query_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(canvas[pad:qh+pad, pad:qw+pad], q_contours, -1, (16, 185, 129), 2)
+    # 3. Morphologically clean query threshold for crisp character contours
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    clean_q = cv2.morphologyEx(query_thresh, cv2.MORPH_OPEN, kernel)
+    
+    # Query contour in Emerald Green (16, 185, 129) [BGR]
+    q_contours, _ = cv2.findContours(clean_q, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
+    
+    # Center query in canvas
+    qx_offset = pad + (vw - pad * 2 - qw) // 2
+    qy_offset = pad
+    
+    cv2.drawContours(canvas[qy_offset:qh+qy_offset, qx_offset:qw+qx_offset], q_contours, -1, (16, 185, 129), 2, cv2.LINE_AA)
     
     # 4. Render matched candidate font outline in Electric Cyan (212, 182, 6) [BGR]
     cand_name = top_candidate.get("name", "Helvetica")
-    f_path = "arial.ttf" if "Serif" not in top_candidate.get("style", "") else "times.ttf"
-    try:
-        f = ImageFont.truetype(f_path, int(qh * 0.75))
-    except Exception:
-        f = ImageFont.load_default()
-        
-    text_to_draw = sample_text[:10] if len(sample_text) > 1 and "EXTRACTED" not in sample_text else "A B C"
-    im_font = Image.new('L', (qw, qh), 0)
-    ImageDraw.Draw(im_font).text((8, int(qh * 0.1)), text_to_draw, fill=255, font=f)
+    cand_style = top_candidate.get("style", "Grotesque")
+    
+    # Choose optimal system font representation
+    f_paths = ["times.ttf", "georgia.ttf"] if "Serif" in cand_style else ["arial.ttf", "segoeui.ttf", "calibri.ttf"]
+    font_obj = None
+    target_font_size = max(18, int(qh * 0.72))
+    
+    for fp in f_paths:
+        try:
+            font_obj = ImageFont.truetype(fp, target_font_size)
+            break
+        except Exception:
+            continue
+            
+    if font_obj is None:
+        try:
+            font_obj = ImageFont.load_default()
+        except Exception:
+            pass
+            
+    text_to_draw = sample_text[:12].strip() if sample_text and len(sample_text.strip()) > 0 and "EXTRACTED" not in sample_text else cand_name.split()[0].upper()
+    
+    im_font = Image.new('L', (vw, vh), 0)
+    draw_im = ImageDraw.Draw(im_font)
+    
+    # Draw font at matched baseline
+    draw_im.text((qx_offset, qy_offset + int(qh * 0.12)), text_to_draw, fill=255, font=font_obj)
     font_thresh = np.array(im_font)
-    f_contours, _ = cv2.findContours(font_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(canvas[pad:qh+pad, pad:qw+pad], f_contours, -1, (212, 182, 6), 1)
+    f_contours, _ = cv2.findContours(font_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_KCOS)
+    
+    cv2.drawContours(canvas, f_contours, -1, (212, 182, 6), 1, cv2.LINE_AA)
+    
+    # Draw caliper guides
+    cv2.putText(canvas, "Cap: 1000em", (pad + 4, cap_y - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.32, (100, 116, 139), 1, cv2.LINE_AA)
+    cv2.putText(canvas, f"Mean: {int(top_candidate.get('x_height_ratio', 0.54)*1000)}em", (pad + 4, mean_y - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.32, (100, 116, 139), 1, cv2.LINE_AA)
+    cv2.putText(canvas, "Base: 0em", (pad + 4, base_y + 14), cv2.FONT_HERSHEY_SIMPLEX, 0.32, (100, 116, 139), 1, cv2.LINE_AA)
     
     _, buf = cv2.imencode('.png', canvas)
     return f"data:image/png;base64,{base64.b64encode(buf).decode('utf-8')}"

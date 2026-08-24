@@ -817,33 +817,58 @@ export default function App() {
 
           const topOne = topMatches[0];
 
-          // Generate Canvas Vector Superimposition Overlay Data URL
+          // Generate Real Canvas Vector Superimposition Overlay Data URL
           const overlayCanvas = document.createElement('canvas');
-          overlayCanvas.width = 480;
-          overlayCanvas.height = 140;
+          overlayCanvas.width = 540;
+          overlayCanvas.height = 160;
           const octx = overlayCanvas.getContext('2d');
           octx.fillStyle = '#0F172A';
-          octx.fillRect(0, 0, 480, 140);
+          octx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
           
-          // Alignment lines
+          // Typographic metric alignment grid lines
           octx.strokeStyle = '#334155';
           octx.lineWidth = 1;
           octx.beginPath();
-          octx.moveTo(20, 30); octx.lineTo(460, 30); // Cap-height
-          octx.moveTo(20, 70); octx.lineTo(460, 70); // Mean-line
-          octx.moveTo(20, 115); octx.lineTo(460, 115); // Baseline
+          octx.moveTo(24, 34); octx.lineTo(516, 34); // Cap-height
+          octx.moveTo(24, 72); octx.lineTo(516, 72); // Mean-line
+          octx.moveTo(24, 118); octx.lineTo(516, 118); // Baseline
           octx.stroke();
 
-          // Render candidate font outline (Cyan #06B6D4)
-          octx.font = 'bold 52px sans-serif';
+          // Caliper metric labels
+          octx.font = '10px monospace';
+          octx.fillStyle = '#64748B';
+          octx.fillText('Cap: 1000em', 26, 26);
+          octx.fillText('Mean: 540em', 26, 64);
+          octx.fillText('Base: 0em', 26, 134);
+
+          // 1. Draw Real Extracted Query Poster Contours in Emerald Green (#10B981)
+          const sampleDisplayText = (cleanOcrText.slice(0, 16).trim() || topOne.family).toUpperCase();
+          const targetW = Math.min(460, Math.max(160, cw));
+          const targetH = Math.min(90, Math.max(40, ch));
+          const qX = 40 + (460 - targetW) / 2;
+          const qY = 32;
+
+          // Draw real edge-detected query image contour
+          octx.save();
+          octx.globalAlpha = 0.85;
+          octx.filter = 'drop-shadow(0px 0px 4px rgba(16, 185, 129, 0.6))';
+          octx.drawImage(canvas, 0, 0, cw, ch, qX, qY, targetW, targetH);
+          octx.restore();
+
+          // 2. Render Matched Candidate Font Vector Outline in Electric Cyan (#06B6D4)
+          octx.save();
+          const fontCss = topOne.google_css || (topOne.style === 'Serif' ? 'serif' : 'sans-serif');
+          octx.font = `bold 42px ${fontCss}`;
+          octx.textAlign = 'center';
           octx.strokeStyle = '#06B6D4';
           octx.lineWidth = 2;
-          octx.strokeText(topOne.family.toUpperCase().slice(0, 10), 30, 95);
-
-          // Render query contour (Emerald Green #10B981)
-          octx.strokeStyle = '#10B981';
-          octx.lineWidth = 1.5;
-          octx.strokeText(topOne.family.toUpperCase().slice(0, 10), 32, 94);
+          octx.strokeText(sampleDisplayText, overlayCanvas.width / 2, 112);
+          
+          // Glow effect for candidate font
+          octx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+          octx.lineWidth = 4;
+          octx.strokeText(sampleDisplayText, overlayCanvas.width / 2, 112);
+          octx.restore();
 
           const overlayDataUrl = overlayCanvas.toDataURL('image/png');
 
