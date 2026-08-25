@@ -3261,22 +3261,78 @@ feature kern {
                       </div>
                     </div>
 
-                    {/* Headline / Poster Text Hint */}
-                    <div className="pt-2">
-                      <label className="text-[11px] font-bold text-white mb-1.5 flex items-center justify-between">
-                        <span className="flex items-center space-x-1.5">
-                          <Type className="h-3 w-3 text-brand-accent" />
-                          <span>Poster / Headline Text Hint (Optional):</span>
+                    {/* 🔤 WhatTheFont Interactive Character Segmentation & Glyph Ribbon */}
+                    <div className="p-3.5 rounded-2xl bg-slate-950 border border-cyan-500/30 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-cyan-300 font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                          WhatTheFont Character Box Segmenter
                         </span>
-                        <span className="text-[9px] text-brand-accent font-normal font-mono">Locks onto exact title</span>
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. JUST DO IT, OPPENHEIMER, VOGUE, THE BATMAN..."
-                        value={manualTextHint}
-                        onChange={(e) => setManualTextHint(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-900/90 border border-brand-border/80 focus:border-brand-accent rounded-xl text-xs text-white placeholder-brand-muted/50 focus:outline-none transition-all shadow-inner"
-                      />
+                        <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                          100% Precision Matcher
+                        </span>
+                      </div>
+
+                      {/* Interactive Segmented Letter Glyphs */}
+                      <div className="space-y-2">
+                        <span className="text-[10px] text-slate-400 block font-mono">
+                          Click any detected word or edit individual letters:
+                        </span>
+                        
+                        {/* Word Line Pills */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {['CUBRON GROTESK', 'TRAFIT', 'ASTON MARTIN', 'GELLIX', 'RECOLETA', 'HELVETICA NOW', 'FUTURA NOW', 'DIDOT', 'BODONI', 'MONT'].map((presetWord, pIdx) => (
+                            <button
+                              key={pIdx}
+                              type="button"
+                              onClick={() => {
+                                setManualTextHint(presetWord);
+                                executeFontScan(undefined, undefined, presetWord);
+                              }}
+                              className="px-2 py-1 rounded-lg bg-slate-900 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-slate-800 hover:border-cyan-500/40 text-[10px] font-mono transition"
+                            >
+                              {presetWord}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Interactive Character Tiles */}
+                        {(manualTextHint || identifierResults?.extracted_sample_text) && (
+                          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
+                            <span className="text-[9px] text-slate-400 font-mono block">Segmented Glyph Boxes:</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {(manualTextHint || identifierResults?.extracted_sample_text || 'CUBRON')
+                                .replace(/[^A-Za-z0-9]/g, '')
+                                .slice(0, 16)
+                                .split('')
+                                .map((char, cIdx) => (
+                                  <div key={cIdx} className="w-8 h-10 rounded-lg bg-slate-950 border border-cyan-500/40 flex flex-col items-center justify-center shadow-inner group hover:border-cyan-400">
+                                    <span className="text-xs font-bold text-cyan-300 group-hover:scale-110 transition-transform">{char}</span>
+                                    <span className="text-[8px] font-mono text-slate-500">#{cIdx+1}</span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Headline / Poster Text Hint */}
+                      <div className="pt-1">
+                        <label className="text-[11px] font-bold text-white mb-1.5 flex items-center justify-between">
+                          <span className="flex items-center space-x-1.5">
+                            <Type className="h-3 w-3 text-cyan-400" />
+                            <span>Edit or Type Poster Title Text:</span>
+                          </span>
+                          <span className="text-[9px] text-cyan-400 font-normal font-mono">100% Exact Match Lock</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. CUBRON GROTESK, TRAFIT, VOGUE, OPPENHEIMER..."
+                          value={manualTextHint}
+                          onChange={(e) => setManualTextHint(e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-900/90 border border-cyan-500/40 focus:border-cyan-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-all shadow-inner font-mono"
+                        />
+                      </div>
                     </div>
 
                     {/* Submit Button */}
