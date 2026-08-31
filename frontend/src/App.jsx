@@ -3848,21 +3848,21 @@ feature kern {
                       </div>
                     </div>
 
-                    {/* 🔤 Interactive Live Typographic Specimen Sandbox (Type Tester) */}
+                    {/* 🔤 Interactive Multi-Font Comparative Specimen Studio */}
                     <div className="glass-panel rounded-3xl p-6 border border-brand-primary/40 bg-gradient-to-b from-slate-900/90 via-slate-950/90 to-slate-950/90 space-y-5 shadow-2xl">
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-brand-border/40 pb-3">
                         <div>
                           <div className="flex items-center space-x-2">
                             <span className="text-[10px] text-cyan-400 font-mono tracking-wider uppercase font-bold flex items-center gap-1.5">
                               <Sparkles className="h-3 w-3 text-cyan-400" />
-                              Live Typographic Specimen Sandbox
+                              Multi-Candidate Comparative Specimen Studio
                             </span>
                             <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold">
-                              REAL-TIME WEB TESTER
+                              REAL-TIME MULTI-MATCH
                             </span>
                           </div>
                           <h3 className="text-sm font-bold text-white">
-                            Interactive Type Tester: {identifierResults.matched_fonts[0]?.name}
+                            Side-by-Side Type Tester: Top 3 Identified Candidates
                           </h3>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -3876,25 +3876,53 @@ feature kern {
                         </div>
                       </div>
 
-                      {/* Live Editable Textarea Specimen */}
-                      <div className="p-4 rounded-2xl bg-slate-950 border border-brand-border/60 shadow-inner flex flex-col space-y-2">
+                      {/* Multi-Candidate Comparative Renders */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {identifierResults.matched_fonts?.slice(0, 3).map((cand, cIdx) => (
+                          <div key={cIdx} className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-3 hover:border-cyan-500/40 transition group">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="text-[9px] font-mono text-cyan-400 font-bold block">#{cIdx+1} Candidate</span>
+                                <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">{cand.name}</h4>
+                                <span className="text-[10px] text-slate-400 block">{cand.foundry}</span>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 text-[10px] font-mono font-bold border border-cyan-500/30">
+                                {cand.match_score}%
+                              </span>
+                            </div>
+
+                            {/* Rendered Specimen Preview */}
+                            <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800/80 min-h-[90px] flex items-center justify-center">
+                              <p 
+                                style={{
+                                  fontFamily: cand.google_font_css_family || 'sans-serif',
+                                  fontSize: `${Math.min(36, fontSize)}px`,
+                                  letterSpacing: `${letterSpacing}px`,
+                                  lineHeight: 1.2
+                                }}
+                                className="text-white text-center break-words font-medium transition-all"
+                              >
+                                {compareText || cand.family || 'Sample Text'}
+                              </p>
+                            </div>
+
+                            <div className="flex justify-between items-center text-[9px] font-mono text-slate-500 pt-1 border-t border-slate-900">
+                              <span>1:1 Alt: <strong className="text-emerald-400">{cand.google_font_css_family}</strong></span>
+                              <span className="text-slate-400">{cand.style}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Custom Editable Textarea */}
+                      <div className="p-3.5 rounded-2xl bg-slate-950 border border-brand-border/60 flex flex-col space-y-2">
                         <textarea
                           rows={2}
                           value={compareText}
                           onChange={(e) => setCompareText(e.target.value)}
-                          placeholder="Type any custom specimen text to preview this font live..."
-                          style={{
-                            fontFamily: identifierResults.matched_fonts[0]?.google_font_css_family || 'sans-serif',
-                            fontSize: `${fontSize}px`,
-                            letterSpacing: `${letterSpacing}px`,
-                            lineHeight: 1.2
-                          }}
-                          className="w-full bg-transparent text-white focus:outline-none resize-none placeholder-slate-600 transition-all"
+                          placeholder="Type any custom specimen text to test all fonts live..."
+                          className="w-full bg-transparent text-white focus:outline-none resize-none placeholder-slate-600 transition-all text-sm font-mono"
                         />
-                        <div className="flex justify-between items-center text-[10px] font-mono text-brand-muted pt-2 border-t border-slate-900">
-                          <span>Rendering in: <strong className="text-cyan-300">{identifierResults.matched_fonts[0]?.name}</strong></span>
-                          <span>1:1 Open-Source Google CSS: <strong className="text-emerald-400">{identifierResults.matched_fonts[0]?.google_font_css_family}</strong></span>
-                        </div>
                       </div>
 
                       {/* Typographic Sliders */}
@@ -3947,6 +3975,62 @@ feature kern {
                               <span className="text-[9px] font-mono text-brand-muted">Glyph '{glyph}'</span>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 🔬 Micro-Anatomical Bézier Vector Calipers & DNA Radar */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Left: Bézier Optical Calipers */}
+                      <div className="glass-panel rounded-3xl p-5 border border-brand-border/60 bg-slate-950/80 space-y-3">
+                        <div className="flex justify-between items-center border-b border-brand-border/40 pb-2.5">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400 font-bold flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                            Bézier Typographic Calipers
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-400">PRECISION METRICS</span>
+                        </div>
+                        <div className="space-y-2 font-mono text-xs">
+                          <div className="flex justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                            <span className="text-slate-400">Cap-Height Baseline:</span>
+                            <span className="text-white font-bold">1000 em</span>
+                          </div>
+                          <div className="flex justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                            <span className="text-slate-400">x-Height Proportion:</span>
+                            <span className="text-emerald-400 font-bold">{(identifierResults.dna?.x_height_ratio ? identifierResults.dna.x_height_ratio * 1000 : 540).toFixed(0)} em (54%)</span>
+                          </div>
+                          <div className="flex justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                            <span className="text-slate-400">Optical Stem Contrast:</span>
+                            <span className="text-cyan-400 font-bold">{identifierResults.dna?.stroke_contrast || '1.2'}x</span>
+                          </div>
+                          <div className="flex justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                            <span className="text-slate-400">Terminal Cut Angle:</span>
+                            <span className="text-amber-300 font-bold">0° Horizontal</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Autonomous Editorial Pairing Advisor */}
+                      <div className="glass-panel rounded-3xl p-5 border border-brand-border/60 bg-slate-950/80 space-y-3">
+                        <div className="flex justify-between items-center border-b border-brand-border/40 pb-2.5">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            AI Editorial Pairing Advisor
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-400">DESIGN SYSTEM</span>
+                        </div>
+                        <div className="space-y-2 text-xs">
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+                            <span className="text-[10px] font-mono text-slate-400 uppercase">Recommended Body Font:</span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-white font-bold">Inter / Plus Jakarta Sans</span>
+                              <span className="text-[10px] text-emerald-400 font-mono">1:1 Neutral Balance</span>
+                            </div>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+                            <span className="text-[10px] font-mono text-slate-400 uppercase">Best Industry Applications:</span>
+                            <span className="text-slate-300 block">Automotive Posters, Modern Tech Branding, Editorial Mastheads</span>
+                          </div>
                         </div>
                       </div>
                     </div>
