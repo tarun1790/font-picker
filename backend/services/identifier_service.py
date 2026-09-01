@@ -338,7 +338,7 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
         serif_bracket = "Swiss Neo-Grotesque Monoline"
         serif_index = 0.04
         
-    stress_angle = "Vertical (90°)" if contrast_ratio < 1.8 else "Angled / Oblique (15°)"
+    stress_angle = "Vertical (90 deg)" if contrast_ratio < 1.8 else "Angled / Oblique (15 deg)"
     aperture_openness = "Open (Humanist Screen Optimized)" if avg_aspect > 0.70 else "Closed (Classic Swiss Geometry)"
     
     return {
@@ -1191,10 +1191,10 @@ def compute_anatomy_diagnostics(dna):
         "ascender_line": "+220 em (y = 920)",
         "descender_line": "-180 em (y = -180)",
         "baseline": "0 em",
-        "terminal_cut_profile": "90° Horizontal Flat Cut (Swiss Standard)" if serif < 0.3 else "Bracketed Triangular Serif",
+        "terminal_cut_profile": "90 deg Horizontal Flat Cut (Swiss Standard)" if serif < 0.3 else "Bracketed Triangular Serif",
         "counter_aperture": "Semi-Closed Swiss Aperture" if contrast < 1.5 else "Open Dynamic Aperture",
         "optical_kerning_envelope": "+1.2px (Tight Display Tracking)",
-        "axis_angle": dna.get("stress_angle", "Vertical (90°)"),
+        "axis_angle": dna.get("stress_angle", "Vertical (90 deg)"),
         "stroke_modulation": f"{contrast}x (Maximal to Minimal Ratio)"
     }
 

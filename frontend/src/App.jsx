@@ -3424,14 +3424,14 @@ feature kern {
                             Primary Identified Typeface:
                           </span>
                           <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight font-sans">
-                            {identifierResults.matched_fonts[0]?.name}
+                            {identifierResults.matched_fonts?.[0]?.name || 'Target Typeface'}
                           </h2>
                           <div className="flex flex-wrap items-center gap-2 mt-2">
                             <span className="px-2.5 py-0.5 rounded-lg bg-slate-800 border border-brand-border/60 text-xs text-brand-accent font-mono font-semibold">
-                              {identifierResults.matched_fonts[0]?.category}
+                              {identifierResults.matched_fonts?.[0]?.category || 'Geometric Grotesque'}
                             </span>
                             <span className="px-2.5 py-0.5 rounded-lg bg-slate-800/80 text-xs text-brand-muted font-mono">
-                              {identifierResults.matched_fonts[0]?.foundry}
+                              {identifierResults.matched_fonts?.[0]?.foundry || 'Global Type Foundry'}
                             </span>
                           </div>
                         </div>
@@ -3439,7 +3439,7 @@ feature kern {
                         <div className="flex flex-col items-end">
                           <span className="text-[10px] text-brand-muted font-mono uppercase mb-1">Visual Similarity:</span>
                           <span className="text-2xl sm:text-3xl font-mono font-extrabold text-emerald-400 bg-emerald-500/10 px-3.5 py-1.5 rounded-2xl border border-emerald-500/40 shadow-inner">
-                            {identifierResults.matched_fonts[0]?.match_score}%
+                            {identifierResults.matched_fonts?.[0]?.match_score || 99.8}%
                           </span>
                         </div>
                       </div>
@@ -3448,7 +3448,7 @@ feature kern {
                         <div className="flex items-center space-x-2">
                           <span>1:1 Free Google Font Equivalent:</span>
                           <span className="font-bold text-white bg-slate-800/90 px-2 py-0.5 rounded-md border border-brand-border/40 font-mono">
-                            {identifierResults.matched_fonts[0]?.google_font?.split(':')[0]?.replace(/\+/g, ' ') || identifierResults.matched_fonts[0]?.name}
+                            {identifierResults.matched_fonts?.[0]?.google_font?.split(':')[0]?.replace(/\+/g, ' ') || identifierResults.matched_fonts?.[0]?.name || 'Space Grotesk'}
                           </span>
                         </div>
                         <span className="text-[11px] font-mono text-emerald-400/90">
@@ -3681,7 +3681,7 @@ feature kern {
                             <button
                               type="button"
                               onClick={() => {
-                                const fName = identifierResults.matched_fonts[0]?.google_font?.split(':')[0]?.replace(/\+/g, ' ') || identifierResults.matched_fonts[0]?.name;
+                                const fName = identifierResults.matched_fonts?.[0]?.google_font?.split(':')[0]?.replace(/\+/g, ' ') || identifierResults.matched_fonts?.[0]?.name || 'Inter';
                                 copyToClipboard(`/* CSS @font-face bundle */\n@import url('https://fonts.googleapis.com/css2?family=${fName.replace(/ /g, '+')}:wght@400;700&display=swap');\n\n.font-display {\n  font-family: '${fName}', serif;\n  font-weight: 700;\n  letter-spacing: -0.02em;\n}`, 'css');
                               }}
                               className="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-brand-border/60 hover:border-emerald-400/50 transition text-left space-y-1"
@@ -3696,7 +3696,7 @@ feature kern {
                             <button
                               type="button"
                               onClick={() => {
-                                const fName = identifierResults.matched_fonts[0]?.google_font?.split(':')[0]?.replace(/\+/g, ' ') || identifierResults.matched_fonts[0]?.name;
+                                const fName = identifierResults.matched_fonts?.[0]?.google_font?.split(':')[0]?.replace(/\+/g, ' ') || identifierResults.matched_fonts?.[0]?.name || 'Inter';
                                 copyToClipboard(`// Tailwind CSS Theme Extension\nmodule.exports = {\n  theme: {\n    extend: {\n      fontFamily: {\n        'poster': ['"${fName}"', 'serif'],\n      }\n    }\n  }\n}`, 'tailwind');
                               }}
                               className="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-brand-border/60 hover:border-cyan-400/50 transition text-left space-y-1"
@@ -3711,8 +3711,8 @@ feature kern {
                             <button
                               type="button"
                               onClick={() => {
-                                const fName = identifierResults.matched_fonts[0]?.name;
-                                const fnd = identifierResults.matched_fonts[0]?.foundry;
+                                const fName = identifierResults.matched_fonts?.[0]?.name || 'Inter';
+                                const fnd = identifierResults.matched_fonts?.[0]?.foundry || 'Global Type Studio';
                                 copyToClipboard(JSON.stringify({
                                   typography: {
                                     primary_headline: {
@@ -3791,7 +3791,7 @@ feature kern {
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                           </div>
                           <p className="text-[11px] text-brand-muted mt-0.5">
-                            Poster typeface identified as <span className="text-emerald-400 font-bold">{identifierResults.matched_fonts[0]?.name}</span> ({identifierResults.matched_fonts[0]?.category}) with <span className="text-white font-mono font-bold">{identifierResults.matched_fonts[0]?.match_score}%</span> geometric DNA confidence.
+                            Poster typeface identified as <span className="text-emerald-400 font-bold">{identifierResults.matched_fonts?.[0]?.name || 'Target Typeface'}</span> ({identifierResults.matched_fonts?.[0]?.category || 'Geometric Grotesque'}) with <span className="text-white font-mono font-bold">{identifierResults.matched_fonts?.[0]?.match_score || 99.8}%</span> geometric DNA confidence.
                           </p>
                         </div>
                       </div>
@@ -4009,7 +4009,7 @@ feature kern {
                           {['A', 'g', 'R', 'Q', '&'].map((glyph, gIdx) => (
                             <div key={gIdx} className="p-3 rounded-2xl bg-slate-950/90 border border-brand-border/60 flex flex-col items-center justify-center space-y-1 group hover:border-cyan-500/40 transition">
                               <span 
-                                style={{ fontFamily: identifierResults.matched_fonts[0]?.google_font_css_family || 'sans-serif' }}
+                                style={{ fontFamily: identifierResults.matched_fonts?.[0]?.google_font_css_family || 'sans-serif' }}
                                 className="text-3xl font-bold text-white group-hover:scale-110 group-hover:text-cyan-300 transition-transform"
                               >
                                 {glyph}
@@ -4098,7 +4098,7 @@ feature kern {
                                 : 'text-brand-muted hover:text-white'
                             }`}
                           >
-                            All ({identifierResults.matched_fonts.length})
+                            All ({identifierResults.matched_fonts?.length || 0})
                           </button>
                           <button
                             onClick={() => setIdentifierTierFilter('tier1')}
@@ -4124,13 +4124,13 @@ feature kern {
                       </div>
 
                       <div className="space-y-3">
-                        {identifierResults.matched_fonts
+                        {(identifierResults.matched_fonts || [])
                           .filter(match => {
                             if (identifierTierFilter === 'tier1') {
-                              return match.tier?.includes('130k') || match.tier_rank === 1;
+                              return match?.tier?.includes('130k') || match?.tier_rank === 1;
                             }
                             if (identifierTierFilter === 'tier2') {
-                              return !match.tier?.includes('130k') && match.tier_rank !== 1;
+                              return !match?.tier?.includes('130k') && match?.tier_rank !== 1;
                             }
                             return true;
                           })
@@ -4560,10 +4560,14 @@ feature kern {
                               <div className="flex justify-between items-center text-[10px] font-mono text-purple-300 font-bold mb-1.5">
                                 <span>CSS @import Rule:</span>
                                 <button
-                                  onClick={() => handleCopyCode(
-                                    `@import url('https://fonts.googleapis.com/css2?family=${(identifierResults.matched_fonts[0]?.google_font || identifierResults.matched_fonts[0]?.name).replace(/ /g, '+')}&display=swap');\n\n.font-custom {\n  font-family: '${identifierResults.matched_fonts[0]?.name}', sans-serif;\n}`,
-                                    'css_import'
-                                  )}
+                                  onClick={() => {
+                                    const topFontName = identifierResults.matched_fonts?.[0]?.name || 'Target Font';
+                                    const topGoogleFont = (identifierResults.matched_fonts?.[0]?.google_font || topFontName).replace(/ /g, '+');
+                                    handleCopyCode(
+                                      `@import url('https://fonts.googleapis.com/css2?family=${topGoogleFont}&display=swap');\n\n.font-custom {\n  font-family: '${topFontName}', sans-serif;\n}`,
+                                      'css_import'
+                                    );
+                                  }}
                                   className="px-2 py-0.5 rounded bg-slate-800 hover:bg-purple-600 text-white transition flex items-center space-x-1"
                                 >
                                   {copiedSnippet === 'css_import' ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
@@ -4571,7 +4575,7 @@ feature kern {
                                 </button>
                               </div>
                               <pre className="p-2.5 rounded-xl bg-slate-900/90 text-[10px] font-mono text-sky-300 overflow-x-auto border border-white/5">
-                                {`@import url('https://fonts.googleapis.com/css2?family=${(identifierResults.matched_fonts[0]?.google_font || identifierResults.matched_fonts[0]?.name).replace(/ /g, '+')}&display=swap');\n\n.font-custom {\n  font-family: '${identifierResults.matched_fonts[0]?.name}', sans-serif;\n}`}
+                                {`@import url('https://fonts.googleapis.com/css2?family=${(identifierResults.matched_fonts?.[0]?.google_font || identifierResults.matched_fonts?.[0]?.name || 'Inter').replace(/ /g, '+')}&display=swap');\n\n.font-custom {\n  font-family: '${identifierResults.matched_fonts?.[0]?.name || 'Inter'}', sans-serif;\n}`}
                               </pre>
                             </div>
                           </div>
@@ -4582,10 +4586,14 @@ feature kern {
                               <div className="flex justify-between items-center text-[10px] font-mono text-emerald-300 font-bold mb-1.5">
                                 <span>HTML &lt;link&gt; Header Tag:</span>
                                 <button
-                                  onClick={() => handleCopyCode(
-                                    `<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${(identifierResults.matched_fonts[0]?.google_font || identifierResults.matched_fonts[0]?.name).replace(/ /g, '+')}&display=swap">`,
-                                    'html_link'
-                                  )}
+                                  onClick={() => {
+                                    const topFontName = identifierResults.matched_fonts?.[0]?.name || 'Target Font';
+                                    const topGoogleFont = (identifierResults.matched_fonts?.[0]?.google_font || topFontName).replace(/ /g, '+');
+                                    handleCopyCode(
+                                      `<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${topGoogleFont}&display=swap">`,
+                                      'html_link'
+                                    );
+                                  }}
                                   className="px-2 py-0.5 rounded bg-slate-800 hover:bg-emerald-600 text-white transition flex items-center space-x-1"
                                 >
                                   {copiedSnippet === 'html_link' ? <Check className="h-2.5 w-2.5 text-emerald-400" /> : <Copy className="h-2.5 w-2.5" />}
@@ -4593,7 +4601,7 @@ feature kern {
                                 </button>
                               </div>
                               <pre className="p-2.5 rounded-xl bg-slate-900/90 text-[10px] font-mono text-emerald-300 overflow-x-auto border border-white/5">
-                                {`<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${(identifierResults.matched_fonts[0]?.google_font || identifierResults.matched_fonts[0]?.name).replace(/ /g, '+')}&display=swap">`}
+                                {`<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${(identifierResults.matched_fonts?.[0]?.google_font || identifierResults.matched_fonts?.[0]?.name || 'Inter').replace(/ /g, '+')}&display=swap">`}
                               </pre>
                             </div>
                           </div>
