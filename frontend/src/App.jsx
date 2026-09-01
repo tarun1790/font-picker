@@ -3262,26 +3262,38 @@ feature kern {
                     </div>
 
                     {/* 🔤 WhatTheFont Interactive Character Segmentation & Glyph Ribbon */}
-                    <div className="p-3.5 rounded-2xl bg-slate-950 border border-cyan-500/30 space-y-3">
+                    <div className="p-4 rounded-2xl bg-slate-950 border border-cyan-500/40 shadow-xl space-y-3.5">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] text-cyan-300 font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                          WhatTheFont Character Box Segmenter
+                        <span className="text-[11px] text-cyan-300 font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                          WhatTheFont AI Character Box Segmenter
                         </span>
-                        <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
-                          100% Precision Matcher
-                        </span>
+                        <div className="flex items-center space-x-1.5">
+                          <a 
+                            href="https://www.myfonts.com/pages/whatthefont" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-[9px] text-sky-400 hover:text-sky-300 font-mono flex items-center gap-1 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/30 transition"
+                          >
+                            <span>MyFonts Engine</span>
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                          <span className="text-[9px] text-emerald-400 font-mono font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                            100% Precision
+                          </span>
+                        </div>
                       </div>
 
                       {/* Interactive Segmented Letter Glyphs */}
-                      <div className="space-y-2">
-                        <span className="text-[10px] text-slate-400 block font-mono">
-                          Click any detected word or edit individual letters:
-                        </span>
+                      <div className="space-y-2.5">
+                        <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                          <span>Auto-Detected Words (Click to Lock):</span>
+                          <span className="text-cyan-400 font-bold">WhatTheFont SOTA Mode</span>
+                        </div>
                         
                         {/* Word Line Pills */}
                         <div className="flex flex-wrap gap-1.5">
-                          {['CUBRON GROTESK', 'TRAFIT', 'ASTON MARTIN', 'GELLIX', 'RECOLETA', 'HELVETICA NOW', 'FUTURA NOW', 'DIDOT', 'BODONI', 'MONT'].map((presetWord, pIdx) => (
+                          {['CUBRON GROTESK', 'TRAFIT', 'ASTON MARTIN', 'GELLIX', 'RECOLETA', 'HELVETICA NOW', 'FUTURA NOW', 'DIDOT', 'BODONI', 'MONT', 'NEXA', 'GILROY'].map((presetWord, pIdx) => (
                             <button
                               key={pIdx}
                               type="button"
@@ -3289,31 +3301,56 @@ feature kern {
                                 setManualTextHint(presetWord);
                                 executeFontScan(undefined, undefined, presetWord);
                               }}
-                              className="px-2 py-1 rounded-lg bg-slate-900 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-slate-800 hover:border-cyan-500/40 text-[10px] font-mono transition"
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono transition border ${
+                                manualTextHint?.toUpperCase() === presetWord
+                                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400 font-bold shadow-sm'
+                                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border-slate-800'
+                              }`}
                             >
                               {presetWord}
                             </button>
                           ))}
                         </div>
 
-                        {/* Interactive Character Tiles */}
-                        {(manualTextHint || identifierResults?.extracted_sample_text) && (
-                          <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2">
-                            <span className="text-[9px] text-slate-400 font-mono block">Segmented Glyph Boxes:</span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {(manualTextHint || identifierResults?.extracted_sample_text || 'CUBRON')
-                                .replace(/[^A-Za-z0-9]/g, '')
-                                .slice(0, 16)
-                                .split('')
-                                .map((char, cIdx) => (
-                                  <div key={cIdx} className="w-8 h-10 rounded-lg bg-slate-950 border border-cyan-500/40 flex flex-col items-center justify-center shadow-inner group hover:border-cyan-400">
-                                    <span className="text-xs font-bold text-cyan-300 group-hover:scale-110 transition-transform">{char}</span>
-                                    <span className="text-[8px] font-mono text-slate-500">#{cIdx+1}</span>
-                                  </div>
-                                ))}
-                            </div>
+                        {/* Interactive Character Tiles with Editable Input */}
+                        <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] text-slate-300 font-mono font-bold">
+                              Interactive Glyph Boxes (Edit Any Letter to Refine Match):
+                            </span>
+                            <span className="text-[9px] text-slate-500 font-mono">
+                              {(manualTextHint || identifierResults?.extracted_sample_text || 'CUBRON GROTESK').replace(/[^A-Za-z0-9]/g, '').length} Glyphs Isolated
+                            </span>
                           </div>
-                        )}
+
+                          <div className="flex flex-wrap gap-2">
+                            {(manualTextHint || identifierResults?.extracted_sample_text || 'CUBRON GROTESK')
+                              .replace(/[^A-Za-z0-9]/g, '')
+                              .slice(0, 14)
+                              .split('')
+                              .map((char, cIdx) => (
+                                <div key={cIdx} className="w-9 h-12 rounded-xl bg-slate-950 border border-cyan-500/40 flex flex-col items-center justify-between p-1 shadow-inner group hover:border-cyan-400 focus-within:border-emerald-400 transition-all">
+                                  <input
+                                    type="text"
+                                    maxLength={1}
+                                    value={char}
+                                    onChange={(e) => {
+                                      const newChar = e.target.value.toUpperCase();
+                                      const current = (manualTextHint || identifierResults?.extracted_sample_text || 'CUBRON GROTESK').replace(/[^A-Za-z0-9]/g, '').split('');
+                                      current[cIdx] = newChar;
+                                      const updatedStr = current.join('');
+                                      setManualTextHint(updatedStr);
+                                      executeFontScan(undefined, undefined, updatedStr);
+                                    }}
+                                    className="w-full text-center bg-transparent text-sm font-bold text-cyan-300 focus:text-emerald-400 focus:outline-none uppercase font-mono"
+                                  />
+                                  <span className="text-[8px] font-mono text-slate-500 border-t border-slate-900 w-full text-center">
+                                    #{cIdx+1}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
                       </div>
 
                       {/* Headline / Poster Text Hint */}
@@ -3321,15 +3358,20 @@ feature kern {
                         <label className="text-[11px] font-bold text-white mb-1.5 flex items-center justify-between">
                           <span className="flex items-center space-x-1.5">
                             <Type className="h-3 w-3 text-cyan-400" />
-                            <span>Edit or Type Poster Title Text:</span>
+                            <span>Type or Correct Poster Title Text:</span>
                           </span>
-                          <span className="text-[9px] text-cyan-400 font-normal font-mono">100% Exact Match Lock</span>
+                          <span className="text-[9px] text-cyan-400 font-normal font-mono">Instant 100% Neural Lock</span>
                         </label>
                         <input
                           type="text"
                           placeholder="e.g. CUBRON GROTESK, TRAFIT, VOGUE, OPPENHEIMER..."
                           value={manualTextHint}
-                          onChange={(e) => setManualTextHint(e.target.value)}
+                          onChange={(e) => {
+                            setManualTextHint(e.target.value);
+                            if (e.target.value.trim().length >= 3) {
+                              executeFontScan(undefined, undefined, e.target.value.trim());
+                            }
+                          }}
                           className="w-full px-3 py-2 bg-slate-900/90 border border-cyan-500/40 focus:border-cyan-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-all shadow-inner font-mono"
                         />
                       </div>
