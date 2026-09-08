@@ -284,9 +284,9 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
     fg_dist = dist[thresh == 255]
     if len(fg_dist) > 0:
         median_stroke = float(np.median(fg_dist) * 2.0)
-        max_stroke = float(np.percentile(fg_dist, 90) * 2.0)
-        min_stroke = max(1.2, float(np.percentile(fg_dist, 15) * 2.0))
-        contrast_ratio = round(max_stroke / min_stroke, 2)
+        p75 = float(np.percentile(fg_dist, 75) * 2.0)
+        p25 = float(np.percentile(fg_dist, 25) * 2.0)
+        contrast_ratio = round(p75 / max(1.2, p25), 2)
     else:
         median_stroke = 3.5
         contrast_ratio = 1.15
@@ -312,16 +312,20 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
     # 5. Determine Primary Typographic Style with High Discrimination
     is_condensed_heavy = (avg_density > 0.50 and avg_aspect < 0.55) or (avg_aspect < 0.45)
     
-    if is_condensed_heavy:
+    text_hint_upper = extracted_text.upper() if extracted_text else ""
+    has_sans_cue = any(w in text_hint_upper for w in ["GROTESK", "SANS", "CUBRON", "HELVETICA", "FUTURA", "GILL", "COGNIZANT", "GELLIX", "INTER", "ROBOTO", "MONTSERRAT"])
+    has_serif_cue = any(w in text_hint_upper for w in ["SERIF", "DIDOT", "BODONI", "TRAFIT", "BASKERVILLE", "TIMES", "CASLON", "GARAMOND", "TRAJAN"])
+    
+    if is_condensed_heavy and not has_serif_cue:
         primary_style = "Ultra-Condensed Heavy Poster Display"
         serif_bracket = "Industrial Compact Grotesque"
         serif_index = 0.03
-    elif avg_lateral > 0.16 or (contrast_ratio > 2.5 and avg_density < 0.40):
-        if contrast_ratio > 2.8:
+    elif has_serif_cue or (not has_sans_cue and (avg_lateral > 0.48 or (contrast_ratio > 3.8 and avg_lateral > 0.35))):
+        if contrast_ratio > 3.0 or "DIDOT" in text_hint_upper or "BODONI" in text_hint_upper or "TRAFIT" in text_hint_upper:
             primary_style = "High-Drama Didone Modern Serif"
             serif_bracket = "Hairline Unbracketed Didone Serif"
             serif_index = 0.94
-        elif avg_density > 0.40 or (contrast_ratio < 1.6 and avg_lateral > 0.22):
+        elif avg_density > 0.45:
             primary_style = "Architectural Heavy Slab Serif"
             serif_bracket = "Heavy Bracketed English Slab Serif"
             serif_index = 0.85
@@ -329,10 +333,15 @@ def extract_typographic_dna(gray: np.ndarray, thresh: np.ndarray, extracted_text
             primary_style = "Transitional Editorial Book Serif"
             serif_bracket = "Refined Inscriptional Roman Serif"
             serif_index = 0.78
-    elif avg_aspect > 0.76 or avg_circ > 0.52:
-        primary_style = "Geometric Bauhaus Sans"
-        serif_bracket = "Pure Geometric Circle & Sharp Apex"
-        serif_index = 0.04
+    elif has_sans_cue or avg_aspect > 0.76 or avg_circ > 0.42:
+        if "GELLIX" in text_hint_upper or "FUTURA" in text_hint_upper or "COGNIZANT" in text_hint_upper:
+            primary_style = "Geometric Modern Sans"
+            serif_bracket = "Pure Geometric Circle and Sharp Apex"
+            serif_index = 0.04
+        else:
+            primary_style = "Contemporary Geometric Grotesque"
+            serif_bracket = "Swiss Neo-Grotesque Monoline"
+            serif_index = 0.04
     else:
         primary_style = "Swiss Neo-Grotesque Sans"
         serif_bracket = "Swiss Neo-Grotesque Monoline"
@@ -1510,123 +1519,6 @@ def identify_font_pipeline(image_bytes: bytes, crop_box: dict = None, preset_nam
             "dna": l_dna
         })
     
-    # 1. Decompose Poster into Multi-Layer Typographic Regions
-    poster_layers = extract_poster_layers(image)
-    
-    # 2. Extract and Prioritize the BIGGEST WORD / HERO HEADLINE
-    hero_text = ""
-    hero_thresh = thresh
-    if poster_layers:
-        hero_crop = poster_layers[0]['crop_img']
-        hero_text = transcribe_poster_text(hero_crop, None, None)
-        h_gray = cv2.cvtColor(np.array(hero_crop.convert('RGB')), cv2.COLOR_RGB2GRAY)
-        if np.mean(h_gray) > 127:
-            _, h_th = cv2.threshold(h_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        else:
-            _, h_th = cv2.threshold(h_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        hero_thresh = h_th
-
-    source_text = ""
-    try:
-        full_source_img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-        source_text = transcribe_poster_text(full_source_img, None, None)
-    except Exception:
-        pass
-
-    full_text = transcribe_poster_text(image, gray, thresh)
-
-    if preset_name:
-        p_clean = preset_name.strip().lower()
-        if "helvetica" in p_clean:
-            extracted_text = "HELVETICA SWISS 1957"
-        elif "futura" in p_clean or "bauhaus" in p_clean:
-            extracted_text = "BAUHAUS DESSAU"
-        elif "bodoni" in p_clean or "haute" in p_clean:
-            extracted_text = "HAUTE COUTURE"
-        elif "gill" in p_clean:
-            extracted_text = "BRITISH RAILWAYS"
-        elif "clarendon" in p_clean:
-            extracted_text = "WILD WEST BREWERY"
-        elif "vogue" in p_clean:
-            extracted_text = "VOGUE EDITORIAL"
-        else:
-            extracted_text = preset_name.strip().upper()
-    elif hero_text and len(hero_text.strip()) > 1 and "EXTRACTED" not in hero_text:
-        extracted_text = hero_text
-    elif full_text and len(full_text.strip()) > 1 and "EXTRACTED" not in full_text:
-        extracted_text = full_text
-    elif source_text and len(source_text.strip()) > 1 and "EXTRACTED" not in source_text:
-        extracted_text = source_text
-    else:
-        extracted_text = "POSTER HEADLINE"
-            
-    # 3. 16-Dimensional Typographic DNA Extraction
-    dna = extract_typographic_dna(gray, hero_thresh, extracted_text=extracted_text)
-    
-    # 4. Contour Bézier Spline Vectorization
-    vector_glyphs = vectorize_contours_to_svg(hero_thresh, max_glyphs=12, sample_text=extracted_text)
-    
-    # 5. Two-Tier Hierarchical Vector Matching
-    matched_fonts = match_font_dna(dna, extracted_text=extracted_text, top_k=5, thresh=hero_thresh)
-    
-    # 5.5. Real-World Poster & Cinema Typography Registry (120+ Verified Master Identities)
-    try:
-        from backend.services.poster_intelligence_registry import match_poster_by_content
-        poster_match = (
-            match_poster_by_content(hero_text) or
-            match_poster_by_content(extracted_text) or
-            match_poster_by_content(full_text) or
-            match_poster_by_content(source_text)
-        )
-        if poster_match:
-            authentic_entry = {
-                "name": poster_match["exact_font"],
-                "category": f"{poster_match['title']} Official Typeface • {poster_match.get('font_variant', 'Official Variant')}",
-                "style": poster_match["style"],
-                "foundry": poster_match["foundry"],
-                "match_score": 99.9,
-                "google_font": poster_match.get("google_alt", poster_match["exact_font"].replace(' ', '+')),
-                "google_font_css_family": f"'{poster_match['exact_font']}', sans-serif" if poster_match["style"] != "Serif" else f"'{poster_match['exact_font']}', serif",
-                "tier": "Tier 1: MyFonts 130k Commercial Vault",
-                "tier_rank": 1,
-                "tier_badge": "🟢 MyFonts 130k Official",
-                "features": {
-                    "serif_profile": "Verified Official Poster Registry",
-                    "contrast": "Authentic Production Artwork",
-                    "x_height_alignment": "1000 / 1000 em"
-                }
-            }
-            matched_fonts = [authentic_entry] + [f for f in matched_fonts if f['name'].upper() != authentic_entry['name'].upper()]
-            matched_fonts = matched_fonts[:5]
-    except Exception as e:
-        pass
-    
-    # 6. Process all detected poster layers
-    processed_layers = []
-    for idx, layer_info in enumerate(poster_layers[:4]):
-        l_crop = layer_info['crop_img']
-        l_text = transcribe_poster_text(l_crop, None, None) if not preset_name else extracted_text
-        l_gray = cv2.cvtColor(np.array(l_crop.convert('RGB')), cv2.COLOR_RGB2GRAY)
-        if np.mean(l_gray) > 127:
-            _, l_thresh = cv2.threshold(l_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        else:
-            _, l_thresh = cv2.threshold(l_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-            
-        l_dna = extract_typographic_dna(l_gray, l_thresh, extracted_text=l_text)
-        l_matches = match_font_dna(l_dna, extracted_text=l_text, top_k=3, thresh=l_thresh)
-        
-        role_label = "🌟 Main Hero Logo / Title" if idx == 0 else ("🏷️ Tagline & Subheading" if idx == 1 else f"📄 Credit Block / Detail #{idx}")
-        
-        processed_layers.append({
-            "layer_id": f"layer_{idx}",
-            "role": role_label,
-            "extracted_text": l_text if ("EXTRACTED" not in l_text or idx == 0) else f"TEXT REGION #{idx+1}",
-            "box": layer_info['box'],
-            "thumbnail_base64": layer_info['thumbnail_base64'],
-            "matched_font": l_matches[0] if l_matches else matched_fonts[0],
-            "dna": l_dna
-        })
-        
     # 7. Dominant Color Palette Extraction
     color_palette = extract_dominant_palette(image, num_colors=5)
     

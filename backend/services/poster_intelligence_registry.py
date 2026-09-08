@@ -392,17 +392,33 @@ def match_poster_by_content(extracted_text: str):
     if not extracted_text:
         return None
     import re
+    from difflib import SequenceMatcher
+    
     text_clean = extracted_text.upper().strip()
+    tokens = re.findall(r'[A-Z0-9]+', text_clean)
+    
+    # 1. Exact string & Regex Keyword Match
     for entry in POSTER_TYPOGRAPHY_DATABASE:
         for kw in entry.get('keywords', []):
             kw_clean = kw.upper().strip()
             if not kw_clean:
                 continue
             if len(kw_clean) <= 3:
-                # Require word boundary for short acronyms/words (e.g. "F1", "NYC")
                 if re.search(r'\b' + re.escape(kw_clean) + r'\b', text_clean):
                     return entry
             else:
                 if kw_clean in text_clean or re.search(r'\b' + re.escape(kw_clean) + r'\b', text_clean):
+                    return entry
+                    
+    # 2. Sub-Token Fuzzy Matching (Handles OCR Typos like UBRON for CUBRON or Tmfit for TRAFIT)
+    for entry in POSTER_TYPOGRAPHY_DATABASE:
+        for kw in entry.get('keywords', []):
+            kw_clean = kw.upper().strip()
+            if len(kw_clean) < 4:
+                continue
+            for tok in tokens:
+                if len(tok) >= 4 and SequenceMatcher(None, tok, kw_clean).ratio() >= 0.70:
+                    return entry
+                if len(tok) >= 5 and len(kw_clean) >= 5 and (tok in kw_clean or kw_clean in tok):
                     return entry
     return None
